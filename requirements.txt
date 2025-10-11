@@ -1,0 +1,6 @@
+Flask
+openai
+moviepy
+numpy
+Pillow
+requests
