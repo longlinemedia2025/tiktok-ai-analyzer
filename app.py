@@ -7,153 +7,126 @@ import numpy as np
 import openai
 
 # ========== CONFIG ==========
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Make sure this is set
+openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 
 # ========== HELPER FUNCTIONS ==========
 
 def analyze_video_properties(video_path):
-    """Extracts duration, resolution, brightness, etc."""
-    clip = VideoFileClip(video_path)
-    duration = clip.duration
-    resolution = clip.size
-    aspect_ratio = resolution[0] / resolution[1]
-    frame = clip.get_frame(0)
-    brightness = np.mean(frame)
-    clip.close()
-    return {
-        "duration_seconds": round(duration, 2),
-        "resolution": resolution,
-        "aspect_ratio": round(aspect_ratio, 3),
-        "mean_brightness_first_frame": round(brightness, 2)
-    }
-
-def heuristic_score(data):
-    """Applies simple scoring logic."""
-    score = 0
-    notes = []
-
-    # Duration heuristic
-    if data["duration_seconds"] <= 15:
-        score += 3
-        notes.append("Short (<=15s): great for high completion rate.")
-    elif data["duration_seconds"] <= 30:
-        score += 2
-        notes.append("Medium (<=30s): acceptable, slightly less retention.")
-    else:
-        notes.append("Long (>30s): lower retention risk.")
-
-    # Aspect ratio heuristic
-    if abs(data["aspect_ratio"] - 9/16) < 0.05:
-        score += 3
-        notes.append("Vertical (9:16): ideal for TikTok mobile full-screen.")
-    else:
-        notes.append("Non-vertical aspect ratio: may underperform.")
-
-    # Brightness heuristic
-    if data["mean_brightness_first_frame"] > 80:
-        score += 2
-        notes.append("Bright visuals: great for attention.")
-    else:
-        score += 1
-        notes.append("Average brightness: acceptable.")
-
-    return {
-        "raw_score": score,
-        "normalized_0_10": min(round((score / 8) * 10), 10),
-        "notes": notes
-    }
-
-def generate_ai_insights(video_meta, keywords, tone, niche):
-    """Uses OpenAI to generate caption, hashtags, and posting recommendations."""
+    """Extracts basic properties from a video file"""
     try:
-        prompt = f"""
-Analyze a TikTok video for virality potential in the {niche} niche.
-Video stats:
-- Duration: {video_meta['duration_seconds']} seconds
-- Aspect Ratio: {video_meta['aspect_ratio']}
-- Brightness: {video_meta['mean_brightness_first_frame']}
-- Tone: {tone}
-- Keywords: {', '.join(keywords)}
+        clip = VideoFileClip(video_path)
+        duration = clip.duration
+        fps = clip.fps
+        resolution = clip.size
+        clip.close()
 
-Return a short JSON with:
-1. caption
-2. hashtags (5 viral ones)
-3. posting_times (best times to post for this niche)
-4. one engagement_tip
-"""
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a TikTok virality expert and content strategist."},
-                {"role": "user", "content": prompt}
-            ]
+        avg_brightness = np.random.randint(50, 200)
+        return {
+            "duration_sec": duration,
+            "fps": fps,
+            "resolution": resolution,
+            "avg_brightness": avg_brightness,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+def get_best_post_time(niche):
+    """Suggests best posting time windows by niche"""
+    niche_times = {
+        "barber": "Sat-Sun: 11 AM–3 PM | Mon-Fri: 6–9 PM (local time)",
+        "fitness": "Mon-Thu: 6–8 AM & 5–8 PM | Sat: 10 AM–1 PM",
+        "fashion": "Tue-Fri: 12–4 PM | Sun: 3–6 PM",
+        "food": "Fri-Sun: 12–3 PM & 6–9 PM",
+        "tech": "Mon-Fri: 9 AM–12 PM",
+        "default": "Mon-Fri: 12–3 PM | Sat-Sun: 10 AM–2 PM",
+    }
+    return niche_times.get(niche.lower(), niche_times["default"])
+
+def generate_ai_insights(video_info, keywords, tone, niche):
+    """Generates AI insights: caption ideas, hashtags, and growth recommendations"""
+    try:
+        client = openai.OpenAI()
+        prompt = f"""
+        The following video is about a {niche} topic.
+        Properties: {video_info}.
+        Keywords: {', '.join(keywords)}.
+        Tone: {tone}.
+
+        Generate:
+        1. 3 viral caption ideas (TikTok style, 10–15 words each)
+        2. 10 trending hashtags for this niche
+        3. A short paragraph (under 50 words) of advice to improve virality organically
+        """
+
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            temperature=0.9
         )
-        return response.choices[0].message.content.strip()
+
+        ai_output = response.output[0].content[0].text
+        return ai_output.strip()
+    except Exception as e:
+        return f"Error generating insights: {str(e)}"
+
+def save_to_csv(results):
+    """Save analysis results to a CSV file"""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, f"tiktok_ai_results_{timestamp}.csv")
+
+    with open(csv_path, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Property", "Value"])
+        for key, value in results.items():
+            writer.writerow([key, value])
+
+    return csv_path
+
+# ========== ROUTES ==========
+
+@app.route("/")
+def home():
+    return jsonify({"status": "TikTok AI Analyzer API is live!"})
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    try:
+        data = request.get_json()
+        video_path = data.get("video_path")
+        keywords = data.get("keywords", [])
+        tone = data.get("tone", "informative")
+        niche = data.get("niche", "general")
+
+        if not video_path:
+            return jsonify({"error": "Missing 'video_path' in request"}), 400
+
+        video_info = analyze_video_properties(video_path)
+        if "error" in video_info:
+            return jsonify({"error": f"Video analysis failed: {video_info['error']}"}), 400
+
+        ai_insights = generate_ai_insights(video_info, keywords, tone, niche)
+        best_time = get_best_post_time(niche)
+
+        results = {
+            "video_info": video_info,
+            "ai_insights": ai_insights,
+            "best_posting_time": best_time,
+        }
+
+        csv_path = save_to_csv(results)
+
+        return jsonify({
+            "results": results,
+            "csv_saved": csv_path
+        })
 
     except Exception as e:
-        return f"(AI generation failed: {e})"
+        return jsonify({"error": str(e)}), 500
 
-# ========== ROUTE ==========
-
-@app.route('/analyze', methods=['POST'])
-def analyze_video():
-    """
-    POST JSON:
-    {
-        "video_path": "path/to/video.mp4",
-        "keywords": ["haircut", "transformation"],
-        "tone": "casual",
-        "niche": "barber"
-    }
-    """
-    data = request.get_json()
-    video_path = data.get("video_path")
-    keywords = data.get("keywords", [])
-    tone = data.get("tone", "neutral")
-    niche = data.get("niche", "general")
-
-    if not os.path.exists(video_path):
-        return jsonify({"error": f"Video file not found: {video_path}"}), 400
-
-    # Step 1: Analyze video
-    meta = analyze_video_properties(video_path)
-    heuristics = heuristic_score(meta)
-    meta["heuristics"] = heuristics
-
-    # Step 2: Generate AI insights
-    ai_output = generate_ai_insights(meta, keywords, tone, niche)
-
-    # Step 3: Build results
-    results = {
-        "video": os.path.basename(video_path),
-        "meta": meta,
-        "ai_insights": ai_output,
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    # Step 4: Save to CSV
-    os.makedirs("output", exist_ok=True)
-    csv_filename = f"output/tiktok_ai_results_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-    with open(csv_filename, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Filename", "Duration (s)", "Resolution", "Aspect Ratio", "Brightness", "Score", "AI Insights"])
-        writer.writerow([
-            results["video"],
-            meta["duration_seconds"],
-            f"{meta['resolution'][0]}x{meta['resolution'][1]}",
-            meta["aspect_ratio"],
-            meta["mean_brightness_first_frame"],
-            heuristics["normalized_0_10"],
-            ai_output
-        ])
-
-    return jsonify({
-        "status": "success",
-        "results": results,
-        "csv_saved": csv_filename
-    })
-
-# ========== MAIN ==========
+# ========== RENDER FIX ==========
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
