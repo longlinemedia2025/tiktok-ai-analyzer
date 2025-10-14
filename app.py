@@ -5,193 +5,223 @@ from moviepy.editor import VideoFileClip
 import numpy as np
 from openai import OpenAI
 
-# ==============================
-# CONFIGURATION
-# ==============================
-app = Flask(__name__)
+# ========== CONFIG ==========
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app = Flask(__name__)
 
-# ==============================
-# SIMPLE HTML FRONTEND
-# ==============================
+# ========== HTML FRONTEND ==========
 HTML_PAGE = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>TikTok AI Analyzer</title>
+    <title>TikTok Viral Optimizer</title>
     <style>
         body {
+            background-color: #0d1117;
+            color: #c9d1d9;
             font-family: Arial, sans-serif;
-            background-color: #0f0f0f;
-            color: #fff;
             text-align: center;
             padding: 40px;
         }
-        h1 { color: #00ffa6; }
-        .drop-zone {
-            width: 60%;
+        h1 { color: #58a6ff; }
+        .dropzone {
             margin: 30px auto;
             padding: 50px;
-            border: 3px dashed #00ffa6;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-        .drop-zone:hover {
-            background-color: rgba(0,255,166,0.1);
+            width: 80%;
+            max-width: 600px;
+            border: 3px dashed #58a6ff;
+            border-radius: 12px;
+            background-color: #161b22;
         }
         #output {
-            margin-top: 30px;
+            white-space: pre-wrap;
             text-align: left;
-            background: #1a1a1a;
-            padding: 20px;
+            margin-top: 20px;
+            background: #161b22;
             border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #30363d;
         }
     </style>
 </head>
 <body>
-    <h1>🎬 TikTok AI Analyzer</h1>
-    <p>Drag and drop your TikTok video below to analyze it for viral potential!</p>
-    <div class="drop-zone" id="drop-zone">Drop video here or click to upload</div>
-    <input type="file" id="file-input" accept="video/*" style="display: none;">
+    <h1>🎬 TikTok Viral Optimizer</h1>
+    <div class="dropzone" id="dropzone">Drag & Drop Your TikTok Video Here</div>
     <div id="output"></div>
 
     <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const output = document.getElementById('output');
+        const dropzone = document.getElementById("dropzone");
+        const output = document.getElementById("output");
 
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        dropZone.addEventListener('dragover', (e) => {
+        dropzone.addEventListener("dragover", e => {
             e.preventDefault();
-            dropZone.style.backgroundColor = 'rgba(0,255,166,0.1)';
+            dropzone.style.borderColor = "#00ff99";
         });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.style.backgroundColor = '';
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.style.borderColor = "#58a6ff";
         });
 
-        dropZone.addEventListener('drop', async (e) => {
+        dropzone.addEventListener("drop", async e => {
             e.preventDefault();
+            dropzone.style.borderColor = "#58a6ff";
+
             const file = e.dataTransfer.files[0];
-            if (!file) return;
-            await uploadVideo(file);
-        });
-
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (file) await uploadVideo(file);
-        });
-
-        async function uploadVideo(file) {
-            output.innerHTML = "⏳ Uploading and analyzing your video...";
             const formData = new FormData();
             formData.append("video", file);
+
+            output.innerText = "🎥 Running TikTok Viral Optimizer...";
 
             const response = await fetch("/analyze", {
                 method: "POST",
                 body: formData
             });
-            const result = await response.json();
-            output.innerHTML = "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
-        }
+
+            const data = await response.json();
+            output.innerText = JSON.stringify(data, null, 2);
+        });
     </script>
 </body>
 </html>
 """
 
-# ==============================
-# HELPER: ANALYZE VIDEO
-# ==============================
+# ========== HELPER FUNCTIONS ==========
 def analyze_video_properties(video_path):
+    """Extract key metrics (duration, resolution, brightness)."""
     try:
         clip = VideoFileClip(video_path)
         duration = clip.duration
-        width, height = clip.size
+        resolution = f"{clip.w}x{clip.h}"
         fps = clip.fps
-
-        frame = clip.get_frame(0)
+        frame = clip.get_frame(0.5)
         brightness = np.mean(frame)
-        aspect_ratio = round(width / height, 3)
-        resolution = f"{width}x{height}"
-
         clip.close()
         return {
             "duration_seconds": round(duration, 2),
-            "frame_rate": round(fps, 2),
             "resolution": resolution,
-            "aspect_ratio": aspect_ratio,
-            "brightness": round(float(brightness), 2)
+            "frame_rate": round(fps, 2),
+            "brightness": round(brightness, 2)
         }
     except Exception as e:
         return {"error": str(e)}
 
-# ==============================
-# ROUTES
-# ==============================
+def generate_niche_analysis(video_metrics, filename):
+    """AI-powered analysis with niche inference and viral insights."""
+    # Derive simple cues from the filename for better context
+    filename_lower = filename.lower()
+    possible_niches = {
+        "hair": "Barber / Hair Transformation",
+        "cut": "Barber / Hairstyle",
+        "fade": "Barber / Grooming",
+        "gaming": "Gaming / Gameplay",
+        "game": "Gaming / Esports",
+        "makeup": "Beauty / Makeup Tutorial",
+        "cook": "Cooking / Food Content",
+        "food": "Cooking / Food",
+        "motivation": "Motivational / Self-Improvement",
+        "fitness": "Fitness / Gym Content",
+        "vlog": "Lifestyle / Daily Vlog",
+        "review": "Product Review / Unboxing",
+        "dance": "Dance / Performance",
+        "pet": "Animals / Pets",
+        "dog": "Animals / Pets",
+        "cat": "Animals / Pets"
+    }
+
+    detected_niche = "General / Undefined"
+    for keyword, niche in possible_niches.items():
+        if keyword in filename_lower:
+            detected_niche = niche
+            break
+
+    prompt = f"""
+You are TikTok’s top AI viral strategist. 
+Analyze this video and generate an advanced, **niche-specific** TikTok optimization report.
+
+🧠 The video details:
+- File name: {filename}
+- Auto-detected niche from filename: {detected_niche}
+- Duration: {video_metrics.get('duration_seconds')}s
+- Resolution: {video_metrics.get('resolution')}
+- Brightness: {video_metrics.get('brightness')}
+- Frame Rate: {video_metrics.get('frame_rate')}
+
+🎯 Your tasks:
+1. Determine the **most accurate niche** based on the filename and metrics.
+2. Generate the output in the following **exact structured format**:
+
+🎬 Video: {filename}
+📏 Duration: {video_metrics.get('duration_seconds')}s
+🖼 Resolution: {video_metrics.get('resolution')}
+📱 Aspect Ratio: Describe (Vertical, Horizontal, or Square)
+💡 Brightness: {video_metrics.get('brightness')}
+⭐ Heuristic Score: (1–10, based on clarity & visual quality)
+
+💬 AI-Generated Viral Insights:
+### 1. Scroll-Stopping Caption
+(Create a short, niche-relevant caption with emojis and emotional hook)
+
+### 2. 5 Viral Hashtags
+(Create 5 hashtags perfectly relevant to that niche)
+
+### 3. Actionable Improvement Tip
+(Give 1 powerful, niche-specific engagement improvement)
+
+### 4. Viral Optimization Score (1–100)
+(Provide score + short reasoning)
+
+### 5. Motivation
+(A short motivational paragraph about going viral in that niche)
+
+🔥 Viral Comparison Results:
+### Comparison with Viral TikToks in the [Detected Niche] Niche
+(Give 3 realistic examples with why they went viral and how to replicate)
+
+📋 Actionable Checklist:
+   - Hook viewers in under 2 seconds
+   - Add trending sound if relevant
+   - Post during peak times
+   - Include call-to-action (CTA)
+   - Maintain authentic energy
+
+Be **deeply specific to the detected niche** (e.g. for haircut videos, discuss fade techniques or transformations; for gaming, discuss suspense and commentary pacing, etc.)
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert viral strategist for TikTok and short-form video."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error generating analysis: {e}"
+
+# ========== ROUTES ==========
 @app.route("/")
-def index():
+def home():
     return render_template_string(HTML_PAGE)
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
     if "video" not in request.files:
-        return jsonify({"error": "No video uploaded."})
+        return jsonify({"error": "No video uploaded."}), 400
 
     video = request.files["video"]
-    video_path = os.path.join("uploads", video.filename)
-    os.makedirs("uploads", exist_ok=True)
-    video.save(video_path)
+    filename = video.filename
+    temp_path = os.path.join("/tmp", filename)
+    video.save(temp_path)
 
-    props = analyze_video_properties(video_path)
-    if "error" in props:
-        return jsonify(props)
+    video_metrics = analyze_video_properties(temp_path)
+    ai_output = generate_niche_analysis(video_metrics, filename)
 
-    # Generate a detailed AI analysis prompt
-    prompt = f"""
-You are an AI TikTok content strategist.
-Analyze this video for its viral potential using the following details:
-Duration: {props['duration_seconds']} seconds
-Resolution: {props['resolution']}
-Aspect Ratio: {props['aspect_ratio']}
-Brightness: {props['brightness']}
-Frame Rate: {props['frame_rate']}
+    return jsonify({
+        **video_metrics,
+        "niche_analysis": ai_output
+    })
 
-Provide a structured report including:
-1. Scroll-stopping caption (with emojis)
-2. 5 trending hashtags
-3. Engagement improvement tip
-4. Viral optimization score (1-100)
-5. Motivation or insight for creator
-6. Comparison with 3 viral TikToks in the same niche
-7. Actionable checklist for virality
-Format clearly with headers and bullet points.
-"""
-
-    try:
-        ai_response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional social media strategist and TikTok algorithm expert."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.85,
-            max_tokens=1200
-        )
-
-        result_text = ai_response.choices[0].message.content
-        props["ai_analysis"] = result_text
-        return jsonify(props)
-    except Exception as e:
-        props["error"] = str(e)
-        return jsonify(props)
-    finally:
-        if os.path.exists(video_path):
-            os.remove(video_path)
-
-# ==============================
-# RUN APP
-# ==============================
+# ========== MAIN ==========
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
