@@ -8,16 +8,13 @@ from moviepy.editor import VideoFileClip
 import openai
 from io import BytesIO
 from PIL import Image
-import time
 
-# ========= CONFIG =========
 openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 
 # ========= HELPER FUNCTIONS =========
 
 def frame_to_base64(frame):
-    """Convert a NumPy video frame to base64-encoded JPEG"""
     img = Image.fromarray(frame.astype("uint8"))
     buf = BytesIO()
     img.save(buf, format="JPEG")
@@ -29,7 +26,6 @@ def analyze_video_properties(video_path):
     width, height = clip.size
     aspect_ratio = round(width / height, 3)
 
-    # Sample 3 frames evenly spaced
     frame1 = clip.get_frame(clip.duration * 0.25)
     frame2 = clip.get_frame(clip.duration * 0.5)
     frame3 = clip.get_frame(clip.duration * 0.75)
@@ -38,7 +34,6 @@ def analyze_video_properties(video_path):
     tone = "bright" if brightness > 70 else "dark" if brightness < 40 else "neutral or mixed"
     heuristic_score = 9 if brightness >= 60 else 7
 
-    # Convert frames to base64 for AI visual understanding
     frames_base64 = [frame_to_base64(f) for f in [frame1, frame2, frame3]]
     clip.close()
 
@@ -54,13 +49,11 @@ def analyze_video_properties(video_path):
 
 def generate_ai_analysis(filename, props):
     images_input = "\n".join([f"[FRAME {i+1} - base64 image data: {b[:120]}...]" for i, b in enumerate(props["frames_base64"])])
-
     prompt = f"""
-You are an expert TikTok content strategist and AI video analyst.
+You are an expert TikTok strategist and AI visual analyst.
 
-You are analyzing a TikTok video using its **visual frames** and metadata (do not rely on file name).
+Analyze this TikTok video purely based on its visuals and metadata:
 
-### Video Properties
 🎬 Duration: {props['duration']}s
 🖼 Resolution: {props['resolution']}
 📱 Aspect Ratio: {props['aspect_ratio']}
@@ -68,62 +61,20 @@ You are analyzing a TikTok video using its **visual frames** and metadata (do no
 🎨 Tone: {props['tone']}
 ⭐ Heuristic Score: {props['heuristic_score']}/10
 
-### Extracted Video Frames
+Extracted Video Frames:
 {images_input}
 
----
+Now output your analysis using the exact structure below:
 
-Now produce your full analysis using the following exact template and wording — do not change structure, section titles, or emojis:
-
-🎬 Drag and drop your TikTok video file here: "{filename}"
-🎥 Running TikTok Viral Optimizer...
-
-🤖 Generating AI-powered analysis, captions, and viral tips...
-
-🔥 Fetching viral video comparisons and strategic insights...
-
-✅ TikTok Video Analysis Complete!
-
-🎬 Video: {filename}
-📏 Duration: {props['duration']}s
-🖼 Resolution: {props['resolution']}
-📱 Aspect Ratio: {props['aspect_ratio']}
-💡 Brightness: {props['brightness']}
-🎨 Tone: {props['tone']}
-⭐ Heuristic Score: {props['heuristic_score']}/10
-
-💬 AI-Generated Viral Insights:
-### 1. Scroll-Stopping Caption
-(Provide an engaging and emotion-driven caption based on the visuals.)
-
-### 2. 5 Viral Hashtags
-(List exactly 5 relevant hashtags matching the video’s niche and visuals.)
-
-### 3. Actionable Improvement Tip for Engagement
-(Give one realistic, creative tip to boost viewer interaction.)
-
-### 4. Viral Optimization Score (1–100)
-(Give a score and short reason in parentheses.)
-
-### 5. Short Motivation on How to Increase Virality
-(2–3 sentences motivating the creator to improve their reach.)
-
-🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the Same Niche
-
-#### Viral Example 1: (Include title, summary, what made it go viral, and replication tips.)
-#### Viral Example 2: (Same structure.)
-#### Viral Example 3: (Same structure.)
-
-### Takeaway Strategy
-(Summarize lessons learned from the viral examples and how to apply them.)
-
-📋 Actionable Checklist:
-   - Hook viewers in under 2 seconds.
-   - Add trending sound if relevant.
-   - Post during high activity times (Fri–Sun, 6–10pm).
-   - Encourage comments by asking a question.
-    """
+🎬 TikTok Video Analyzer
+📱 Niche:
+💬 Caption:
+🏷 Hashtags:
+⭐ Viral Optimization Score (1–100):
+💡 Engagement Tip:
+🔥 Motivation:
+📊 Why this could go viral:
+"""
 
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
@@ -166,6 +117,12 @@ def home():
                 text-align: left;
                 font-size: 15px;
             }
+            video {
+                margin-top: 20px;
+                width: 300px;
+                border-radius: 12px;
+                border: 2px solid #00ffa0;
+            }
             .loader {
                 margin-top: 30px;
                 color: #00ffa0;
@@ -183,6 +140,7 @@ def home():
     <body>
         <h1>🎬 TikTok AI Analyzer</h1>
         <div id="drop_zone">Drag & Drop your TikTok video here</div>
+        <video id="preview" controls style="display:none;"></video>
         <div class="loader" id="loader" style="display:none;">Analyzing your video... please wait ⏳</div>
         <div id="result"></div>
 
@@ -190,14 +148,13 @@ def home():
         const dropZone = document.getElementById('drop_zone');
         const result = document.getElementById('result');
         const loader = document.getElementById('loader');
+        const preview = document.getElementById('preview');
 
         dropZone.addEventListener('dragover', e => {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
-        dropZone.addEventListener('dragleave', e => {
-            dropZone.classList.remove('dragover');
-        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', async e => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
@@ -206,25 +163,35 @@ def home():
 
             result.innerHTML = '';
             loader.style.display = 'block';
+            preview.style.display = 'block';
+            preview.src = URL.createObjectURL(file);
 
             const formData = new FormData();
             formData.append('video', file);
 
             try {
                 const res = await fetch('/analyze', { method: 'POST', body: formData });
-                const data = await res.json();
+                const text = await res.text(); // safer than res.json()
+                let data;
+
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error("Server returned unexpected response. Please retry.");
+                }
+
                 loader.style.display = 'none';
                 typeWriterEffect(data.output || '⚠️ Something went wrong.');
             } catch (err) {
                 loader.style.display = 'none';
-                result.innerHTML = '⚠️ Request failed: ' + err.message;
+                result.innerHTML = '⚠️ ' + err.message;
             }
         });
 
         function typeWriterEffect(text) {
             let i = 0;
             result.innerHTML = '';
-            const speed = 8; // milliseconds per character
+            const speed = 8;
             function type() {
                 if (i < text.length) {
                     result.innerHTML += text.charAt(i);
@@ -256,6 +223,5 @@ def analyze_video():
         print(error_text)
         return jsonify({"output": error_text}), 500
 
-# ========= MAIN =========
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
