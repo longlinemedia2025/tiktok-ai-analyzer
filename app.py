@@ -1,141 +1,197 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template_string
 import os
 import datetime
-import csv
 from moviepy.editor import VideoFileClip
-from openai import OpenAI
 import numpy as np
-from PIL import Image
+from openai import OpenAI
 
-# ========== CONFIG ==========
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ==============================
+# CONFIGURATION
+# ==============================
 app = Flask(__name__)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# ========== HELPER FUNCTIONS ==========
+# ==============================
+# SIMPLE HTML FRONTEND
+# ==============================
+HTML_PAGE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TikTok AI Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0f0f0f;
+            color: #fff;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 { color: #00ffa6; }
+        .drop-zone {
+            width: 60%;
+            margin: 30px auto;
+            padding: 50px;
+            border: 3px dashed #00ffa6;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .drop-zone:hover {
+            background-color: rgba(0,255,166,0.1);
+        }
+        #output {
+            margin-top: 30px;
+            text-align: left;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 TikTok AI Analyzer</h1>
+    <p>Drag and drop your TikTok video below to analyze it for viral potential!</p>
+    <div class="drop-zone" id="drop-zone">Drop video here or click to upload</div>
+    <input type="file" id="file-input" accept="video/*" style="display: none;">
+    <div id="output"></div>
 
-def analyze_video_properties(video_path):
-    """Extract key properties like duration, resolution, fps, brightness, and aspect ratio."""
-    clip = VideoFileClip(video_path)
-    duration = clip.duration
-    width, height = clip.size
-    fps = clip.fps
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const output = document.getElementById('output');
 
-    # Compute brightness (sample every N frames)
-    brightness_samples = []
-    for frame in clip.iter_frames(fps=max(1, int(fps / 5)), dtype="uint8"):
-        brightness = np.mean(frame)
-        brightness_samples.append(brightness)
-    avg_brightness = round(np.mean(brightness_samples), 2)
+        dropZone.addEventListener('click', () => fileInput.click());
 
-    clip.close()
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.backgroundColor = 'rgba(0,255,166,0.1)';
+        });
 
-    aspect_ratio = round(width / height, 3)
-    tone = "bright" if avg_brightness > 150 else "dark" if avg_brightness < 80 else "neutral or mixed"
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.backgroundColor = '';
+        });
 
-    return {
-        "duration_seconds": round(duration, 2),
-        "resolution": f"{width}x{height}",
-        "frame_rate": round(fps, 2),
-        "aspect_ratio": aspect_ratio,
-        "brightness": avg_brightness,
-        "tone": tone
-    }
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            await uploadVideo(file);
+        });
 
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) await uploadVideo(file);
+        });
 
-def generate_ai_analysis(video_path, video_info):
-    """Generate full viral insights with OpenAI."""
-    prompt = f"""
-You are an AI TikTok strategist who specializes in viral video optimization.
+        async function uploadVideo(file) {
+            output.innerHTML = "⏳ Uploading and analyzing your video...";
+            const formData = new FormData();
+            formData.append("video", file);
 
-Analyze this TikTok video based on its data:
-- Duration: {video_info['duration_seconds']}s
-- Resolution: {video_info['resolution']}
-- Aspect Ratio: {video_info['aspect_ratio']}
-- Brightness: {video_info['brightness']}
-- Tone: {video_info['tone']}
-- Frame Rate: {video_info['frame_rate']}
-
-The file name may suggest its niche: "{os.path.basename(video_path)}"
-
-Please produce a **comprehensive viral report** in this format:
-
-🎬 Video Analysis Report
-✅ Basic Video Details:
-- Duration
-- Resolution
-- Aspect Ratio
-- Brightness
-- Tone
-- Frame Rate
-
-💬 AI-Generated Viral Insights:
-1. Scroll-Stopping Caption
-2. 5 Viral Hashtags
-3. Actionable Improvement Tip
-4. Viral Optimization Score (1–100)
-5. Motivation Tip for Increasing Virality
-
-🔥 Viral Comparison Results:
-Include 3 short examples of similar viral TikToks in the same niche, describe why they went viral, and how to replicate that success.
-
-📋 Final Actionable Checklist:
-Give 4–5 bullet points on what the creator should do next to improve their TikTok performance.
-
-Be detailed, accurate, niche-specific (based on the filename), and formatted in Markdown style.
+            const response = await fetch("/analyze", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+            output.innerHTML = "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+        }
+    </script>
+</body>
+</html>
 """
 
+# ==============================
+# HELPER: ANALYZE VIDEO
+# ==============================
+def analyze_video_properties(video_path):
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional social media strategist for viral TikToks."},
-                {"role": "user", "content": prompt}
-            ]
-        )
+        clip = VideoFileClip(video_path)
+        duration = clip.duration
+        width, height = clip.size
+        fps = clip.fps
 
-        ai_text = response.choices[0].message.content.strip()
-        return {"ai_suggestions": ai_text}
+        frame = clip.get_frame(0)
+        brightness = np.mean(frame)
+        aspect_ratio = round(width / height, 3)
+        resolution = f"{width}x{height}"
 
+        clip.close()
+        return {
+            "duration_seconds": round(duration, 2),
+            "frame_rate": round(fps, 2),
+            "resolution": resolution,
+            "aspect_ratio": aspect_ratio,
+            "brightness": round(float(brightness), 2)
+        }
     except Exception as e:
         return {"error": str(e)}
 
-
-# ========== ROUTES ==========
-
+# ==============================
+# ROUTES
+# ==============================
 @app.route("/")
-def home():
-    return render_template("index.html")
-
+def index():
+    return render_template_string(HTML_PAGE)
 
 @app.route("/analyze", methods=["POST"])
-def analyze_video():
+def analyze():
     if "video" not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+        return jsonify({"error": "No video uploaded."})
 
-    video_file = request.files["video"]
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    video_path = os.path.join("uploads", f"video_{timestamp}.mp4")
-
+    video = request.files["video"]
+    video_path = os.path.join("uploads", video.filename)
     os.makedirs("uploads", exist_ok=True)
-    video_file.save(video_path)
+    video.save(video_path)
 
-    # Analyze properties and run AI
-    video_info = analyze_video_properties(video_path)
-    ai_results = generate_ai_analysis(video_path, video_info)
-    result = {**video_info, **ai_results}
+    props = analyze_video_properties(video_path)
+    if "error" in props:
+        return jsonify(props)
 
-    # Save results in a CSV log
-    log_path = "video_analysis_log.csv"
-    file_exists = os.path.isfile(log_path)
-    with open(log_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=result.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(result)
+    # Generate a detailed AI analysis prompt
+    prompt = f"""
+You are an AI TikTok content strategist.
+Analyze this video for its viral potential using the following details:
+Duration: {props['duration_seconds']} seconds
+Resolution: {props['resolution']}
+Aspect Ratio: {props['aspect_ratio']}
+Brightness: {props['brightness']}
+Frame Rate: {props['frame_rate']}
 
-    return jsonify(result)
+Provide a structured report including:
+1. Scroll-stopping caption (with emojis)
+2. 5 trending hashtags
+3. Engagement improvement tip
+4. Viral optimization score (1-100)
+5. Motivation or insight for creator
+6. Comparison with 3 viral TikToks in the same niche
+7. Actionable checklist for virality
+Format clearly with headers and bullet points.
+"""
 
+    try:
+        ai_response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional social media strategist and TikTok algorithm expert."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.85,
+            max_tokens=1200
+        )
 
-# ========== RUN LOCAL ==========
+        result_text = ai_response.choices[0].message.content
+        props["ai_analysis"] = result_text
+        return jsonify(props)
+    except Exception as e:
+        props["error"] = str(e)
+        return jsonify(props)
+    finally:
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+# ==============================
+# RUN APP
+# ==============================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
