@@ -1,5 +1,31 @@
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Video and media
 *.mp4
 *.mov
+*.avi
+*.mkv
+uploads/
+
+# CSV / outputs
 *.csv
 output/
+
+# Flask / Frontend build
+instance/
+.static/
+frontend/node_modules/
+frontend/build/
+
+# Model files
+*.caffemodel
+*.prototxt
+
+# System files
+.DS_Store
+Thumbs.db

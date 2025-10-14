@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import cv2
@@ -6,13 +6,21 @@ import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 
-# Initialize
-app = Flask(__name__)
+# ================== INITIALIZE ==================
+# If your frontend is a simple HTML/CSS/JS page inside a folder named "static"
+# use static_folder="static"
+# If it's a React build, rename that folder to "frontend/build"
+app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# ========== Helper Functions ==========
+# ================== FRONTEND ROUTE ==================
+@app.route("/")
+def serve_frontend():
+    """Serve the frontend HTML file when visiting the root URL"""
+    return app.send_static_file("index.html")
 
+# ================== HELPER FUNCTIONS ==================
 def analyze_video_properties(video_path):
     """Extract brightness, colorfulness, and detect objects using OpenCV"""
     cap = cv2.VideoCapture(video_path)
@@ -70,8 +78,7 @@ def analyze_video_properties(video_path):
         "objects": list(detected_objects)
     }
 
-# ========== Routes ==========
-
+# ================== API ROUTE ==================
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
     try:
@@ -120,6 +127,6 @@ def analyze_video():
         print("🔥 Server Error:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# ========== Main ==========
+# ================== MAIN ==================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
