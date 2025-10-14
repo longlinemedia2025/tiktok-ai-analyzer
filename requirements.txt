@@ -10,4 +10,6 @@ imageio-ffmpeg==0.4.9
 decorator==4.4.2
 proglog==0.1.10
 opencv-python-headless==4.10.0.84
+Flask-Cors==4.0.0
+
 
