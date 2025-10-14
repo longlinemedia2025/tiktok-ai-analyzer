@@ -8,6 +8,7 @@ from moviepy.editor import VideoFileClip
 import openai
 from io import BytesIO
 from PIL import Image
+import time
 
 # ========= CONFIG =========
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -34,10 +35,10 @@ def analyze_video_properties(video_path):
     frame3 = clip.get_frame(clip.duration * 0.75)
 
     brightness = round(np.mean(frame2) / 2.55, 2)
-    tone = "bright" if brightness > 70 else "dark" if brightness < 40 else "neutral/mixed"
+    tone = "bright" if brightness > 70 else "dark" if brightness < 40 else "neutral or mixed"
     heuristic_score = 9 if brightness >= 60 else 7
 
-    # Convert to base64 for AI visual input
+    # Convert frames to base64 for AI visual understanding
     frames_base64 = [frame_to_base64(f) for f in [frame1, frame2, frame3]]
     clip.close()
 
@@ -52,38 +53,76 @@ def analyze_video_properties(video_path):
     }
 
 def generate_ai_analysis(filename, props):
-    images_input = "\n\n".join([f"[FRAME {i+1} - base64 image data: {b[:120]}...]" for i, b in enumerate(props["frames_base64"])])
-    
+    images_input = "\n".join([f"[FRAME {i+1} - base64 image data: {b[:120]}...]" for i, b in enumerate(props["frames_base64"])])
+
     prompt = f"""
-You are a TikTok video optimization expert. You will analyze 3 base64-encoded frames from a video and its basic properties.
-Your goal: determine the video's likely niche, main subject, and recommend accurate captions + hashtags.
+You are an expert TikTok content strategist and AI video analyst.
+
+You are analyzing a TikTok video using its **visual frames** and metadata (do not rely on file name).
 
 ### Video Properties
-- Duration: {props['duration']}s
-- Resolution: {props['resolution']}
-- Aspect Ratio: {props['aspect_ratio']}
-- Brightness: {props['brightness']}
-- Tone: {props['tone']}
-- Heuristic Score: {props['heuristic_score']}/10
+🎬 Duration: {props['duration']}s
+🖼 Resolution: {props['resolution']}
+📱 Aspect Ratio: {props['aspect_ratio']}
+💡 Brightness: {props['brightness']}
+🎨 Tone: {props['tone']}
+⭐ Heuristic Score: {props['heuristic_score']}/10
 
-### Video Frames (base64 JPEG data)
+### Extracted Video Frames
 {images_input}
 
-### Instructions:
-1. Identify what the video is about from the visuals (ignore the file name).
-2. Determine the likely niche or topic (e.g., fitness, food, hair transformation, travel, gaming, etc.).
-3. Suggest a scroll-stopping caption, 5 hashtags, a viral optimization score, and an engagement tip.
+---
 
-Output format (no extra commentary):
+Now produce your full analysis using the following exact template and wording — do not change structure, section titles, or emojis:
 
-🎬 TikTok Video Analyzer
-📱 Niche: (your guess)
-💬 Caption:
-🏷 Hashtags:
-⭐ Viral Optimization Score (1–100):
-💡 Engagement Tip:
-🔥 Motivation:
-📊 Why this could go viral:
+🎬 Drag and drop your TikTok video file here: "{filename}"
+🎥 Running TikTok Viral Optimizer...
+
+🤖 Generating AI-powered analysis, captions, and viral tips...
+
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ TikTok Video Analysis Complete!
+
+🎬 Video: {filename}
+📏 Duration: {props['duration']}s
+🖼 Resolution: {props['resolution']}
+📱 Aspect Ratio: {props['aspect_ratio']}
+💡 Brightness: {props['brightness']}
+🎨 Tone: {props['tone']}
+⭐ Heuristic Score: {props['heuristic_score']}/10
+
+💬 AI-Generated Viral Insights:
+### 1. Scroll-Stopping Caption
+(Provide an engaging and emotion-driven caption based on the visuals.)
+
+### 2. 5 Viral Hashtags
+(List exactly 5 relevant hashtags matching the video’s niche and visuals.)
+
+### 3. Actionable Improvement Tip for Engagement
+(Give one realistic, creative tip to boost viewer interaction.)
+
+### 4. Viral Optimization Score (1–100)
+(Give a score and short reason in parentheses.)
+
+### 5. Short Motivation on How to Increase Virality
+(2–3 sentences motivating the creator to improve their reach.)
+
+🔥 Viral Comparison Results:
+### Comparison with Viral TikToks in the Same Niche
+
+#### Viral Example 1: (Include title, summary, what made it go viral, and replication tips.)
+#### Viral Example 2: (Same structure.)
+#### Viral Example 3: (Same structure.)
+
+### Takeaway Strategy
+(Summarize lessons learned from the viral examples and how to apply them.)
+
+📋 Actionable Checklist:
+   - Hook viewers in under 2 seconds.
+   - Add trending sound if relevant.
+   - Post during high activity times (Fri–Sun, 6–10pm).
+   - Encourage comments by asking a question.
     """
 
     response = openai.chat.completions.create(
@@ -102,40 +141,55 @@ def home():
         <title>TikTok AI Analyzer</title>
         <style>
             body {
-                background-color: #0f0f0f;
-                color: #f5f5f5;
-                font-family: Arial, sans-serif;
+                background-color: #0b0b0b;
+                color: #f0f0f0;
+                font-family: 'Segoe UI', sans-serif;
                 text-align: center;
                 padding: 80px;
             }
-            h1 { color: #00ff88; }
+            h1 { color: #00ffa0; }
             #drop_zone {
-                border: 3px dashed #00ff88;
+                border: 3px dashed #00ffa0;
                 padding: 60px;
                 width: 70%;
                 margin: 0 auto;
-                border-radius: 12px;
+                border-radius: 14px;
                 transition: background-color 0.3s;
             }
-            #drop_zone.dragover { background-color: rgba(0,255,136,0.1); }
+            #drop_zone.dragover { background-color: rgba(0,255,160,0.08); }
             #result {
                 margin-top: 30px;
-                background-color: #1b1b1b;
+                background-color: #1a1a1a;
                 padding: 25px;
                 border-radius: 12px;
                 white-space: pre-wrap;
                 text-align: left;
+                font-size: 15px;
+            }
+            .loader {
+                margin-top: 30px;
+                color: #00ffa0;
+                font-size: 16px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                animation: glow 1.5s infinite alternate;
+            }
+            @keyframes glow {
+                from { text-shadow: 0 0 5px #00ffa0; opacity: 0.6; }
+                to { text-shadow: 0 0 20px #00ffa0; opacity: 1; }
             }
         </style>
     </head>
     <body>
         <h1>🎬 TikTok AI Analyzer</h1>
         <div id="drop_zone">Drag & Drop your TikTok video here</div>
+        <div class="loader" id="loader" style="display:none;">Analyzing your video... please wait ⏳</div>
         <div id="result"></div>
 
         <script>
         const dropZone = document.getElementById('drop_zone');
         const result = document.getElementById('result');
+        const loader = document.getElementById('loader');
 
         dropZone.addEventListener('dragover', e => {
             e.preventDefault();
@@ -150,18 +204,36 @@ def home():
             const file = e.dataTransfer.files[0];
             if (!file) return;
 
-            result.innerHTML = '🎥 Analyzing video visuals and generating TikTok insights...';
+            result.innerHTML = '';
+            loader.style.display = 'block';
+
             const formData = new FormData();
             formData.append('video', file);
 
             try {
                 const res = await fetch('/analyze', { method: 'POST', body: formData });
                 const data = await res.json();
-                result.innerHTML = data.output || '⚠️ Something went wrong.';
+                loader.style.display = 'none';
+                typeWriterEffect(data.output || '⚠️ Something went wrong.');
             } catch (err) {
+                loader.style.display = 'none';
                 result.innerHTML = '⚠️ Request failed: ' + err.message;
             }
         });
+
+        function typeWriterEffect(text) {
+            let i = 0;
+            result.innerHTML = '';
+            const speed = 8; // milliseconds per character
+            function type() {
+                if (i < text.length) {
+                    result.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
         </script>
     </body>
     </html>
@@ -180,7 +252,7 @@ def analyze_video():
 
         return jsonify({"output": ai_output})
     except Exception as e:
-        error_text = f"⚠️ Internal Server Error:\n{str(e)}\n\n{traceback.format_exc()}"
+        error_text = f"⚠️ Internal Server Error:\\n{str(e)}\\n\\n{traceback.format_exc()}"
         print(error_text)
         return jsonify({"output": error_text}), 500
 
