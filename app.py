@@ -1,25 +1,44 @@
 from flask import Flask, request, jsonify
 import os
 import datetime
+import base64
 import traceback
-from moviepy.editor import VideoFileClip
 import numpy as np
+from moviepy.editor import VideoFileClip
 import openai
+from io import BytesIO
+from PIL import Image
 
 # ========= CONFIG =========
 openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 
 # ========= HELPER FUNCTIONS =========
+
+def frame_to_base64(frame):
+    """Convert a NumPy video frame to base64-encoded JPEG"""
+    img = Image.fromarray(frame.astype("uint8"))
+    buf = BytesIO()
+    img.save(buf, format="JPEG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
 def analyze_video_properties(video_path):
     clip = VideoFileClip(video_path)
     duration = round(clip.duration, 2)
     width, height = clip.size
     aspect_ratio = round(width / height, 3)
-    frame = clip.get_frame(clip.duration / 2)
-    brightness = round(np.mean(frame) / 2.55, 2)  # Normalize to 0-100 scale
-    tone = "bright" if brightness > 70 else "dark" if brightness < 40 else "neutral or mixed"
+
+    # Sample 3 frames evenly spaced
+    frame1 = clip.get_frame(clip.duration * 0.25)
+    frame2 = clip.get_frame(clip.duration * 0.5)
+    frame3 = clip.get_frame(clip.duration * 0.75)
+
+    brightness = round(np.mean(frame2) / 2.55, 2)
+    tone = "bright" if brightness > 70 else "dark" if brightness < 40 else "neutral/mixed"
     heuristic_score = 9 if brightness >= 60 else 7
+
+    # Convert to base64 for AI visual input
+    frames_base64 = [frame_to_base64(f) for f in [frame1, frame2, frame3]]
     clip.close()
 
     return {
@@ -28,64 +47,45 @@ def analyze_video_properties(video_path):
         "aspect_ratio": aspect_ratio,
         "brightness": brightness,
         "tone": tone,
-        "heuristic_score": heuristic_score
+        "heuristic_score": heuristic_score,
+        "frames_base64": frames_base64
     }
 
 def generate_ai_analysis(filename, props):
+    images_input = "\n\n".join([f"[FRAME {i+1} - base64 image data: {b[:120]}...]" for i, b in enumerate(props["frames_base64"])])
+    
     prompt = f"""
-You are a TikTok video optimization expert. The video is titled "{filename}".
-Its properties are:
+You are a TikTok video optimization expert. You will analyze 3 base64-encoded frames from a video and its basic properties.
+Your goal: determine the video's likely niche, main subject, and recommend accurate captions + hashtags.
+
+### Video Properties
 - Duration: {props['duration']}s
 - Resolution: {props['resolution']}
 - Aspect Ratio: {props['aspect_ratio']}
 - Brightness: {props['brightness']}
 - Tone: {props['tone']}
+- Heuristic Score: {props['heuristic_score']}/10
 
-Generate content in this format ONLY (do not add any other text):
+### Video Frames (base64 JPEG data)
+{images_input}
 
-🎬 Drag and drop your TikTok video file here: "C:\\Users\\Administrator1\\Downloads\\{filename}"
-🎥 Running TikTok Viral Optimizer...
+### Instructions:
+1. Identify what the video is about from the visuals (ignore the file name).
+2. Determine the likely niche or topic (e.g., fitness, food, hair transformation, travel, gaming, etc.).
+3. Suggest a scroll-stopping caption, 5 hashtags, a viral optimization score, and an engagement tip.
 
-🤖 Generating AI-powered analysis, captions, and viral tips...
+Output format (no extra commentary):
 
-🔥 Fetching viral video comparisons and strategic insights...
+🎬 TikTok Video Analyzer
+📱 Niche: (your guess)
+💬 Caption:
+🏷 Hashtags:
+⭐ Viral Optimization Score (1–100):
+💡 Engagement Tip:
+🔥 Motivation:
+📊 Why this could go viral:
+    """
 
-✅ TikTok Video Analysis Complete!
-
-🎬 Video: {filename}
-📏 Duration: {props['duration']}s
-🖼 Resolution: {props['resolution']}
-📱 Aspect Ratio: {props['aspect_ratio']}
-💡 Brightness: {props['brightness']}
-🎨 Tone: {props['tone']}
-⭐ Heuristic Score: {props['heuristic_score']}/10
-
-💬 AI-Generated Viral Insights:
-### 1. Scroll-Stopping Caption
-(Create one viral caption for this video.)
-
-### 2. 5 Viral Hashtags
-(List 5 relevant hashtags.)
-
-### 3. Actionable Improvement Tip for Engagement
-(Give one short tip.)
-
-### 4. Viral Optimization Score (1–100)
-(Estimate a realistic viral potential score and explain briefly.)
-
-### 5. Short Motivation on How to Increase Virality
-(Give a short, encouraging motivational note.)
-
-🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the Same Niche
-(Provide 3 example summaries of viral TikToks that relate to this one’s content and explain why they succeeded and how to replicate their success.)
-
-📋 Actionable Checklist:
-   - Hook viewers in under 2 seconds.
-   - Add trending sound if relevant.
-   - Post during high activity times (Fri–Sun, 6–10pm).
-   - Encourage comments by asking a question.
-"""
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
@@ -93,6 +93,7 @@ Generate content in this format ONLY (do not add any other text):
     return response.choices[0].message.content
 
 # ========= ROUTES =========
+
 @app.route("/")
 def home():
     return """
@@ -149,7 +150,7 @@ def home():
             const file = e.dataTransfer.files[0];
             if (!file) return;
 
-            result.innerHTML = '🎥 Running TikTok Viral Optimizer... Please wait...';
+            result.innerHTML = '🎥 Analyzing video visuals and generating TikTok insights...';
             const formData = new FormData();
             formData.append('video', file);
 
