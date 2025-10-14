@@ -3,11 +3,10 @@ import os
 import datetime
 import csv
 from moviepy.editor import VideoFileClip
-import numpy as np
-import openai
+from openai import OpenAI
 
 # ========== CONFIG ==========
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 
 # ========== HELPER FUNCTIONS ==========
@@ -41,7 +40,7 @@ def generate_ai_analysis(video_info):
     """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a social media strategist for viral TikToks."},
@@ -49,7 +48,7 @@ def generate_ai_analysis(video_info):
             ]
         )
 
-        text = response.choices[0].message["content"]
+        text = response.choices[0].message.content
         return {"ai_suggestions": text.strip()}
 
     except Exception as e:
