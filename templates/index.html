@@ -1,85 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>TikTok AI Analyzer</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      padding-top: 60px;
-    }
-    #drop-zone {
-      border: 3px dashed #00e0ff;
-      border-radius: 20px;
-      width: 400px;
-      margin: 0 auto;
-      padding: 60px;
-      transition: background 0.3s;
-    }
-    #drop-zone.dragover {
-      background: rgba(0, 224, 255, 0.1);
-    }
-    #result {
-      margin-top: 30px;
-      color: #0ff;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Video Analyzer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: radial-gradient(circle at top left, #0d0d0d, #1a1a1a, #000);
+            color: #f1f1f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #ff2e63;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+
+        #drop-area {
+            border: 3px dashed #444;
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            background: rgba(30, 30, 30, 0.9);
+            transition: border 0.3s ease, background 0.3s ease;
+            cursor: pointer;
+        }
+
+        #drop-area.dragover {
+            border-color: #ff2e63;
+            background: rgba(50, 50, 50, 0.9);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #upload-text {
+            color: #bbb;
+            font-size: 1rem;
+        }
+
+        #upload-text span {
+            color: #ff2e63;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 20px;
+            color: #ff2e63;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        #result {
+            margin-top: 25px;
+            text-align: left;
+            width: 80%;
+            max-width: 800px;
+            white-space: pre-wrap;
+            background: rgba(15, 15, 15, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 46, 99, 0.2);
+            font-size: 0.95rem;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 10px;
+            font-size: 0.8rem;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
-  <h1>🎬 TikTok AI Analyzer</h1>
-  <div id="drop-zone">
-    <p>Drag & drop a video file here<br>or click to choose one</p>
-    <input type="file" id="file-input" accept="video/*" style="display:none;" />
-  </div>
-  <div id="result"></div>
 
-  <script>
-    const dropZone = document.getElementById("drop-zone");
-    const fileInput = document.getElementById("file-input");
-    const result = document.getElementById("result");
+    <h1>🎬 TikTok AI Video Analyzer</h1>
+    <p>Drop your TikTok video here or <span id="clickUpload">click to upload</span></p>
 
-    dropZone.addEventListener("click", () => fileInput.click());
+    <div id="drop-area">
+        <p id="upload-text">🎥 Drag & drop your video here<br>or <span>browse your files</span></p>
+        <input type="file" id="fileInput" accept="video/*">
+    </div>
 
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("dragover");
-    });
+    <div id="loading">⏳ Analyzing video, please wait...</div>
+    <div id="result"></div>
 
-    dropZone.addEventListener("dragleave", () => {
-      dropZone.classList.remove("dragover");
-    });
+    <footer>Powered by LongLineMedia · AI TikTok Analyzer</footer>
 
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("dragover");
-      const file = e.dataTransfer.files[0];
-      if (file) uploadFile(file);
-    });
+    <script>
+        const dropArea = document.getElementById("drop-area");
+        const fileInput = document.getElementById("fileInput");
+        const clickUpload = document.getElementById("clickUpload");
+        const resultDiv = document.getElementById("result");
+        const loadingText = document.getElementById("loading");
 
-    fileInput.addEventListener("change", () => {
-      const file = fileInput.files[0];
-      if (file) uploadFile(file);
-    });
+        // Allow click to open file dialog
+        clickUpload.addEventListener("click", () => fileInput.click());
+        dropArea.addEventListener("click", () => fileInput.click());
 
-    async function uploadFile(file) {
-      result.textContent = "⏳ Uploading and analyzing...";
-      const formData = new FormData();
-      formData.append("video", file);
-
-      try {
-        const res = await fetch("/analyze", {
-          method: "POST",
-          body: formData,
+        // Drag & Drop Events
+        ["dragenter", "dragover"].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.add("dragover");
+            }, false);
         });
-        const data = await res.json();
-        result.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        result.textContent = "❌ Error: " + err.message;
-      }
-    }
-  </script>
+
+        ["dragleave", "drop"].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove("dragover");
+            }, false);
+        });
+
+        // Handle dropped files
+        dropArea.addEventListener("drop", (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        // Handle file from click
+        fileInput.addEventListener("change", (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        async function handleFile(file) {
+            resultDiv.textContent = "";
+            loadingText.style.display = "block";
+
+            const formData = new FormData();
+            formData.append("video", file);
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                loadingText.style.display = "none";
+
+                if (data.result) {
+                    resultDiv.textContent = data.result;
+                } else {
+                    resultDiv.textContent = data.error || "⚠️ Something went wrong.";
+                }
+            } catch (err) {
+                loadingText.style.display = "none";
+                resultDiv.textContent = "⚠️ Request failed: " + err.message;
+            }
+        }
+    </script>
 </body>
 </html>
