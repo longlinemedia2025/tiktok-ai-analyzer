@@ -1,267 +1,177 @@
-from flask import Flask, request, jsonify, render_template_string, send_from_directory
+from flask import Flask, request, jsonify
 import os
 import datetime
+import openai
 from moviepy.editor import VideoFileClip
+from PIL import Image
+import io
+import base64
+import random
 import numpy as np
-from openai import OpenAI
+import time
 
 # ========== CONFIG ==========
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
-UPLOAD_FOLDER = "/tmp"
-THUMBNAIL_FOLDER = os.path.join(UPLOAD_FOLDER, "thumbnails")
-os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
-
-# ========== HTML FRONTEND ==========
-HTML_PAGE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>TikTok Viral Optimizer</title>
-    <style>
-        body {
-            background-color: #0d1117;
-            color: #c9d1d9;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 40px;
-        }
-        h1 { color: #58a6ff; }
-        .dropzone {
-            margin: 30px auto;
-            padding: 50px;
-            width: 80%;
-            max-width: 600px;
-            border: 3px dashed #58a6ff;
-            border-radius: 12px;
-            background-color: #161b22;
-        }
-        #output {
-            white-space: pre-wrap;
-            text-align: left;
-            margin-top: 20px;
-            background: #161b22;
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid #30363d;
-        }
-        img.thumbnail {
-            margin-top: 20px;
-            border-radius: 10px;
-            max-width: 90%;
-            box-shadow: 0 0 10px #58a6ff66;
-        }
-    </style>
-</head>
-<body>
-    <h1>🎬 TikTok Viral Optimizer</h1>
-    <div class="dropzone" id="dropzone">Drag & Drop Your TikTok Video Here</div>
-    <div id="thumbnailContainer"></div>
-    <div id="output"></div>
-
-    <script>
-        const dropzone = document.getElementById("dropzone");
-        const output = document.getElementById("output");
-        const thumbContainer = document.getElementById("thumbnailContainer");
-
-        dropzone.addEventListener("dragover", e => {
-            e.preventDefault();
-            dropzone.style.borderColor = "#00ff99";
-        });
-
-        dropzone.addEventListener("dragleave", () => {
-            dropzone.style.borderColor = "#58a6ff";
-        });
-
-        dropzone.addEventListener("drop", async e => {
-            e.preventDefault();
-            dropzone.style.borderColor = "#58a6ff";
-
-            const file = e.dataTransfer.files[0];
-            const formData = new FormData();
-            formData.append("video", file);
-
-            output.innerText = "🎥 Running TikTok Viral Optimizer...";
-            thumbContainer.innerHTML = "";
-
-            const response = await fetch("/analyze", {
-                method: "POST",
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.thumbnail_url) {
-                const img = document.createElement("img");
-                img.src = data.thumbnail_url;
-                img.className = "thumbnail";
-                thumbContainer.appendChild(img);
-            }
-
-            output.innerText = data.niche_analysis || JSON.stringify(data, null, 2);
-        });
-    </script>
-</body>
-</html>
-"""
 
 # ========== HELPER FUNCTIONS ==========
+
 def analyze_video_properties(video_path):
-    """Extract key metrics (duration, resolution, brightness)."""
-    try:
-        clip = VideoFileClip(video_path)
-        duration = clip.duration
-        resolution = f"{clip.w}x{clip.h}"
-        fps = clip.fps
-        frame = clip.get_frame(0.5)
-        brightness = np.mean(frame)
-        clip.close()
-        return {
-            "duration_seconds": round(duration, 2),
-            "resolution": resolution,
-            "frame_rate": round(fps, 2),
-            "brightness": round(brightness, 2)
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    """Extracts duration, resolution, brightness, tone, and heuristic score."""
+    print("📊 Step 1: Analyzing video properties...")
+    clip = VideoFileClip(video_path)
+    duration = clip.duration
+    width, height = clip.size
+    aspect_ratio = width / height if height != 0 else 1
 
-def generate_thumbnail(video_path, filename):
-    """Save a single frame as thumbnail."""
-    try:
-        clip = VideoFileClip(video_path)
-        frame = clip.get_frame(min(0.5, clip.duration - 0.1))
-        thumb_path = os.path.join(THUMBNAIL_FOLDER, filename + ".jpg")
-        from PIL import Image
-        Image.fromarray(frame).save(thumb_path)
-        clip.close()
-        return thumb_path
-    except Exception as e:
-        print("Thumbnail generation error:", e)
-        return None
+    # Sample brightness
+    frame = clip.get_frame(duration / 2)
+    brightness = np.mean(frame)
+    tone = "bright" if brightness > 150 else "dark" if brightness < 80 else "neutral or mixed"
 
-def generate_niche_analysis(video_metrics, filename):
-    """AI-powered analysis with niche inference and viral insights."""
-    filename_lower = filename.lower()
-    possible_niches = {
-        "hair": "Barber / Hair Transformation",
-        "cut": "Barber / Hairstyle",
-        "fade": "Barber / Grooming",
-        "gaming": "Gaming / Gameplay",
-        "game": "Gaming / Esports",
-        "makeup": "Beauty / Makeup Tutorial",
-        "cook": "Cooking / Food Content",
-        "food": "Cooking / Food",
-        "motivation": "Motivational / Self-Improvement",
-        "fitness": "Fitness / Gym Content",
-        "vlog": "Lifestyle / Daily Vlog",
-        "review": "Product Review / Unboxing",
-        "dance": "Dance / Performance",
-        "pet": "Animals / Pets",
-        "dog": "Animals / Pets",
-        "cat": "Animals / Pets"
-    }
+    # Simple heuristic score
+    score = 9 if brightness > 50 and width >= 720 else 7
 
-    detected_niche = "General / Undefined"
-    for keyword, niche in possible_niches.items():
-        if keyword in filename_lower:
-            detected_niche = niche
-            break
+    clip.close()
+    print("✅ Step 1 complete: Basic properties extracted.")
+    return duration, width, height, aspect_ratio, brightness, tone, score
 
+
+def describe_video_content(video_path, sample_count=3):
+    """Grabs random frames and encodes them as a minimal visual summary."""
+    print("🧩 Step 2: Sampling video frames for content analysis...")
+    clip = VideoFileClip(video_path)
+    duration = int(clip.duration)
+    timestamps = sorted(random.sample(range(duration), min(sample_count, max(1, duration))))
+    frame_descriptions = []
+
+    for t in timestamps:
+        try:
+            frame = clip.get_frame(t)
+            img = Image.fromarray(frame)
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG")
+            img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            frame_descriptions.append(f"[Frame {t}s base64 preview: {img_str[:120]}...]")
+        except Exception as e:
+            frame_descriptions.append(f"[Frame {t}s could not be read: {e}]")
+
+    clip.close()
+    print("✅ Step 2 complete: Visual summary generated.")
+    return " | ".join(frame_descriptions)
+
+
+def generate_ai_analysis(video_path, video_name, duration, width, height, aspect_ratio, brightness, tone, score):
+    """Generates AI analysis via OpenAI GPT."""
+    print("🤖 Step 3: Describing video visuals for niche detection...")
+    visual_summary = describe_video_content(video_path)
+
+    print("🧠 Step 4: Sending analysis request to OpenAI...")
     prompt = f"""
-You are TikTok’s top AI viral strategist. 
-Analyze this video and generate an advanced, **niche-specific** TikTok optimization report.
+You are an expert TikTok strategist and content analyzer.
 
-🧠 The video details:
-- File name: {filename}
-- Auto-detected niche from filename: {detected_niche}
-- Duration: {video_metrics.get('duration_seconds')}s
-- Resolution: {video_metrics.get('resolution')}
-- Brightness: {video_metrics.get('brightness')}
-- Frame Rate: {video_metrics.get('frame_rate')}
+You are given:
+1. Basic video properties (duration, resolution, brightness, etc.)
+2. A visual summary of what’s inside the video.
+3. The file name: "{video_name}" (which may not always match the actual niche).
 
-🎯 Your tasks:
-1. Determine the **most accurate niche** based on the filename and metrics.
-2. Generate the output in the following **exact structured format**:
+⚠️ Important:
+Do NOT assume the niche solely from the file name.
+Base insights mainly on what is seen and heard in the actual content.
 
-🎬 Video: {filename}
-📏 Duration: {video_metrics.get('duration_seconds')}s
-🖼 Resolution: {video_metrics.get('resolution')}
-📱 Aspect Ratio: Describe (Vertical, Horizontal, or Square)
-💡 Brightness: {video_metrics.get('brightness')}
-⭐ Heuristic Score: (1–10, based on clarity & visual quality)
+Generate results in this **exact format**:
+
+🎬 Drag and drop your TikTok video file here: "{video_path}"
+🎥 Running TikTok Viral Optimizer...
+
+🤖 Generating AI-powered analysis, captions, and viral tips...
+
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ TikTok Video Analysis Complete!
+
+🎬 Video: {video_name}
+📏 Duration: {duration:.2f}s
+🖼 Resolution: {width}x{height}
+📱 Aspect Ratio: {aspect_ratio:.3f}
+💡 Brightness: {brightness:.2f}
+🎨 Tone: {tone}
+⭐ Heuristic Score: {score}/10
 
 💬 AI-Generated Viral Insights:
 ### 1. Scroll-Stopping Caption
-(Create a short, niche-relevant caption with emojis and emotional hook)
+...
 
 ### 2. 5 Viral Hashtags
-(Create 5 hashtags perfectly relevant to that niche)
+...
 
-### 3. Actionable Improvement Tip
-(Give 1 powerful, niche-specific engagement improvement)
+### 3. Actionable Improvement Tip for Engagement
+...
 
 ### 4. Viral Optimization Score (1–100)
-(Provide score + short reasoning)
+...
 
-### 5. Motivation
-(A short motivational paragraph about going viral in that niche)
+### 5. Short Motivation on How to Increase Virality
+...
 
 🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the [Detected Niche] Niche
-(Give 3 realistic examples with why they went viral and how to replicate)
+...
 
 📋 Actionable Checklist:
-   - Hook viewers in under 2 seconds
-   - Add trending sound if relevant
-   - Post during peak times
-   - Include call-to-action (CTA)
-   - Maintain authentic energy
+   - Hook viewers in under 2 seconds.
+   - Add trending sound if relevant.
+   - Post during high activity times (Fri–Sun, 6–10pm).
+   - Encourage comments by asking a question.
+
+Now analyze using the visuals below:
+
+Visual Summary:
+{visual_summary}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are an expert viral strategist for TikTok and short-form video."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error generating analysis: {e}"
+    response = openai.ChatCompletion.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1400,
+        temperature=0.8
+    )
+
+    print("✅ Step 4 complete: AI analysis received successfully.")
+    return response.choices[0].message.content
+
 
 # ========== ROUTES ==========
-@app.route("/")
-def home():
-    return render_template_string(HTML_PAGE)
-
-@app.route("/thumbnails/<path:filename>")
-def serve_thumbnail(filename):
-    return send_from_directory(THUMBNAIL_FOLDER, filename)
 
 @app.route("/analyze", methods=["POST"])
-def analyze():
+def analyze_video():
     if "video" not in request.files:
-        return jsonify({"error": "No video uploaded."}), 400
+        return jsonify({"error": "No video file uploaded"}), 400
 
-    video = request.files["video"]
-    filename = video.filename
-    temp_path = os.path.join(UPLOAD_FOLDER, filename)
-    video.save(temp_path)
+    file = request.files["video"]
+    video_path = os.path.join("uploads", file.filename)
+    os.makedirs("uploads", exist_ok=True)
+    file.save(video_path)
 
-    video_metrics = analyze_video_properties(temp_path)
-    thumb_path = generate_thumbnail(temp_path, filename)
+    print(f"🎬 Starting TikTok AI analysis for: {file.filename}")
+    start_time = time.time()
 
-    ai_output = generate_niche_analysis(video_metrics, filename)
+    try:
+        duration, width, height, aspect_ratio, brightness, tone, score = analyze_video_properties(video_path)
+        ai_analysis = generate_ai_analysis(
+            video_path, file.filename, duration, width, height, aspect_ratio, brightness, tone, score
+        )
+        elapsed = time.time() - start_time
+        print(f"✅ Full analysis complete in {elapsed:.2f} seconds.")
+        return jsonify({"result": ai_analysis, "time_taken": elapsed})
+    except Exception as e:
+        print(f"❌ Error during analysis: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    thumb_url = f"/thumbnails/{os.path.basename(thumb_path)}" if thumb_path else None
 
-    return jsonify({
-        **video_metrics,
-        "thumbnail_url": thumb_url,
-        "niche_analysis": ai_output
-    })
+@app.route("/")
+def home():
+    return "✅ TikTok AI Analyzer is running and ready!"
 
-# ========== MAIN ==========
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=10000)
