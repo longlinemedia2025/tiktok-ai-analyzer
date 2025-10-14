@@ -6,9 +6,8 @@ import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 
-# ========== Initialize Flask and CORS ==========
-# ✅ Explicit lowercase folder name
-app = Flask(__name__, template_folder="templates")
+# Initialize Flask and CORS
+app = Flask(__name__, template_folder="templates")  # lowercase "templates"
 CORS(app)
 
 # Initialize OpenAI client
@@ -28,6 +27,7 @@ def analyze_video_properties(video_path):
     proto = "deploy.prototxt"
     model = "mobilenet_iter_73000.caffemodel"
     if not os.path.exists(proto) or not os.path.exists(model):
+        print("❌ Missing object detection model files")
         return {"error": "Missing object detection model files"}
 
     net = cv2.dnn.readNetFromCaffe(proto, model)
@@ -68,6 +68,7 @@ def analyze_video_properties(video_path):
     avg_brightness = np.mean(brightness_values)
     avg_colorfulness = np.mean(colorfulness_values)
 
+    print(f"✅ Video analyzed — Brightness: {avg_brightness:.2f}, Colorfulness: {avg_colorfulness:.2f}")
     return {
         "brightness": float(avg_brightness),
         "colorfulness": float(avg_colorfulness),
@@ -77,118 +78,74 @@ def analyze_video_properties(video_path):
 # ========== Routes ==========
 
 @app.route("/")
-def index():
-    """Serve the main HTML interface"""
+def home():
     return render_template("index.html")
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
     try:
         if "video" not in request.files:
+            print("⚠️ No video in request.files")
             return jsonify({"error": "No video uploaded"}), 400
 
         video = request.files["video"]
+        if video.filename == "":
+            print("⚠️ Empty filename received")
+            return jsonify({"error": "Empty filename"}), 400
+
         os.makedirs("uploads", exist_ok=True)
         video_path = os.path.join("uploads", video.filename)
         video.save(video_path)
+        print(f"✅ Video saved to {video_path}")
 
         # Analyze visuals and objects
-        analysis = analyze_video_properties(video_path)
+        try:
+            analysis = analyze_video_properties(video_path)
+        except Exception as e:
+            print("❌ Error analyzing video:", str(e))
+            return jsonify({"error": f"Video analysis failed: {str(e)}"}), 500
+
         if "error" in analysis:
+            print("❌ Object detection error:", analysis["error"])
             return jsonify(analysis), 500
 
-        # Get video details using moviepy
-        clip = VideoFileClip(video_path)
-        duration = round(clip.duration, 2)
-        width, height = clip.size
-        aspect_ratio = round(width / height, 3)
+        try:
+            clip = VideoFileClip(video_path)
+            duration = round(clip.duration, 2)
+            width, height = clip.size
+            aspect_ratio = round(width / height, 3)
+            clip.close()
+        except Exception as e:
+            print("❌ MoviePy failed:", str(e))
+            return jsonify({"error": f"MoviePy failed to process video: {str(e)}"}), 500
 
-        # Construct the detailed AI prompt
+        print("✅ Video analysis succeeded. Calling OpenAI...")
+
         prompt = f"""
-You are a TikTok algorithm analysis assistant.
+Analyze this TikTok video:
+Brightness: {analysis['brightness']}
+Colorfulness: {analysis['colorfulness']}
+Objects: {', '.join(analysis['objects'])}
+Duration: {duration}s
+Resolution: {width}x{height}
+Aspect Ratio: {aspect_ratio}
+Provide captions, hashtags, and engagement tips.
+"""
 
-Analyze this video based on the following:
-- Brightness: {analysis['brightness']}
-- Color intensity: {analysis['colorfulness']}
-- Detected objects: {', '.join(analysis['objects'])}
-- Duration: {duration}s
-- Resolution: {width}x{height}
-- Aspect Ratio: {aspect_ratio}
+        try:
+            ai_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.8,
+                max_tokens=600
+            )
+            ai_text = ai_response.choices[0].message.content.strip()
+        except Exception as e:
+            print("❌ OpenAI API error:", str(e))
+            ai_text = f"AI analysis failed: {str(e)}"
 
-Generate a full, detailed response in this **exact format**:
-
-🎬 Drag and drop your TikTok video file here: "{video.filename}"
-🎥 Running TikTok Viral Optimizer...
-
-🤖 Generating AI-powered analysis, captions, and viral tips...
-
-🔥 Fetching viral video comparisons and strategic insights...
-
-✅ TikTok Video Analysis Complete!
-
-🎬 Video: {video.filename}
-📏 Duration: {duration}s
-🖼 Resolution: {width}x{height}
-📱 Aspect Ratio: {aspect_ratio}
-💡 Brightness: {round(analysis['brightness'], 2)}
-🎨 Tone: neutral or mixed
-⭐ Heuristic Score: Give a 1–10 rating estimating visual appeal.
-
-💬 AI-Generated Viral Insights:
-### 1. Scroll-Stopping Caption
-(Create one engaging caption using emojis and emotional hooks.)
-
-### 2. 5 Viral Hashtags
-(List five relevant hashtags.)
-
-### 3. Actionable Improvement Tip for Engagement
-(Provide one concise, actionable engagement tip.)
-
-### 4. Viral Optimization Score (1–100)
-(Give a numerical score and explain why.)
-
-### 5. Short Motivation on How to Increase Virality
-(Provide a motivational paragraph that encourages improvement.)
-
-🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the Same Niche
-
-Include 3 examples — each must include:
-#### Viral Example 1
-- **Video Concept Summary:**
-- **What Made It Go Viral:**
-- **How to Replicate Success:**
-
-#### Viral Example 2
-- **Video Concept Summary:**
-- **What Made It Go Viral:**
-- **How to Replicate Success:**
-
-#### Viral Example 3
-- **Video Concept Summary:**
-- **What Made It Go Viral:**
-- **How to Replicate Success:**
-
-### Takeaway Strategy
-(Provide a 3–4 sentence takeaway on how to improve virality and viewer engagement.)
-
-📋 Actionable Checklist:
-- Hook viewers in under 2 seconds.
-- Add trending sound if relevant.
-- Post during high activity times (Fri–Sun, 6–10pm).
-- Encourage comments by asking a question.
-        """
-
-        # Call OpenAI
-        ai_response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.8,
-            max_tokens=900
-        )
-
-        ai_text = ai_response.choices[0].message.content.strip()
-
+        print("✅ Returning JSON response to client")
         return jsonify({
             "success": True,
             "analysis": {
@@ -204,10 +161,12 @@ Include 3 examples — each must include:
         })
 
     except Exception as e:
-        print("🔥 Error:", str(e))
-        return jsonify({"error": str(e)}), 500
+        print("🔥 UNCAUGHT ERROR:", str(e))
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
 
 # ========== Main ==========
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    print(f"🚀 Server running on port {port}")
     app.run(host="0.0.0.0", port=port)
