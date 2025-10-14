@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TikTok AI Analyzer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding-top: 60px;
+    }
+    #drop-zone {
+      border: 3px dashed #00e0ff;
+      border-radius: 20px;
+      width: 400px;
+      margin: 0 auto;
+      padding: 60px;
+      transition: background 0.3s;
+    }
+    #drop-zone.dragover {
+      background: rgba(0, 224, 255, 0.1);
+    }
+    #result {
+      margin-top: 30px;
+      color: #0ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎬 TikTok AI Analyzer</h1>
+  <div id="drop-zone">
+    <p>Drag & drop a video file here<br>or click to choose one</p>
+    <input type="file" id="file-input" accept="video/*" style="display:none;" />
+  </div>
+  <div id="result"></div>
+
+  <script>
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+    const result = document.getElementById("result");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file) uploadFile(file);
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (file) uploadFile(file);
+    });
+
+    async function uploadFile(file) {
+      result.textContent = "⏳ Uploading and analyzing...";
+      const formData = new FormData();
+      formData.append("video", file);
+
+      try {
+        const res = await fetch("/analyze", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        result.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
