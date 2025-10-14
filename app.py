@@ -9,7 +9,7 @@ import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 
-# ========== FRONTEND HTML ==========
+# ========== FRONTEND HTML (Dark Mode + Spinner) ==========
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -18,42 +18,72 @@ HTML_PAGE = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TikTok AI Analyzer</title>
 <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; color: #333; text-align: center; margin-top: 60px; }
-    h1 { color: #111; }
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #0d1117;
+        color: #e6edf3;
+        text-align: center;
+        margin-top: 60px;
+    }
+    h1 {
+        color: #39ff14;
+        font-weight: 600;
+    }
     #drop-zone {
-        border: 3px dashed #555;
-        border-radius: 10px;
+        border: 3px dashed #39ff14;
+        border-radius: 15px;
         padding: 60px;
         width: 80%;
         margin: 30px auto;
-        background: white;
+        background: #161b22;
         cursor: pointer;
         transition: 0.3s;
     }
-    #drop-zone:hover { background: #eaeaea; }
+    #drop-zone:hover {
+        background: #21262d;
+    }
     #output {
         text-align: left;
         width: 80%;
         margin: 40px auto;
         white-space: pre-wrap;
-        background: #fff;
+        background: #161b22;
         padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+        border: 1px solid #30363d;
     }
     .hidden { display: none; }
+
+    /* Spinner styles */
+    .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #39ff14;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 30px auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
 </head>
 <body>
 
 <h1>🎬 TikTok AI Analyzer</h1>
 <p>Drag and drop your TikTok video below or click to upload</p>
-<div id="drop-zone">Drop video here or click to upload</div>
+<div id="drop-zone">⬇️ Drop video here or click to upload ⬇️</div>
+
+<div id="spinner" class="spinner hidden"></div>
 <div id="output" class="hidden"></div>
 
 <script>
 const dropZone = document.getElementById('drop-zone');
 const output = document.getElementById('output');
+const spinner = document.getElementById('spinner');
 
 dropZone.addEventListener('click', () => {
     const input = document.createElement('input');
@@ -65,22 +95,23 @@ dropZone.addEventListener('click', () => {
 
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    dropZone.style.background = '#d0ffd0';
+    dropZone.style.background = '#20272e';
 });
 
 dropZone.addEventListener('dragleave', () => {
-    dropZone.style.background = 'white';
+    dropZone.style.background = '#161b22';
 });
 
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    dropZone.style.background = 'white';
+    dropZone.style.background = '#161b22';
     const file = e.dataTransfer.files[0];
     if (file) uploadFile(file);
 });
 
 async function uploadFile(file) {
     output.classList.remove('hidden');
+    spinner.classList.remove('hidden');
     output.textContent = '🎥 Running TikTok Viral Optimizer...\\n\\n🤖 Generating AI-powered analysis... please wait...';
     const formData = new FormData();
     formData.append('video', file);
@@ -88,8 +119,10 @@ async function uploadFile(file) {
     try {
         const res = await fetch('/analyze', { method: 'POST', body: formData });
         const data = await res.json();
+        spinner.classList.add('hidden');
         output.textContent = data.result || '⚠️ Something went wrong.';
     } catch (err) {
+        spinner.classList.add('hidden');
         output.textContent = '❌ Error: ' + err.message;
     }
 }
@@ -129,7 +162,7 @@ def analyze_video():
         duration, resolution, brightness, aspect_ratio, tone, heuristic_score = analyze_video_properties(temp_path)
         filename = file.filename
 
-        # Create strong contextual analysis
+        # Stronger contextual prompt
         prompt = f"""
 You are a TikTok marketing expert. Analyze this TikTok video based on its visuals and content details:
 
