@@ -6,8 +6,9 @@ import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 
-# Initialize Flask and CORS
-app = Flask(__name__, template_folder="Templates")
+# ========== Initialize Flask and CORS ==========
+# ✅ Explicit lowercase folder name
+app = Flask(__name__, template_folder="templates")
 CORS(app)
 
 # Initialize OpenAI client
@@ -76,7 +77,8 @@ def analyze_video_properties(video_path):
 # ========== Routes ==========
 
 @app.route("/")
-def home():
+def index():
+    """Serve the main HTML interface"""
     return render_template("index.html")
 
 @app.route("/analyze", methods=["POST"])
