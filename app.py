@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_from_directory
 import os
 import datetime
 from moviepy.editor import VideoFileClip
@@ -8,6 +8,9 @@ from openai import OpenAI
 # ========== CONFIG ==========
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
+UPLOAD_FOLDER = "/tmp"
+THUMBNAIL_FOLDER = os.path.join(UPLOAD_FOLDER, "thumbnails")
+os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
 
 # ========== HTML FRONTEND ==========
 HTML_PAGE = """
@@ -42,16 +45,24 @@ HTML_PAGE = """
             padding: 20px;
             border: 1px solid #30363d;
         }
+        img.thumbnail {
+            margin-top: 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            box-shadow: 0 0 10px #58a6ff66;
+        }
     </style>
 </head>
 <body>
     <h1>🎬 TikTok Viral Optimizer</h1>
     <div class="dropzone" id="dropzone">Drag & Drop Your TikTok Video Here</div>
+    <div id="thumbnailContainer"></div>
     <div id="output"></div>
 
     <script>
         const dropzone = document.getElementById("dropzone");
         const output = document.getElementById("output");
+        const thumbContainer = document.getElementById("thumbnailContainer");
 
         dropzone.addEventListener("dragover", e => {
             e.preventDefault();
@@ -71,6 +82,7 @@ HTML_PAGE = """
             formData.append("video", file);
 
             output.innerText = "🎥 Running TikTok Viral Optimizer...";
+            thumbContainer.innerHTML = "";
 
             const response = await fetch("/analyze", {
                 method: "POST",
@@ -78,7 +90,15 @@ HTML_PAGE = """
             });
 
             const data = await response.json();
-            output.innerText = JSON.stringify(data, null, 2);
+
+            if (data.thumbnail_url) {
+                const img = document.createElement("img");
+                img.src = data.thumbnail_url;
+                img.className = "thumbnail";
+                thumbContainer.appendChild(img);
+            }
+
+            output.innerText = data.niche_analysis || JSON.stringify(data, null, 2);
         });
     </script>
 </body>
@@ -105,9 +125,22 @@ def analyze_video_properties(video_path):
     except Exception as e:
         return {"error": str(e)}
 
+def generate_thumbnail(video_path, filename):
+    """Save a single frame as thumbnail."""
+    try:
+        clip = VideoFileClip(video_path)
+        frame = clip.get_frame(min(0.5, clip.duration - 0.1))
+        thumb_path = os.path.join(THUMBNAIL_FOLDER, filename + ".jpg")
+        from PIL import Image
+        Image.fromarray(frame).save(thumb_path)
+        clip.close()
+        return thumb_path
+    except Exception as e:
+        print("Thumbnail generation error:", e)
+        return None
+
 def generate_niche_analysis(video_metrics, filename):
     """AI-powered analysis with niche inference and viral insights."""
-    # Derive simple cues from the filename for better context
     filename_lower = filename.lower()
     possible_niches = {
         "hair": "Barber / Hair Transformation",
@@ -183,8 +216,6 @@ Analyze this video and generate an advanced, **niche-specific** TikTok optimizat
    - Post during peak times
    - Include call-to-action (CTA)
    - Maintain authentic energy
-
-Be **deeply specific to the detected niche** (e.g. for haircut videos, discuss fade techniques or transformations; for gaming, discuss suspense and commentary pacing, etc.)
 """
 
     try:
@@ -204,6 +235,10 @@ Be **deeply specific to the detected niche** (e.g. for haircut videos, discuss f
 def home():
     return render_template_string(HTML_PAGE)
 
+@app.route("/thumbnails/<path:filename>")
+def serve_thumbnail(filename):
+    return send_from_directory(THUMBNAIL_FOLDER, filename)
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
     if "video" not in request.files:
@@ -211,14 +246,19 @@ def analyze():
 
     video = request.files["video"]
     filename = video.filename
-    temp_path = os.path.join("/tmp", filename)
+    temp_path = os.path.join(UPLOAD_FOLDER, filename)
     video.save(temp_path)
 
     video_metrics = analyze_video_properties(temp_path)
+    thumb_path = generate_thumbnail(temp_path, filename)
+
     ai_output = generate_niche_analysis(video_metrics, filename)
+
+    thumb_url = f"/thumbnails/{os.path.basename(thumb_path)}" if thumb_path else None
 
     return jsonify({
         **video_metrics,
+        "thumbnail_url": thumb_url,
         "niche_analysis": ai_output
     })
 
