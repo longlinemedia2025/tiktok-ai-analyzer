@@ -5,23 +5,21 @@ import cv2
 import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
+import tempfile
 
-# ========== App Setup ==========
+# Initialize Flask
 app = Flask(__name__, template_folder="templates")
-
-# Allow uploads up to 200 MB
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
-
 CORS(app)
+
+# Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# ========== Helper ==========
+# ========== Helper Function ==========
 def analyze_video_properties(video_path):
+    """Lightweight analysis — samples a few frames to save RAM"""
     cap = cv2.VideoCapture(video_path)
     brightness_values = []
     colorfulness_values = []
-    frame_count = 0
     detected_objects = set()
 
     proto = "deploy.prototxt"
@@ -37,43 +35,50 @@ def analyze_video_properties(video_path):
         "sheep", "sofa", "train", "tvmonitor"
     ]
 
+    fps = int(cap.get(cv2.CAP_PROP_FPS)) or 24
+    frame_interval = fps * 2  # sample every 2 seconds
+    frame_count = 0
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-        frame_count += 1
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        brightness_values.append(np.mean(gray))
 
-        (B, G, R) = cv2.split(frame)
-        rg = np.abs(R - G)
-        yb = np.abs(0.5 * (R + G) - B)
-        colorfulness_values.append(np.sqrt(np.mean(rg ** 2) + np.mean(yb ** 2)))
+        if frame_count % frame_interval == 0:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            brightness_values.append(np.mean(gray))
 
-        if frame_count % 30 == 0:
+            (B, G, R) = cv2.split(frame)
+            rg = np.abs(R - G)
+            yb = np.abs(0.5 * (R + G) - B)
+            colorfulness_values.append(np.sqrt(np.mean(rg ** 2) + np.mean(yb ** 2)))
+
+            # Run detection on sampled frames only
             blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
                                          0.007843, (300, 300), 127.5)
             net.setInput(blob)
             detections = net.forward()
             for i in range(detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
-                if confidence > 0.4:
+                if confidence > 0.45:
                     idx = int(detections[0, 0, i, 1])
                     detected_objects.add(class_names[idx])
+        frame_count += 1
 
     cap.release()
+    avg_brightness = np.mean(brightness_values) if brightness_values else 0
+    avg_colorfulness = np.mean(colorfulness_values) if colorfulness_values else 0
+
     return {
-        "brightness": float(np.mean(brightness_values)),
-        "colorfulness": float(np.mean(colorfulness_values)),
+        "brightness": float(avg_brightness),
+        "colorfulness": float(avg_colorfulness),
         "objects": list(detected_objects)
     }
-
 
 # ========== Routes ==========
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
@@ -82,20 +87,27 @@ def analyze_video():
             return jsonify({"error": "No video uploaded"}), 400
 
         video = request.files["video"]
-        os.makedirs("uploads", exist_ok=True)
-        video_path = os.path.join("uploads", video.filename)
-        video.save(video_path)
 
-        print(f"✅ Received video: {video.filename} ({os.path.getsize(video_path)/1024/1024:.2f} MB)")
+        # Reject files over ~60 MB (Render will crash above that)
+        if len(video.read()) > 60 * 1024 * 1024:
+            return jsonify({"error": "Video too large. Please upload a file under 60MB."}), 400
+        video.seek(0)
 
-        analysis = analyze_video_properties(video_path)
-        if "error" in analysis:
-            return jsonify(analysis), 500
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+            video.save(tmp.name)
+            video_path = tmp.name
 
         clip = VideoFileClip(video_path)
         duration = round(clip.duration, 2)
         width, height = clip.size
         aspect_ratio = round(width / height, 3)
+        clip.reader.close()
+        clip.close()
+
+        analysis = analyze_video_properties(video_path)
+        if "error" in analysis:
+            os.remove(video_path)
+            return jsonify(analysis), 500
 
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
@@ -106,33 +118,19 @@ Analyze this video:
 - Detected objects: {', '.join(analysis['objects'])}
 - Duration: {duration}s
 - Resolution: {width}x{height}
-- Aspect ratio: {aspect_ratio}
+- Aspect Ratio: {aspect_ratio}
 
-Follow this exact format:
-
-🎬 Video: {video.filename}
-📏 Duration: {duration}s
-🖼 Resolution: {width}x{height}
-📱 Aspect Ratio: {aspect_ratio}
-💡 Brightness: {round(analysis['brightness'], 2)}
-🎨 Tone: neutral or mixed
-⭐ Heuristic Score (1–10)
-💬 1. Scroll-Stopping Caption
-💬 2. 5 Viral Hashtags
-💬 3. Engagement Tip
-💬 4. Viral Optimization Score (1–100)
-💬 5. Motivation to Improve
-🔥 Comparison with Viral TikToks
-📋 Checklist for Optimization
+Generate a response with captions, hashtags, and viral examples.
 """
-
         ai_response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.8,
             max_tokens=900
         )
+
         ai_text = ai_response.choices[0].message.content.strip()
+        os.remove(video_path)
 
         return jsonify({
             "success": True,
@@ -147,11 +145,12 @@ Follow this exact format:
             },
             "ai_results": ai_text
         })
+
     except Exception as e:
-        print("🔥 Error during processing:", str(e))
+        print("🔥 Error:", str(e))
         return jsonify({"error": str(e)}), 500
 
-
+# ========== Main ==========
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
