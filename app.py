@@ -1,127 +1,176 @@
 from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
 import os
-import cv2
-import numpy as np
+import tempfile
+import subprocess
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
-import tempfile
+import numpy as np
 
-# Initialize Flask
-app = Flask(__name__, template_folder="templates")
-CORS(app)
-
-# Initialize OpenAI client
+# ======== CONFIG ========
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app = Flask(__name__)
 
-# ========== Helper Function ==========
-def analyze_video_properties(video_path):
-    """Lightweight analysis — samples a few frames to save RAM"""
-    cap = cv2.VideoCapture(video_path)
-    brightness_values = []
-    colorfulness_values = []
-    detected_objects = set()
+# Limit max upload size to ~100MB
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
-    proto = "deploy.prototxt"
-    model = "mobilenet_iter_73000.caffemodel"
-    if not os.path.exists(proto) or not os.path.exists(model):
-        return {"error": "Missing object detection model files"}
 
-    net = cv2.dnn.readNetFromCaffe(proto, model)
-    class_names = [
-        "background", "aeroplane", "bicycle", "bird", "boat",
-        "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
-        "dog", "horse", "motorbike", "person", "pottedplant",
-        "sheep", "sofa", "train", "tvmonitor"
-    ]
-
-    fps = int(cap.get(cv2.CAP_PROP_FPS)) or 24
-    frame_interval = fps * 2  # sample every 2 seconds
-    frame_count = 0
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        if frame_count % frame_interval == 0:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            brightness_values.append(np.mean(gray))
-
-            (B, G, R) = cv2.split(frame)
-            rg = np.abs(R - G)
-            yb = np.abs(0.5 * (R + G) - B)
-            colorfulness_values.append(np.sqrt(np.mean(rg ** 2) + np.mean(yb ** 2)))
-
-            # Run detection on sampled frames only
-            blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
-                                         0.007843, (300, 300), 127.5)
-            net.setInput(blob)
-            detections = net.forward()
-            for i in range(detections.shape[2]):
-                confidence = detections[0, 0, i, 2]
-                if confidence > 0.45:
-                    idx = int(detections[0, 0, i, 1])
-                    detected_objects.add(class_names[idx])
-        frame_count += 1
-
-    cap.release()
-    avg_brightness = np.mean(brightness_values) if brightness_values else 0
-    avg_colorfulness = np.mean(colorfulness_values) if colorfulness_values else 0
-
-    return {
-        "brightness": float(avg_brightness),
-        "colorfulness": float(avg_colorfulness),
-        "objects": list(detected_objects)
-    }
-
-# ========== Routes ==========
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/analyze", methods=["POST"])
-def analyze_video():
+# ======== VALIDATION ========
+def is_valid_video(video_path):
+    """
+    Use ffprobe to check if the video is readable and has a duration.
+    """
     try:
-        if "video" not in request.files:
-            return jsonify({"error": "No video uploaded"}), 400
+        cmd = [
+            "ffprobe", "-v", "error", "-show_entries",
+            "format=duration", "-of",
+            "default=noprint_wrappers=1:nokey=1", video_path
+        ]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        duration_str = result.stdout.strip()
+        if not duration_str:
+            return False
+        duration = float(duration_str)
+        return duration > 0
+    except Exception:
+        return False
 
-        video = request.files["video"]
 
-        # Reject files over ~60 MB (Render will crash above that)
-        if len(video.read()) > 60 * 1024 * 1024:
-            return jsonify({"error": "Video too large. Please upload a file under 60MB."}), 400
-        video.seek(0)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-            video.save(tmp.name)
-            video_path = tmp.name
-
+# ======== VIDEO ANALYSIS ========
+def analyze_video_properties(video_path):
+    try:
         clip = VideoFileClip(video_path)
         duration = round(clip.duration, 2)
         width, height = clip.size
         aspect_ratio = round(width / height, 3)
-        clip.reader.close()
+        fps = round(clip.fps, 2)
+
+        frame = clip.get_frame(0)
+        avg_brightness = float(np.mean(frame))
+        colorfulness = float(np.std(frame))
         clip.close()
 
+        return {
+            "duration": duration,
+            "width": width,
+            "height": height,
+            "aspect_ratio": aspect_ratio,
+            "fps": fps,
+            "brightness": avg_brightness,
+            "colorfulness": colorfulness
+        }
+    except Exception as e:
+        return {"error": f"Video analysis failed: {str(e)}"}
+
+
+# ======== ROUTES ========
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    if "video" not in request.files:
+        return jsonify({"error": "No video uploaded."}), 400
+
+    file = request.files["video"]
+    if file.filename == "":
+        return jsonify({"error": "Empty filename."}), 400
+
+    # Save temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+        file.save(tmp.name)
+        video_path = tmp.name
+
+    try:
+        # Validate
+        if not is_valid_video(video_path):
+            os.remove(video_path)
+            return jsonify({"error": "Invalid or corrupted video file. Please re-export or try again."}), 400
+
+        # Analyze visuals
         analysis = analyze_video_properties(video_path)
         if "error" in analysis:
-            os.remove(video_path)
             return jsonify(analysis), 500
 
+        # === ORIGINAL PROMPT FORMAT ===
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
 
-Analyze this video:
+Analyze this video based on the following:
 - Brightness: {analysis['brightness']}
 - Color intensity: {analysis['colorfulness']}
-- Detected objects: {', '.join(analysis['objects'])}
-- Duration: {duration}s
-- Resolution: {width}x{height}
-- Aspect Ratio: {aspect_ratio}
+- Duration: {analysis['duration']}s
+- Resolution: {analysis['width']}x{analysis['height']}
+- Aspect Ratio: {analysis['aspect_ratio']}
+- FPS: {analysis['fps']}
 
-Generate a response with captions, hashtags, and viral examples.
-"""
+Generate a full, detailed response in this **exact format**:
+
+🎬 Drag and drop your TikTok video file here: "{file.filename}"
+🎥 Running TikTok Viral Optimizer...
+
+🤖 Generating AI-powered analysis, captions, and viral tips...
+
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ TikTok Video Analysis Complete!
+
+🎬 Video: {file.filename}
+📏 Duration: {analysis['duration']}s
+🖼 Resolution: {analysis['width']}x{analysis['height']}
+📱 Aspect Ratio: {analysis['aspect_ratio']}
+💡 Brightness: {round(analysis['brightness'], 2)}
+🎨 Tone: neutral or mixed
+⭐ Heuristic Score: Give a 1–10 rating estimating visual appeal.
+
+💬 AI-Generated Viral Insights:
+### 1. Scroll-Stopping Caption
+(Create one engaging caption using emojis and emotional hooks.)
+
+### 2. 5 Viral Hashtags
+(List five relevant hashtags.)
+
+### 3. Actionable Improvement Tip for Engagement
+(Provide one concise, actionable engagement tip.)
+
+### 4. Viral Optimization Score (1–100)
+(Give a numerical score and explain why.)
+
+### 5. Short Motivation on How to Increase Virality
+(Provide a motivational paragraph that encourages improvement.)
+
+🔥 Viral Comparison Results:
+### Comparison with Viral TikToks in the Same Niche
+
+Include 3 examples — each must include:
+#### Viral Example 1
+- **Video Concept Summary:**
+- **What Made It Go Viral:**
+- **How to Replicate Success:**
+
+#### Viral Example 2
+- **Video Concept Summary:**
+- **What Made It Go Viral:**
+- **How to Replicate Success:**
+
+#### Viral Example 3
+- **Video Concept Summary:**
+- **What Made It Go Viral:**
+- **How to Replicate Success:**
+
+### Takeaway Strategy
+(Provide a 3–4 sentence takeaway on how to improve virality and viewer engagement.)
+
+📋 Actionable Checklist:
+- Hook viewers in under 2 seconds.
+- Add trending sound if relevant.
+- Post during high activity times (Fri–Sun, 6–10pm).
+- Encourage comments by asking a question.
+        """
+
+        # Call OpenAI API
         ai_response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
@@ -130,27 +179,21 @@ Generate a response with captions, hashtags, and viral examples.
         )
 
         ai_text = ai_response.choices[0].message.content.strip()
-        os.remove(video_path)
 
         return jsonify({
             "success": True,
-            "analysis": {
-                "filename": video.filename,
-                "duration": duration,
-                "resolution": f"{width}x{height}",
-                "aspect_ratio": aspect_ratio,
-                "brightness": analysis["brightness"],
-                "colorfulness": analysis["colorfulness"],
-                "objects": analysis["objects"]
-            },
+            "analysis": analysis,
             "ai_results": ai_text
         })
 
     except Exception as e:
-        print("🔥 Error:", str(e))
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
-# ========== Main ==========
+    finally:
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+
+# ======== MAIN ========
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000, debug=True)
