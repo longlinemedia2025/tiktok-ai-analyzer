@@ -215,8 +215,11 @@ Generate a full, detailed response in this **exact format**:
 ### 1. Scroll-Stopping Caption
 (Create one engaging caption using emojis and emotional hooks.)
 
-### 2. 5 Viral Hashtags
-(List five relevant hashtags.)
+### 2. Hashtag Strategy
+Provide three distinct groups:
+- **Viral Hashtags (5 broad trending)**  
+- **Niche Hashtags (3–5 specific to this content)**  
+- **Emerging Hashtags (3–5 smaller, fast-growing)**  
 
 ### 3. Actionable Improvement Tip for Engagement
 (Provide one concise, actionable engagement tip.)
