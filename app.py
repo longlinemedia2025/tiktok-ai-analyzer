@@ -9,14 +9,14 @@ from openai import OpenAI
 # ========== App Setup ==========
 app = Flask(__name__, template_folder="templates")
 
-# Allow larger file uploads (up to 200MB)
+# Allow uploads up to 200 MB
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# ========== Helper Function ==========
+# ========== Helper ==========
 def analyze_video_properties(video_path):
     cap = cv2.VideoCapture(video_path)
     brightness_values = []
@@ -41,7 +41,6 @@ def analyze_video_properties(video_path):
         ret, frame = cap.read()
         if not ret:
             break
-
         frame_count += 1
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         brightness_values.append(np.mean(gray))
@@ -87,9 +86,8 @@ def analyze_video():
         video_path = os.path.join("uploads", video.filename)
         video.save(video_path)
 
-        print(f"✅ Received video: {video.filename} ({os.path.getsize(video_path) / 1024 / 1024:.2f} MB)")
+        print(f"✅ Received video: {video.filename} ({os.path.getsize(video_path)/1024/1024:.2f} MB)")
 
-        # Analyze the video
         analysis = analyze_video_properties(video_path)
         if "error" in analysis:
             return jsonify(analysis), 500
@@ -102,45 +100,30 @@ def analyze_video():
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
 
-Analyze this video based on:
+Analyze this video:
 - Brightness: {analysis['brightness']}
 - Color intensity: {analysis['colorfulness']}
 - Detected objects: {', '.join(analysis['objects'])}
 - Duration: {duration}s
 - Resolution: {width}x{height}
-- Aspect Ratio: {aspect_ratio}
+- Aspect ratio: {aspect_ratio}
 
-Follow this EXACT output format:
+Follow this exact format:
 
-🎬 Drag and drop your TikTok video file here: "{video.filename}"
-🎥 Running TikTok Viral Optimizer...
-🤖 Generating AI-powered analysis, captions, and viral tips...
-🔥 Fetching viral video comparisons and strategic insights...
-✅ TikTok Video Analysis Complete!
 🎬 Video: {video.filename}
 📏 Duration: {duration}s
 🖼 Resolution: {width}x{height}
 📱 Aspect Ratio: {aspect_ratio}
 💡 Brightness: {round(analysis['brightness'], 2)}
 🎨 Tone: neutral or mixed
-⭐ Heuristic Score: Give a 1–10 rating estimating visual appeal.
-💬 AI-Generated Viral Insights:
-### 1. Scroll-Stopping Caption
-### 2. 5 Viral Hashtags
-### 3. Actionable Improvement Tip for Engagement
-### 4. Viral Optimization Score (1–100)
-### 5. Short Motivation on How to Increase Virality
-🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the Same Niche
-#### Viral Example 1
-#### Viral Example 2
-#### Viral Example 3
-### Takeaway Strategy
-📋 Actionable Checklist:
-- Hook viewers in under 2 seconds.
-- Add trending sound if relevant.
-- Post during high activity times (Fri–Sun, 6–10pm).
-- Encourage comments by asking a question.
+⭐ Heuristic Score (1–10)
+💬 1. Scroll-Stopping Caption
+💬 2. 5 Viral Hashtags
+💬 3. Engagement Tip
+💬 4. Viral Optimization Score (1–100)
+💬 5. Motivation to Improve
+🔥 Comparison with Viral TikToks
+📋 Checklist for Optimization
 """
 
         ai_response = client.chat.completions.create(
@@ -149,7 +132,6 @@ Follow this EXACT output format:
             temperature=0.8,
             max_tokens=900
         )
-
         ai_text = ai_response.choices[0].message.content.strip()
 
         return jsonify({
@@ -165,13 +147,11 @@ Follow this EXACT output format:
             },
             "ai_results": ai_text
         })
-
     except Exception as e:
         print("🔥 Error during processing:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
-# ========== Main ==========
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
