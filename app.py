@@ -1,114 +1,122 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import os
-import tempfile
-import subprocess
+import cv2
+import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
-import numpy as np
+import tempfile
 
-# ======== CONFIG ========
+app = Flask(__name__, template_folder="templates")
+CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-app = Flask(__name__)
 
-# Limit max upload size to ~100MB
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+MAX_SIZE_MB = 90
+TRIM_THRESHOLD_MB = 70
 
-
-# ======== VALIDATION ========
-def is_valid_video(video_path):
-    """
-    Use ffprobe to check if the video is readable and has a duration.
-    """
-    try:
-        cmd = [
-            "ffprobe", "-v", "error", "-show_entries",
-            "format=duration", "-of",
-            "default=noprint_wrappers=1:nokey=1", video_path
-        ]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        duration_str = result.stdout.strip()
-        if not duration_str:
-            return False
-        duration = float(duration_str)
-        return duration > 0
-    except Exception:
-        return False
-
-
-# ======== VIDEO ANALYSIS ========
 def analyze_video_properties(video_path):
-    try:
-        clip = VideoFileClip(video_path)
-        duration = round(clip.duration, 2)
-        width, height = clip.size
-        aspect_ratio = round(width / height, 3)
-        fps = round(clip.fps, 2)
+    cap = cv2.VideoCapture(video_path)
+    brightness_values, colorfulness_values = [], []
+    frame_count = 0
+    detected_objects = set()
 
-        frame = clip.get_frame(0)
-        avg_brightness = float(np.mean(frame))
-        colorfulness = float(np.std(frame))
-        clip.close()
+    proto = "deploy.prototxt"
+    model = "mobilenet_iter_73000.caffemodel"
+    if not os.path.exists(proto) or not os.path.exists(model):
+        return {"error": "Missing object detection model files"}
 
-        return {
-            "duration": duration,
-            "width": width,
-            "height": height,
-            "aspect_ratio": aspect_ratio,
-            "fps": fps,
-            "brightness": avg_brightness,
-            "colorfulness": colorfulness
-        }
-    except Exception as e:
-        return {"error": f"Video analysis failed: {str(e)}"}
+    net = cv2.dnn.readNetFromCaffe(proto, model)
+    class_names = [
+        "background", "aeroplane", "bicycle", "bird", "boat", "bottle",
+        "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
+        "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"
+    ]
 
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-# ======== ROUTES ========
+        frame_count += 1
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        brightness_values.append(np.mean(gray))
+
+        (B, G, R) = cv2.split(frame)
+        rg = np.abs(R - G)
+        yb = np.abs(0.5 * (R + G) - B)
+        colorfulness_values.append(np.sqrt(np.mean(rg ** 2) + np.mean(yb ** 2)))
+
+        if frame_count % 30 == 0:
+            blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
+                                         0.007843, (300, 300), 127.5)
+            net.setInput(blob)
+            detections = net.forward()
+            for i in range(detections.shape[2]):
+                confidence = detections[0, 0, i, 2]
+                if confidence > 0.4:
+                    idx = int(detections[0, 0, i, 1])
+                    detected_objects.add(class_names[idx])
+
+    cap.release()
+    return {
+        "brightness": float(np.mean(brightness_values)),
+        "colorfulness": float(np.mean(colorfulness_values)),
+        "objects": list(detected_objects)
+    }
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
 @app.route("/analyze", methods=["POST"])
-def analyze():
-    if "video" not in request.files:
-        return jsonify({"error": "No video uploaded."}), 400
-
-    file = request.files["video"]
-    if file.filename == "":
-        return jsonify({"error": "Empty filename."}), 400
-
-    # Save temporarily
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        file.save(tmp.name)
-        video_path = tmp.name
-
+def analyze_video():
     try:
-        # Validate
-        if not is_valid_video(video_path):
-            os.remove(video_path)
-            return jsonify({"error": "Invalid or corrupted video file. Please re-export or try again."}), 400
+        if "video" not in request.files:
+            return jsonify({"error": "No video uploaded"}), 400
 
-        # Analyze visuals
+        video = request.files["video"]
+        os.makedirs("uploads", exist_ok=True)
+        video_path = os.path.join("uploads", video.filename)
+        video.save(video_path)
+
+        file_size_mb = os.path.getsize(video_path) / (1024 * 1024)
+        warning_message = None
+
+        if file_size_mb > MAX_SIZE_MB:
+            os.remove(video_path)
+            return jsonify({"error": f"Video too large ({file_size_mb:.1f}MB). Please compress below {MAX_SIZE_MB}MB and try again."}), 400
+
+        if file_size_mb > TRIM_THRESHOLD_MB:
+            warning_message = "⚠️ Video trimmed automatically to reduce file size before analysis."
+            clip = VideoFileClip(video_path)
+            trimmed_clip = clip.subclip(0, min(clip.duration, 45))
+            temp_path = tempfile.mktemp(suffix=".mp4")
+            trimmed_clip.write_videofile(temp_path, codec="libx264", audio_codec="aac")
+            video_path = temp_path
+
+        clip = VideoFileClip(video_path)
+        duration = round(clip.duration, 2)
+        width, height = clip.size
+        aspect_ratio = round(width / height, 3)
+
         analysis = analyze_video_properties(video_path)
         if "error" in analysis:
             return jsonify(analysis), 500
 
-        # === ORIGINAL PROMPT FORMAT ===
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
 
 Analyze this video based on the following:
 - Brightness: {analysis['brightness']}
 - Color intensity: {analysis['colorfulness']}
-- Duration: {analysis['duration']}s
-- Resolution: {analysis['width']}x{analysis['height']}
-- Aspect Ratio: {analysis['aspect_ratio']}
-- FPS: {analysis['fps']}
+- Detected objects: {', '.join(analysis['objects'])}
+- Duration: {duration}s
+- Resolution: {width}x{height}
+- Aspect Ratio: {aspect_ratio}
 
 Generate a full, detailed response in this **exact format**:
 
-🎬 Drag and drop your TikTok video file here: "{file.filename}"
+🎬 Drag and drop your TikTok video file here: "{video.filename}"
 🎥 Running TikTok Viral Optimizer...
 
 🤖 Generating AI-powered analysis, captions, and viral tips...
@@ -117,10 +125,10 @@ Generate a full, detailed response in this **exact format**:
 
 ✅ TikTok Video Analysis Complete!
 
-🎬 Video: {file.filename}
-📏 Duration: {analysis['duration']}s
-🖼 Resolution: {analysis['width']}x{analysis['height']}
-📱 Aspect Ratio: {analysis['aspect_ratio']}
+🎬 Video: {video.filename}
+📏 Duration: {duration}s
+🖼 Resolution: {width}x{height}
+📱 Aspect Ratio: {aspect_ratio}
 💡 Brightness: {round(analysis['brightness'], 2)}
 🎨 Tone: neutral or mixed
 ⭐ Heuristic Score: Give a 1–10 rating estimating visual appeal.
@@ -170,7 +178,6 @@ Include 3 examples — each must include:
 - Encourage comments by asking a question.
         """
 
-        # Call OpenAI API
         ai_response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
@@ -182,18 +189,24 @@ Include 3 examples — each must include:
 
         return jsonify({
             "success": True,
-            "analysis": analysis,
+            "warning": warning_message,
+            "analysis": {
+                "filename": video.filename,
+                "duration": duration,
+                "resolution": f"{width}x{height}",
+                "aspect_ratio": aspect_ratio,
+                "brightness": analysis["brightness"],
+                "colorfulness": analysis["colorfulness"],
+                "objects": analysis["objects"]
+            },
             "ai_results": ai_text
         })
 
     except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
-
-    finally:
-        if os.path.exists(video_path):
-            os.remove(video_path)
+        print("🔥 Error:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 
-# ======== MAIN ========
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

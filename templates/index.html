@@ -12,179 +12,115 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            margin: 0;
-            padding: 40px 20px;
+            padding: 40px;
             text-align: center;
         }
 
-        h1 {
-            margin-bottom: 20px;
-            font-size: 1.8rem;
-            color: #00bfff;
-        }
+        h1 { margin-bottom: 25px; }
 
-        .upload-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .upload-box {
+            border: 2px dashed #666;
+            border-radius: 15px;
+            padding: 40px;
+            width: 420px;
             background: #1a1a1a;
-            border: 2px dashed #555;
-            border-radius: 12px;
-            padding: 30px;
-            width: 100%;
-            max-width: 460px;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            transition: 0.3s;
         }
 
-        .upload-container:hover {
-            background: #222;
+        .upload-box:hover {
             border-color: #888;
+            background: #222;
         }
 
-        .upload-container p {
-            margin: 0 0 10px;
-            color: #aaa;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
+        input[type="file"] { display: none; }
 
         button {
             margin-top: 20px;
-            padding: 12px 22px;
+            padding: 10px 18px;
             background-color: #0078ff;
             border: none;
             color: white;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: 0.3s;
         }
 
-        button:hover {
-            background-color: #005fcc;
+        button:hover { background-color: #005fcc; }
+
+        #warningBox {
+            background-color: #ff4d4d;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            width: 440px;
+            margin-bottom: 20px;
+            display: none;
         }
 
         #result {
             white-space: pre-wrap;
             text-align: left;
-            margin-top: 40px;
-            width: 100%;
-            max-width: 800px;
+            margin-top: 20px;
+            width: 440px;
             background: #181818;
             border-radius: 10px;
-            padding: 25px;
+            padding: 20px;
             color: #d4d4d4;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
-            overflow-y: auto;
         }
 
-        .error {
-            color: #ff5555;
-            font-weight: bold;
-        }
-
-        .success {
-            color: #00ff99;
-            font-weight: bold;
-        }
-
-        footer {
-            margin-top: 60px;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 20px;
-            }
-
-            .upload-container {
-                width: 100%;
-                padding: 20px;
-            }
-
-            #result {
-                width: 100%;
-                padding: 15px;
-            }
-        }
+        .error { color: #ff5555; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>🎬 TikTok Video Analyzer</h1>
-    <div class="upload-container" id="drop-area">
+    <div id="warningBox"></div>
+    <div class="upload-box" id="drop-area">
         <p>Drag & Drop a Video or Click to Upload</p>
         <input type="file" id="videoInput" accept="video/*">
     </div>
     <button id="analyzeBtn">Analyze Video</button>
-
     <div id="result"></div>
-
-    <footer>⚡ Powered by AI Video Analyzer — Optimized for TikTok creators</footer>
 
     <script>
         const dropArea = document.getElementById('drop-area');
         const videoInput = document.getElementById('videoInput');
         const result = document.getElementById('result');
         const analyzeBtn = document.getElementById('analyzeBtn');
+        const warningBox = document.getElementById('warningBox');
 
-        // Handle drag/drop
         dropArea.addEventListener('click', () => videoInput.click());
-        dropArea.addEventListener('dragover', e => {
-            e.preventDefault();
-            dropArea.style.background = '#2a2a2a';
-        });
-        dropArea.addEventListener('dragleave', e => {
-            e.preventDefault();
-            dropArea.style.background = '#1a1a1a';
-        });
-        dropArea.addEventListener('drop', e => {
-            e.preventDefault();
-            videoInput.files = e.dataTransfer.files;
-            dropArea.style.background = '#1a1a1a';
-        });
+        dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.background = '#2a2a2a'; });
+        dropArea.addEventListener('dragleave', e => { e.preventDefault(); dropArea.style.background = '#1a1a1a'; });
+        dropArea.addEventListener('drop', e => { e.preventDefault(); videoInput.files = e.dataTransfer.files; dropArea.style.background = '#1a1a1a'; });
 
         analyzeBtn.addEventListener('click', async () => {
+            warningBox.style.display = "none";
             if (videoInput.files.length === 0) {
                 result.innerHTML = '<p class="error">⚠️ Please select a video file first.</p>';
                 return;
             }
 
-            const file = videoInput.files[0];
-
-            // Client-side file size check (before sending)
-            if (file.size > 60 * 1024 * 1024) {
-                result.innerHTML = '<p class="error">⚠️ This file is too large (max 60MB). Please upload a smaller video.</p>';
-                return;
-            }
-
             const formData = new FormData();
-            formData.append('video', file);
-
-            result.innerHTML = '<p class="success">🎥 Uploading & analyzing your video... please wait ⏳</p>';
+            formData.append('video', videoInput.files[0]);
+            result.textContent = "⏳ Analyzing video... please wait.";
 
             try {
                 const response = await fetch('/analyze', { method: 'POST', body: formData });
+                const data = await response.json();
 
-                // Handle non-JSON responses safely
-                const text = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch {
-                    throw new Error("Invalid JSON response from server. (Possibly out of memory or server crash)");
+                if (data.error) {
+                    result.innerHTML = `<p class="error">⚠️ ${data.error}</p>`;
+                    return;
                 }
 
-                if (!response.ok || data.error) {
-                    result.innerHTML = `<p class="error">⚠️ Error: ${data.error || 'Unknown server error.'}</p>`;
-                } else {
-                    result.innerHTML = `<pre>${data.ai_results}</pre>`;
+                if (data.warning) {
+                    warningBox.style.display = "block";
+                    warningBox.textContent = data.warning;
                 }
 
+                result.textContent = data.ai_results;
             } catch (err) {
                 result.innerHTML = `<p class="error">⚠️ Request failed: ${err.message}</p>`;
             }
