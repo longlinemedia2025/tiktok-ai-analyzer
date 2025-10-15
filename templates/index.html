@@ -1,110 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok AI Analyzer</title>
-  <style>
-    body {
-      font-family: "Inter", sans-serif;
-      background: #111;
-      color: #eee;
-      text-align: center;
-      padding: 40px;
-    }
-    .upload-box {
-      border: 2px dashed #666;
-      padding: 40px;
-      border-radius: 20px;
-      margin: 20px auto;
-      width: 80%;
-      max-width: 500px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .upload-box:hover {
-      border-color: #00ff99;
-    }
-    input[type=file] {
-      display: none;
-    }
-    button {
-      background: #00ff99;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover {
-      background: #00cc77;
-    }
-    pre {
-      text-align: left;
-      background: #1b1b1b;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 700px;
-      margin: 20px auto;
-      overflow-x: auto;
-    }
-    .error { color: #ff6666; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Visual Analyzer</title>
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #e0e0e0;
+            font-family: "Poppins", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            color: #00bfff;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1a1a1a;
+            border: 2px dashed #555;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 460px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-container:hover {
+            background: #222;
+            border-color: #888;
+        }
+
+        .upload-container p {
+            margin: 0 0 10px;
+            color: #aaa;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 22px;
+            background-color: #0078ff;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #005fcc;
+        }
+
+        #result {
+            white-space: pre-wrap;
+            text-align: left;
+            margin-top: 40px;
+            width: 100%;
+            max-width: 800px;
+            background: #181818;
+            border-radius: 10px;
+            padding: 25px;
+            color: #d4d4d4;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+            overflow-y: auto;
+        }
+
+        .error {
+            color: #ff5555;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #00ff99;
+            font-weight: bold;
+        }
+
+        footer {
+            margin-top: 60px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px;
+            }
+
+            .upload-container {
+                width: 100%;
+                padding: 20px;
+            }
+
+            #result {
+                width: 100%;
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>🎬 TikTok AI Analyzer</h1>
-  <label class="upload-box" for="videoInput">Drag & Drop or Click to Upload Video</label>
-  <input type="file" id="videoInput" accept="video/mp4,video/mov,video/avi" />
-  <br /><br />
-  <button id="analyzeBtn">Analyze Video</button>
-  <div id="result"></div>
+    <h1>🎬 TikTok Video Analyzer</h1>
+    <div class="upload-container" id="drop-area">
+        <p>Drag & Drop a Video or Click to Upload</p>
+        <input type="file" id="videoInput" accept="video/*">
+    </div>
+    <button id="analyzeBtn">Analyze Video</button>
 
-  <script>
-    const videoInput = document.getElementById("videoInput");
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const result = document.getElementById("result");
+    <div id="result"></div>
 
-    analyzeBtn.addEventListener("click", async () => {
-      const file = videoInput.files[0];
-      if (!file) {
-        result.innerHTML = "<p class='error'>⚠️ Please select a video file first.</p>";
-        return;
-      }
+    <footer>⚡ Powered by AI Video Analyzer — Optimized for TikTok creators</footer>
 
-      // 200 MB limit check
-      if (file.size > 200 * 1024 * 1024) {
-        result.innerHTML = "<p class='error'>⚠️ File too large. Please upload a video under 200 MB.</p>";
-        return;
-      }
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const videoInput = document.getElementById('videoInput');
+        const result = document.getElementById('result');
+        const analyzeBtn = document.getElementById('analyzeBtn');
 
-      result.innerHTML = "<p>⏳ Uploading and analyzing your video...</p>";
+        // Handle drag/drop
+        dropArea.addEventListener('click', () => videoInput.click());
+        dropArea.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropArea.style.background = '#2a2a2a';
+        });
+        dropArea.addEventListener('dragleave', e => {
+            e.preventDefault();
+            dropArea.style.background = '#1a1a1a';
+        });
+        dropArea.addEventListener('drop', e => {
+            e.preventDefault();
+            videoInput.files = e.dataTransfer.files;
+            dropArea.style.background = '#1a1a1a';
+        });
 
-      const formData = new FormData();
-      formData.append("video", file);
+        analyzeBtn.addEventListener('click', async () => {
+            if (videoInput.files.length === 0) {
+                result.innerHTML = '<p class="error">⚠️ Please select a video file first.</p>';
+                return;
+            }
 
-      try {
-        const res = await fetch("/analyze", { method: "POST", body: formData });
-        const text = await res.text(); // safer than res.json()
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error("Invalid JSON response from server.");
-        }
+            const file = videoInput.files[0];
 
-        if (!res.ok || data.error) {
-          result.innerHTML = `<p class='error'>⚠️ ${data.error || "Unexpected error."}</p>`;
-          return;
-        }
+            // Client-side file size check (before sending)
+            if (file.size > 60 * 1024 * 1024) {
+                result.innerHTML = '<p class="error">⚠️ This file is too large (max 60MB). Please upload a smaller video.</p>';
+                return;
+            }
 
-        result.innerHTML = `
-          <pre>${data.ai_results}</pre>
-        `;
-      } catch (err) {
-        result.innerHTML = `<p class='error'>⚠️ ${err.message}</p>`;
-      }
-    });
-  </script>
+            const formData = new FormData();
+            formData.append('video', file);
+
+            result.innerHTML = '<p class="success">🎥 Uploading & analyzing your video... please wait ⏳</p>';
+
+            try {
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+
+                // Handle non-JSON responses safely
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error("Invalid JSON response from server. (Possibly out of memory or server crash)");
+                }
+
+                if (!response.ok || data.error) {
+                    result.innerHTML = `<p class="error">⚠️ Error: ${data.error || 'Unknown server error.'}</p>`;
+                } else {
+                    result.innerHTML = `<pre>${data.ai_results}</pre>`;
+                }
+
+            } catch (err) {
+                result.innerHTML = `<p class="error">⚠️ Request failed: ${err.message}</p>`;
+            }
+        });
+    </script>
 </body>
 </html>
