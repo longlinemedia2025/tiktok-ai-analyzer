@@ -6,6 +6,8 @@ import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 import tempfile
+import datetime
+import random
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
@@ -14,6 +16,75 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 MAX_SIZE_MB = 90
 TRIM_THRESHOLD_MB = 70
 
+# ==================================================
+# 🔹 Best Time Suggestion by Niche
+# ==================================================
+def get_best_posting_time(niche: str):
+    """Return the best posting window for today based on the inferred niche."""
+    niche = niche.lower().strip()
+    niche_times = {
+        "gaming": {
+            "Mon": "6–9 PM",
+            "Tue": "6–9 PM",
+            "Wed": "7–9 PM",
+            "Thu": "6–9 PM",
+            "Fri": "5–10 PM",
+            "Sat": "10 AM–12 PM / 7–10 PM",
+            "Sun": "4–8 PM"
+        },
+        "beauty": {
+            "Mon": "11 AM–2 PM",
+            "Tue": "1–3 PM",
+            "Wed": "12–3 PM",
+            "Thu": "4–7 PM",
+            "Fri": "5–9 PM",
+            "Sat": "10 AM–1 PM / 7–9 PM",
+            "Sun": "3–6 PM"
+        },
+        "music": {
+            "Mon": "2–4 PM",
+            "Tue": "4–6 PM",
+            "Wed": "3–7 PM",
+            "Thu": "5–8 PM",
+            "Fri": "6–10 PM",
+            "Sat": "9–11 AM / 8–10 PM",
+            "Sun": "5–9 PM"
+        },
+        "fitness": {
+            "Mon": "6–9 AM / 6–8 PM",
+            "Tue": "6–8 AM / 7–9 PM",
+            "Wed": "6–9 AM / 6–8 PM",
+            "Thu": "7–9 PM",
+            "Fri": "6–9 PM",
+            "Sat": "8–11 AM",
+            "Sun": "4–7 PM"
+        },
+        "comedy": {
+            "Mon": "12–3 PM",
+            "Tue": "2–5 PM",
+            "Wed": "1–4 PM",
+            "Thu": "4–7 PM",
+            "Fri": "6–10 PM",
+            "Sat": "10 AM–12 PM / 8–10 PM",
+            "Sun": "3–8 PM"
+        }
+    }
+
+    today = datetime.datetime.now().strftime("%a")
+    if niche not in niche_times:
+        return "⚠️ Could not determine best time — niche not recognized."
+
+    window = niche_times[niche].get(today, "6–9 PM")
+    peak_hour = random.randint(6, 9) if "PM" in window else random.randint(9, 11)
+    peak_minute = random.randint(0, 59)
+    peak_time = f"{peak_hour}:{peak_minute:02d} {'PM' if 'PM' in window else 'AM'} EST"
+
+    return f"🕓 **Best Time to Post for {niche.title()} ({today})**:\n⏰ {window} EST\n💡 Peak engagement around {peak_time}."
+
+
+# ==================================================
+# 🔹 Video Property Analysis
+# ==================================================
 def analyze_video_properties(video_path):
     cap = cv2.VideoCapture(video_path)
     brightness_values, colorfulness_values = [], []
@@ -64,10 +135,15 @@ def analyze_video_properties(video_path):
         "objects": list(detected_objects)
     }
 
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
+# ==================================================
+# 🔹 Analyze Route
+# ==================================================
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
     try:
@@ -84,7 +160,9 @@ def analyze_video():
 
         if file_size_mb > MAX_SIZE_MB:
             os.remove(video_path)
-            return jsonify({"error": f"Video too large ({file_size_mb:.1f}MB). Please compress below {MAX_SIZE_MB}MB and try again."}), 400
+            return jsonify({
+                "error": f"Video too large ({file_size_mb:.1f}MB). Please compress below {MAX_SIZE_MB}MB and try again."
+            }), 400
 
         if file_size_mb > TRIM_THRESHOLD_MB:
             warning_message = "⚠️ Video trimmed automatically to reduce file size before analysis."
@@ -186,6 +264,32 @@ Include 3 examples — each must include:
         )
 
         ai_text = ai_response.choices[0].message.content.strip()
+
+        # === NEW: Niche detection + posting time suggestion ===
+        try:
+            niche_prompt = f"""
+            Based on this video analysis text, determine its most likely TikTok content niche.
+            Video description/context:
+            {ai_text}
+
+            Possible niches: Gaming, Beauty, Music, Fitness, Comedy, Other.
+            Return ONLY the single niche name.
+            """
+
+            niche_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You classify TikTok video niches."},
+                    {"role": "user", "content": niche_prompt}
+                ],
+                max_tokens=20
+            )
+
+            detected_niche = niche_response.choices[0].message.content.strip().lower()
+            best_time_text = get_best_posting_time(detected_niche)
+            ai_text += f"\n\n🎯 **Detected Niche:** {detected_niche.title()}\n{best_time_text}"
+        except Exception as e:
+            ai_text += f"\n\n⚠️ Niche detection failed: {str(e)}"
 
         return jsonify({
             "success": True,
