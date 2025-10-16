@@ -8,6 +8,7 @@ from openai import OpenAI
 import tempfile
 import datetime
 import random
+import pandas as pd
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
@@ -15,6 +16,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 MAX_SIZE_MB = 90
 TRIM_THRESHOLD_MB = 70
+
 
 # ==================================================
 # 🔹 Best Time Suggestion by Niche
@@ -24,49 +26,24 @@ def get_best_posting_time(niche: str):
     niche = niche.lower().strip()
     niche_times = {
         "gaming": {
-            "Mon": "6–9 PM",
-            "Tue": "6–9 PM",
-            "Wed": "7–9 PM",
-            "Thu": "6–9 PM",
-            "Fri": "5–10 PM",
-            "Sat": "10 AM–12 PM / 7–10 PM",
-            "Sun": "4–8 PM"
+            "Mon": "6–9 PM", "Tue": "6–9 PM", "Wed": "7–9 PM", "Thu": "6–9 PM",
+            "Fri": "5–10 PM", "Sat": "10 AM–12 PM / 7–10 PM", "Sun": "4–8 PM"
         },
         "beauty": {
-            "Mon": "11 AM–2 PM",
-            "Tue": "1–3 PM",
-            "Wed": "12–3 PM",
-            "Thu": "4–7 PM",
-            "Fri": "5–9 PM",
-            "Sat": "10 AM–1 PM / 7–9 PM",
-            "Sun": "3–6 PM"
+            "Mon": "11 AM–2 PM", "Tue": "1–3 PM", "Wed": "12–3 PM", "Thu": "4–7 PM",
+            "Fri": "5–9 PM", "Sat": "10 AM–1 PM / 7–9 PM", "Sun": "3–6 PM"
         },
         "music": {
-            "Mon": "2–4 PM",
-            "Tue": "4–6 PM",
-            "Wed": "3–7 PM",
-            "Thu": "5–8 PM",
-            "Fri": "6–10 PM",
-            "Sat": "9–11 AM / 8–10 PM",
-            "Sun": "5–9 PM"
+            "Mon": "2–4 PM", "Tue": "4–6 PM", "Wed": "3–7 PM", "Thu": "5–8 PM",
+            "Fri": "6–10 PM", "Sat": "9–11 AM / 8–10 PM", "Sun": "5–9 PM"
         },
         "fitness": {
-            "Mon": "6–9 AM / 6–8 PM",
-            "Tue": "6–8 AM / 7–9 PM",
-            "Wed": "6–9 AM / 6–8 PM",
-            "Thu": "7–9 PM",
-            "Fri": "6–9 PM",
-            "Sat": "8–11 AM",
-            "Sun": "4–7 PM"
+            "Mon": "6–9 AM / 6–8 PM", "Tue": "6–8 AM / 7–9 PM", "Wed": "6–9 AM / 6–8 PM",
+            "Thu": "7–9 PM", "Fri": "6–9 PM", "Sat": "8–11 AM", "Sun": "4–7 PM"
         },
         "comedy": {
-            "Mon": "12–3 PM",
-            "Tue": "2–5 PM",
-            "Wed": "1–4 PM",
-            "Thu": "4–7 PM",
-            "Fri": "6–10 PM",
-            "Sat": "10 AM–12 PM / 8–10 PM",
-            "Sun": "3–8 PM"
+            "Mon": "12–3 PM", "Tue": "2–5 PM", "Wed": "1–4 PM", "Thu": "4–7 PM",
+            "Fri": "6–10 PM", "Sat": "10 AM–12 PM / 8–10 PM", "Sun": "3–8 PM"
         }
     }
 
@@ -83,7 +60,7 @@ def get_best_posting_time(niche: str):
 
 
 # ==================================================
-# 🔹 Video Property Analysis
+# 🔹 Analyze Video Properties
 # ==================================================
 def analyze_video_properties(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -107,11 +84,9 @@ def analyze_video_properties(video_path):
         ret, frame = cap.read()
         if not ret:
             break
-
         frame_count += 1
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         brightness_values.append(np.mean(gray))
-
         (B, G, R) = cv2.split(frame)
         rg = np.abs(R - G)
         yb = np.abs(0.5 * (R + G) - B)
@@ -136,13 +111,41 @@ def analyze_video_properties(video_path):
     }
 
 
+# ==================================================
+# 🔹 Adaptive CSV-Based Optimization
+# ==================================================
+def analyze_csv_performance(csv_path):
+    """Read CSV file and summarize what content types perform best."""
+    try:
+        df = pd.read_csv(csv_path)
+        key_columns = ["views", "likes", "comments", "shares", "saves"]
+        available = [c for c in key_columns if c in df.columns]
+
+        if not available:
+            return None
+
+        performance_summary = df[available].mean().to_dict()
+        best_video = df.loc[df["views"].idxmax()] if "views" in df.columns else None
+
+        context = f"""
+Average performance:
+{performance_summary}
+
+Top performing video insight:
+{best_video.to_dict() if best_video is not None else "N/A"}
+"""
+        return context
+    except Exception as e:
+        return f"⚠️ CSV analysis failed: {str(e)}"
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
 # ==================================================
-# 🔹 Analyze Route
+# 🔹 Combined Analyze Route (Video + CSV)
 # ==================================================
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
@@ -151,9 +154,17 @@ def analyze_video():
             return jsonify({"error": "No video uploaded"}), 400
 
         video = request.files["video"]
+        csv_file = request.files.get("csv")
+
         os.makedirs("uploads", exist_ok=True)
         video_path = os.path.join("uploads", video.filename)
         video.save(video_path)
+
+        csv_context = ""
+        if csv_file:
+            csv_path = os.path.join("uploads", csv_file.filename)
+            csv_file.save(csv_path)
+            csv_context = analyze_csv_performance(csv_path) or ""
 
         file_size_mb = os.path.getsize(video_path) / (1024 * 1024)
         warning_message = None
@@ -183,14 +194,18 @@ def analyze_video():
 
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
+Analyze this video and integrate past performance data for smarter recommendations.
 
-Analyze this video based on the following:
+Video Data:
 - Brightness: {analysis['brightness']}
 - Color intensity: {analysis['colorfulness']}
 - Detected objects: {', '.join(analysis['objects'])}
 - Duration: {duration}s
 - Resolution: {width}x{height}
 - Aspect Ratio: {aspect_ratio}
+
+Past CSV Performance (if available):
+{csv_context}
 
 Generate a full, detailed response in this **exact format**:
 
@@ -215,11 +230,8 @@ Generate a full, detailed response in this **exact format**:
 ### 1. Scroll-Stopping Caption
 (Create one engaging caption using emojis and emotional hooks.)
 
-### 2. Hashtag Strategy
-Provide three distinct groups:
-- **Viral Hashtags (5 broad trending)**  
-- **Niche Hashtags (3–5 specific to this content)**  
-- **Emerging Hashtags (3–5 smaller, fast-growing)**  
+### 2. 5 Viral Hashtags
+(List five relevant hashtags — include 3 trending + 2 niche-targeted less popular ones to maximize discovery.)
 
 ### 3. Actionable Improvement Tip for Engagement
 (Provide one concise, actionable engagement tip.)
@@ -268,15 +280,14 @@ Include 3 examples — each must include:
 
         ai_text = ai_response.choices[0].message.content.strip()
 
-        # === NEW: Niche detection + posting time suggestion ===
+        # === Niche Detection + Posting Time ===
         try:
             niche_prompt = f"""
-            Based on this video analysis text, determine its most likely TikTok content niche.
-            Video description/context:
+            Based on this analysis, determine its most likely TikTok content niche.
             {ai_text}
 
             Possible niches: Gaming, Beauty, Music, Fitness, Comedy, Other.
-            Return ONLY the single niche name.
+            Return ONLY the niche name.
             """
 
             niche_response = client.chat.completions.create(
