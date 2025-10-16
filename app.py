@@ -1,169 +1,203 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-import os
-import cv2
-import numpy as np
-import pandas as pd
-from moviepy.editor import VideoFileClip
-from openai import OpenAI
-import tempfile
-import datetime
-
-app = Flask(__name__, template_folder="templates")
-CORS(app)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# --- Helper Functions ---
-
-def analyze_video_properties(video_path):
-    """Extract duration, brightness, resolution, etc."""
-    clip = VideoFileClip(video_path)
-    duration = clip.duration
-    frame = clip.get_frame(0)
-    brightness = np.mean(frame)
-    height, width, _ = frame.shape
-    aspect_ratio = round(width / height, 3)
-    clip.reader.close()
-    return {
-        "duration": round(duration, 2),
-        "brightness": round(brightness, 2),
-        "resolution": f"{width}x{height}",
-        "aspect_ratio": aspect_ratio
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikTok & YouTube Virality Analyzer</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0e0e10;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
     }
 
-def load_csv_data(csv_file):
-    """Load performance data from CSV if provided."""
-    try:
-        df = pd.read_csv(csv_file)
-        return df.describe(include="all").to_dict()
-    except Exception:
-        return None
+    h1 {
+      font-size: 1.8rem;
+      margin-top: 30px;
+    }
 
-def generate_ai_response(prompt):
-    """Send the constructed prompt to OpenAI."""
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are an expert in social media algorithms, engagement, and virality prediction."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.8,
-    )
-    return response.choices[0].message.content.strip()
+    .container {
+      width: 90%;
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 25px;
+      background: #1b1b1f;
+      border-radius: 16px;
+      box-shadow: 0 0 25px rgba(255,255,255,0.05);
+    }
 
-def format_results(platform, video_name, video_info, ai_text):
-    """Keep consistent display format across platforms."""
-    return f"""
-✅ {platform} Video Analysis Complete!
+    .upload-zone {
+      border: 2px dashed #555;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      transition: 0.3s ease;
+    }
 
-🎬 Video: {video_name}  
-📏 Duration: {video_info['duration']}s  
-🖼 Resolution: {video_info['resolution']}  
-📱 Aspect Ratio: {video_info['aspect_ratio']}  
-💡 Brightness: {video_info['brightness']}  
+    .upload-zone:hover {
+      border-color: #00ff99;
+      background-color: rgba(0,255,153,0.05);
+    }
 
-{ai_text}
-"""
+    input[type="file"] {
+      display: none;
+    }
 
-# --- TikTok Analyzer ---
-@app.route("/analyze_tiktok", methods=["POST"])
-def analyze_tiktok():
-    video = request.files.get("video")
-    csv_file = request.files.get("csv")
+    label {
+      background: #00ff99;
+      color: black;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+      display: inline-block;
+    }
 
-    if not video:
-        return jsonify({"error": "No video file uploaded."}), 400
+    select {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #2a2a2d;
+      color: white;
+      margin-bottom: 20px;
+      font-size: 1rem;
+    }
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        video.save(tmp.name)
-        video_path = tmp.name
+    button {
+      background: #00ff99;
+      color: black;
+      padding: 12px 30px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.2s ease;
+    }
 
-    video_info = analyze_video_properties(video_path)
-    csv_data = load_csv_data(csv_file) if csv_file else None
+    button:hover {
+      background: #00e68a;
+    }
 
-    prompt = f"""
-Analyze this TikTok video for virality potential based on duration, brightness, aspect ratio, and style.
-Video stats: {video_info}.
-If CSV data is available, use it to learn what has performed best before: {csv_data}.
-Provide results in this format exactly:
+    pre {
+      text-align: left;
+      background: #161618;
+      padding: 15px;
+      border-radius: 10px;
+      color: #c7c7c7;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
 
-💬 AI-Generated Viral Insights:
-1. Scroll-Stopping Caption
-2. 5 Viral + 3 Low-Competition Hashtags
-3. Actionable Improvement Tip for Engagement
-4. Viral Optimization Score (1–100)
-5. Motivation Tip
-6. 3 Viral Comparison Examples
-7. Takeaway Strategy
-8. Actionable Checklist
-9. Best Time to Post (Platform & Day Specific)
-"""
+    .file-info {
+      font-size: 0.9rem;
+      color: #00ff99;
+      margin-top: 5px;
+    }
 
-    ai_text = generate_ai_response(prompt)
-    results_text = format_results("TikTok", video.filename, video_info, ai_text)
+    .loading {
+      margin-top: 20px;
+      color: #00ff99;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 TikTok & YouTube Virality Analyzer</h1>
 
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    os.makedirs("output", exist_ok=True)
-    csv_output_path = f"output/tiktok_ai_results_{timestamp}.csv"
-    pd.DataFrame([{"results": results_text}]).to_csv(csv_output_path, index=False)
+    <select id="platform">
+      <option value="tiktok">TikTok</option>
+      <option value="youtube">YouTube</option>
+    </select>
 
-    return jsonify({"results": results_text, "csv_saved": csv_output_path})
+    <div class="upload-zone">
+      <h3>🎥 Upload Video</h3>
+      <label for="videoInput">Choose Video</label>
+      <input type="file" id="videoInput" accept="video/*" />
+      <div id="videoInfo" class="file-info"></div>
+    </div>
 
+    <div class="upload-zone">
+      <h3>📈 Upload Performance CSV (optional)</h3>
+      <label for="csvInput">Choose CSV</label>
+      <input type="file" id="csvInput" accept=".csv" />
+      <div id="csvInfo" class="file-info"></div>
+    </div>
 
-# --- YouTube Analyzer ---
-@app.route("/analyze_youtube", methods=["POST"])
-def analyze_youtube():
-    video = request.files.get("video")
-    csv_file = request.files.get("csv")
+    <button id="analyzeBtn">Analyze</button>
 
-    if not video:
-        return jsonify({"error": "No video file uploaded."}), 400
+    <div id="loading" class="loading" style="display:none;">🔍 Analyzing video, please wait...</div>
+    <pre id="results"></pre>
+  </div>
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        video.save(tmp.name)
-        video_path = tmp.name
+  <script>
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const videoInput = document.getElementById("videoInput");
+    const csvInput = document.getElementById("csvInput");
+    const resultsEl = document.getElementById("results");
+    const loadingEl = document.getElementById("loading");
+    const videoInfo = document.getElementById("videoInfo");
+    const csvInfo = document.getElementById("csvInfo");
+    const platformSelect = document.getElementById("platform");
 
-    video_info = analyze_video_properties(video_path)
-    csv_data = load_csv_data(csv_file) if csv_file else None
+    videoInput.addEventListener("change", () => {
+      if (videoInput.files.length > 0) {
+        videoInfo.textContent = `🎬 Uploaded: ${videoInput.files[0].name}`;
+      } else {
+        videoInfo.textContent = "";
+      }
+    });
 
-    prompt = f"""
-Analyze this YouTube video using YouTube’s virality and SEO algorithm signals.
-Video stats: {video_info}.
-If CSV data is available, analyze it to adjust recommendations: {csv_data}.
-Consider CTR (click-through rate), retention, average view duration, and title optimization.
+    csvInput.addEventListener("change", () => {
+      if (csvInput.files.length > 0) {
+        csvInfo.textContent = `📊 Uploaded: ${csvInput.files[0].name}`;
+      } else {
+        csvInfo.textContent = "";
+      }
+    });
 
-Provide your output in this format exactly:
+    analyzeBtn.addEventListener("click", async () => {
+      const platform = platformSelect.value;
+      const videoFile = videoInput.files[0];
+      const csvFile = csvInput.files[0];
 
-💬 AI-Generated YouTube Insights:
-1. Optimized Viral Title
-2. 10 Keyword Suggestions (mix of high and low competition)
-3. Description Template for SEO
-4. Thumbnail & Hook Suggestions
-5. Retention Improvement Tip
-6. Predicted CTR Range (%)
-7. Estimated Viral Score (1–100)
-8. 3 Successful YouTube Comparisons
-9. Takeaway Strategy
-10. Actionable Checklist
-11. Best Time to Publish (Platform & Day Specific)
-"""
+      if (!videoFile) {
+        alert("Please upload a video file first.");
+        return;
+      }
 
-    ai_text = generate_ai_response(prompt)
-    results_text = format_results("YouTube", video.filename, video_info, ai_text)
+      const formData = new FormData();
+      formData.append("video", videoFile);
+      if (csvFile) formData.append("csv", csvFile);
 
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    os.makedirs("output", exist_ok=True)
-    csv_output_path = f"output/youtube_ai_results_{timestamp}.csv"
-    pd.DataFrame([{"results": results_text}]).to_csv(csv_output_path, index=False)
+      loadingEl.style.display = "block";
+      resultsEl.textContent = "";
 
-    return jsonify({"results": results_text, "csv_saved": csv_output_path})
+      try {
+        const response = await fetch(`/analyze_${platform}`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
 
-
-# --- Main Route ---
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+        if (data.error) {
+          resultsEl.textContent = `❌ Error: ${data.error}`;
+        } else {
+          resultsEl.textContent = data.results || "No results returned.";
+        }
+      } catch (err) {
+        resultsEl.textContent = `⚠️ Request failed: ${err.message}`;
+      } finally {
+        loadingEl.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
