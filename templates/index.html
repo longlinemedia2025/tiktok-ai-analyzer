@@ -3,158 +3,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok + YouTube Virality Analyzer</title>
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      text-align: center;
-      padding: 40px;
-    }
-    h1 {
-      color: #58a6ff;
-    }
-    .upload-container {
-      border: 2px dashed #30363d;
-      border-radius: 12px;
-      padding: 30px;
-      margin: 20px auto;
-      width: 90%;
-      max-width: 600px;
-      transition: 0.2s;
-    }
-    .upload-container.dragover {
-      background: #161b22;
-      border-color: #58a6ff;
-    }
-    input[type="file"] {
-      display: none;
-    }
-    label {
-      display: inline-block;
-      margin-top: 15px;
-      padding: 10px 18px;
-      background: #238636;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button {
-      background: #1f6feb;
-      color: white;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      margin: 20px 10px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #388bfd;
-    }
-    #loading {
-      display: none;
-      font-size: 18px;
-      margin-top: 20px;
-    }
-    #results {
-      margin-top: 30px;
-      white-space: pre-wrap;
-      text-align: left;
-      background: #161b22;
-      border-radius: 10px;
-      padding: 20px;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-      box-shadow: 0 0 10px #0d1117;
-    }
-    .filename {
-      color: #8b949e;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-  </style>
+  <title>Viral Analyzer – TikTok & YouTube</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>🎥 TikTok & YouTube Virality Analyzer</h1>
-  <p>Upload your video and optional CSV data for AI-powered virality insights</p>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col items-center p-6">
+  <div class="max-w-3xl w-full bg-white rounded-2xl shadow-lg p-8">
+    <h1 class="text-3xl font-bold text-center mb-2">🎬 Viral Video Analyzer</h1>
+    <p class="text-center text-gray-600 mb-6">
+      Upload your video and optional CSV for AI-powered optimization insights.
+    </p>
 
-  <!-- Video Upload -->
-  <div id="video-upload" class="upload-container">
-    <h3>🎬 Upload Video</h3>
-    <input type="file" id="video" accept="video/mp4,video/mov,video/quicktime" />
-    <label for="video">Choose Video</label>
-    <p class="filename" id="video-filename">No file selected</p>
+    <!-- Platform Selection -->
+    <label class="block text-gray-700 font-semibold mb-1">Platform</label>
+    <select id="platform" class="w-full border rounded-lg p-2 mb-4 focus:ring-2 focus:ring-indigo-400">
+      <option value="tiktok">TikTok</option>
+      <option value="youtube">YouTube</option>
+    </select>
+
+    <!-- File Uploads -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition">
+        <input type="file" id="video" accept="video/*" class="hidden" />
+        <label for="video" class="cursor-pointer text-indigo-600 font-semibold">🎥 Upload Video</label>
+        <p id="video-name" class="mt-2 text-sm text-gray-500">No file chosen</p>
+      </div>
+
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition">
+        <input type="file" id="csv" accept=".csv" class="hidden" />
+        <label for="csv" class="cursor-pointer text-indigo-600 font-semibold">📊 Upload CSV (optional)</label>
+        <p id="csv-name" class="mt-2 text-sm text-gray-500">No file chosen</p>
+      </div>
+    </div>
+
+    <!-- Keyword, Tone, Niche Inputs -->
+    <div class="mt-6">
+      <label class="block text-gray-700 font-semibold mb-1">Keywords (comma separated)</label>
+      <input id="keywords" class="w-full border rounded-lg p-2 mb-3" placeholder="haircut, transformation, fade" />
+
+      <label class="block text-gray-700 font-semibold mb-1">Tone</label>
+      <input id="tone" class="w-full border rounded-lg p-2 mb-3" placeholder="energetic, funny, inspiring" />
+
+      <label class="block text-gray-700 font-semibold mb-1">Niche</label>
+      <input id="niche" class="w-full border rounded-lg p-2" placeholder="beauty, gaming, fitness, etc." />
+    </div>
+
+    <!-- Analyze Button -->
+    <div class="mt-6 text-center">
+      <button id="analyze-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+        🔍 Analyze
+      </button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="hidden mt-6 text-center">
+      <div class="animate-spin rounded-full h-10 w-10 border-t-4 border-indigo-600 mx-auto"></div>
+      <p class="mt-2 text-gray-600">Analyzing your video… please wait.</p>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="mt-8 whitespace-pre-line bg-gray-50 p-4 rounded-lg border hidden"></div>
   </div>
-
-  <!-- CSV Upload -->
-  <div id="csv-upload" class="upload-container">
-    <h3>📊 Upload CSV (Optional: Past TikTok or YouTube Results)</h3>
-    <input type="file" id="csv" accept=".csv" />
-    <label for="csv">Choose CSV</label>
-    <p class="filename" id="csv-filename">No file selected</p>
-  </div>
-
-  <!-- Buttons -->
-  <button onclick="analyze('tiktok')">Analyze TikTok</button>
-  <button onclick="analyze('youtube')">Analyze YouTube</button>
-
-  <div id="loading">⚙️ Analyzing... please wait</div>
-  <div id="results"></div>
 
   <script>
     const videoInput = document.getElementById("video");
     const csvInput = document.getElementById("csv");
-    const videoFilename = document.getElementById("video-filename");
-    const csvFilename = document.getElementById("csv-filename");
+    const videoName = document.getElementById("video-name");
+    const csvName = document.getElementById("csv-name");
+    const analyzeBtn = document.getElementById("analyze-btn");
     const resultsDiv = document.getElementById("results");
     const loadingDiv = document.getElementById("loading");
 
+    // Show uploaded filenames
     videoInput.addEventListener("change", () => {
-      videoFilename.textContent = videoInput.files[0]
-        ? `🎬 Selected: ${videoInput.files[0].name}`
-        : "No file selected";
+      videoName.textContent = videoInput.files.length ? videoInput.files[0].name : "No file chosen";
     });
-
     csvInput.addEventListener("change", () => {
-      csvFilename.textContent = csvInput.files[0]
-        ? `📊 Selected: ${csvInput.files[0].name}`
-        : "No file selected";
+      csvName.textContent = csvInput.files.length ? csvInput.files[0].name : "No file chosen";
     });
 
-    async function analyze(platform) {
+    analyzeBtn.addEventListener("click", async () => {
+      const platform = document.getElementById("platform").value;
+      const keywords = document.getElementById("keywords").value;
+      const tone = document.getElementById("tone").value;
+      const niche = document.getElementById("niche").value;
       const video = videoInput.files[0];
       const csv = csvInput.files[0];
+
       if (!video) {
         alert("Please upload a video first!");
         return;
       }
 
-      resultsDiv.innerHTML = "";
-      loadingDiv.style.display = "block";
-
       const formData = new FormData();
+      formData.append("platform", platform);
+      formData.append("keywords", keywords);
+      formData.append("tone", tone);
+      formData.append("niche", niche);
       formData.append("video", video);
       if (csv) formData.append("csv", csv);
 
-      const endpoint = platform === "tiktok" ? "/analyze_tiktok" : "/analyze_youtube";
+      loadingDiv.classList.remove("hidden");
+      resultsDiv.classList.add("hidden");
+      resultsDiv.textContent = "";
 
       try {
-        const response = await fetch(endpoint, { method: "POST", body: formData });
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData
+        });
         const data = await response.json();
-        if (data.error) {
-          resultsDiv.textContent = "Error: " + data.error;
+
+        if (data.status === "success") {
+          const res = data.results;
+          const platformLabel = res.platform === "tiktok" ? "TikTok" : "YouTube";
+          const baseFormat = `
+🎬 Drag and drop your ${platformLabel} video file here: "${res.video}"
+🎥 Running ${platformLabel} Viral Optimizer...
+
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ ${platformLabel} Video Analysis Complete!
+
+🎬 Video: ${res.video}
+📏 Duration: ${res.meta.duration_seconds}s
+🖼 Resolution: ${res.meta.resolution[0]}x${res.meta.resolution[1]}
+📱 Aspect Ratio: ${res.meta.aspect_ratio}
+💡 Brightness: ${res.meta.mean_brightness_first_frame}
+⭐ Heuristic Score: ${res.meta.heuristics.normalized_0_10}/10 (${res.meta.heuristics.notes.join(" ")})
+
+💬 AI-Generated ${platformLabel} Insights:
+${res.ai_insights}
+
+${res.csv_used ? "📈 CSV data included in analysis." : ""}
+📅 Timestamp: ${res.timestamp}
+`;
+          resultsDiv.textContent = baseFormat;
+          resultsDiv.classList.remove("hidden");
         } else {
-          resultsDiv.innerHTML = `<pre>${data.results}</pre>`;
+          resultsDiv.textContent = "⚠️ Error: " + data.error;
+          resultsDiv.classList.remove("hidden");
         }
       } catch (err) {
-        resultsDiv.textContent = "⚠️ An error occurred: " + err.message;
+        resultsDiv.textContent = "❌ Failed to analyze video. " + err;
+        resultsDiv.classList.remove("hidden");
       } finally {
-        loadingDiv.style.display = "none";
+        loadingDiv.classList.add("hidden");
       }
-    }
+    });
   </script>
 </body>
 </html>
