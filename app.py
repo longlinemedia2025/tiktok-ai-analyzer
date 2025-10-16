@@ -1,203 +1,166 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok & YouTube Virality Analyzer</title>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0e0e10;
-      color: white;
-      text-align: center;
-      margin: 0;
-      padding: 0;
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+import os
+import cv2
+import numpy as np
+from moviepy.editor import VideoFileClip
+from openai import OpenAI
+import tempfile
+import pandas as pd
+
+app = Flask(__name__, template_folder="templates")
+CORS(app)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# --- Helper: Analyze video properties ---
+def analyze_video_properties(video_path):
+    clip = VideoFileClip(video_path)
+    duration = clip.duration
+    width, height = clip.size
+    aspect_ratio = round(width / height, 3)
+
+    # Use OpenCV to analyze brightness
+    cap = cv2.VideoCapture(video_path)
+    brightness_values = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        brightness = hsv[..., 2].mean()
+        brightness_values.append(brightness)
+    cap.release()
+
+    avg_brightness = np.mean(brightness_values) if brightness_values else 0
+    tone = "bright" if avg_brightness > 160 else "neutral or mixed" if avg_brightness > 90 else "dark"
+
+    return {
+        "duration": round(duration, 2),
+        "resolution": f"{width}x{height}",
+        "aspect_ratio": aspect_ratio,
+        "brightness": round(avg_brightness, 2),
+        "tone": tone,
     }
 
-    h1 {
-      font-size: 1.8rem;
-      margin-top: 30px;
-    }
+# --- Helper: Get AI response ---
+def get_ai_analysis(prompt):
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        input=prompt
+    )
+    return response.output[0].content[0].text
 
-    .container {
-      width: 90%;
-      max-width: 650px;
-      margin: 40px auto;
-      padding: 25px;
-      background: #1b1b1f;
-      border-radius: 16px;
-      box-shadow: 0 0 25px rgba(255,255,255,0.05);
-    }
+# --- Route: Home ---
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-    .upload-zone {
-      border: 2px dashed #555;
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 20px;
-      transition: 0.3s ease;
-    }
+# --- Route: Analyze TikTok Video ---
+@app.route('/analyze_tiktok', methods=['POST'])
+def analyze_tiktok():
+    video_file = request.files.get('video')
+    csv_file = request.files.get('csv')
 
-    .upload-zone:hover {
-      border-color: #00ff99;
-      background-color: rgba(0,255,153,0.05);
-    }
+    if not video_file:
+        return jsonify({'error': 'No video file uploaded'}), 400
 
-    input[type="file"] {
-      display: none;
-    }
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+        video_file.save(tmp.name)
+        video_path = tmp.name
 
-    label {
-      background: #00ff99;
-      color: black;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 5px;
-      display: inline-block;
-    }
+    video_data = analyze_video_properties(video_path)
 
-    select {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      background: #2a2a2d;
-      color: white;
-      margin-bottom: 20px;
-      font-size: 1rem;
-    }
+    # Load CSV context if uploaded
+    csv_context = ""
+    if csv_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
+            csv_file.save(tmp_csv.name)
+            df = pd.read_csv(tmp_csv.name)
+            csv_context = df.to_string(index=False)
 
-    button {
-      background: #00ff99;
-      color: black;
-      padding: 12px 30px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: 0.2s ease;
-    }
+    prompt = f"""
+You are a TikTok virality analyzer AI.
+Analyze this video data and CSV info to generate optimized insights.
 
-    button:hover {
-      background: #00e68a;
-    }
+Video Info:
+Duration: {video_data['duration']}s
+Resolution: {video_data['resolution']}
+Aspect Ratio: {video_data['aspect_ratio']}
+Brightness: {video_data['brightness']}
+Tone: {video_data['tone']}
 
-    pre {
-      text-align: left;
-      background: #161618;
-      padding: 15px;
-      border-radius: 10px;
-      color: #c7c7c7;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
+CSV Insights:
+{csv_context[:2000]}
 
-    .file-info {
-      font-size: 0.9rem;
-      color: #00ff99;
-      margin-top: 5px;
-    }
+Generate the following output in this format:
 
-    .loading {
-      margin-top: 20px;
-      color: #00ff99;
-      font-weight: bold;
-      font-size: 1.1rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🎬 TikTok & YouTube Virality Analyzer</h1>
+🎬 Video Analysis Summary
+💡 Viral Caption
+🔥 5 Hashtags
+🎯 Optimization Score (1-100)
+💬 Improvement Tip
+📊 Keyword Suggestions (for SEO + hashtags)
+📈 Viral Comparison & Strategy
+📋 Actionable Checklist
+    """
 
-    <select id="platform">
-      <option value="tiktok">TikTok</option>
-      <option value="youtube">YouTube</option>
-    </select>
+    result = get_ai_analysis(prompt)
+    os.remove(video_path)
+    return jsonify({'results': result})
 
-    <div class="upload-zone">
-      <h3>🎥 Upload Video</h3>
-      <label for="videoInput">Choose Video</label>
-      <input type="file" id="videoInput" accept="video/*" />
-      <div id="videoInfo" class="file-info"></div>
-    </div>
+# --- Route: Analyze YouTube Video ---
+@app.route('/analyze_youtube', methods=['POST'])
+def analyze_youtube():
+    video_file = request.files.get('video')
+    csv_file = request.files.get('csv')
 
-    <div class="upload-zone">
-      <h3>📈 Upload Performance CSV (optional)</h3>
-      <label for="csvInput">Choose CSV</label>
-      <input type="file" id="csvInput" accept=".csv" />
-      <div id="csvInfo" class="file-info"></div>
-    </div>
+    if not video_file:
+        return jsonify({'error': 'No video file uploaded'}), 400
 
-    <button id="analyzeBtn">Analyze</button>
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+        video_file.save(tmp.name)
+        video_path = tmp.name
 
-    <div id="loading" class="loading" style="display:none;">🔍 Analyzing video, please wait...</div>
-    <pre id="results"></pre>
-  </div>
+    video_data = analyze_video_properties(video_path)
 
-  <script>
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const videoInput = document.getElementById("videoInput");
-    const csvInput = document.getElementById("csvInput");
-    const resultsEl = document.getElementById("results");
-    const loadingEl = document.getElementById("loading");
-    const videoInfo = document.getElementById("videoInfo");
-    const csvInfo = document.getElementById("csvInfo");
-    const platformSelect = document.getElementById("platform");
+    csv_context = ""
+    if csv_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
+            csv_file.save(tmp_csv.name)
+            df = pd.read_csv(tmp_csv.name)
+            csv_context = df.to_string(index=False)
 
-    videoInput.addEventListener("change", () => {
-      if (videoInput.files.length > 0) {
-        videoInfo.textContent = `🎬 Uploaded: ${videoInput.files[0].name}`;
-      } else {
-        videoInfo.textContent = "";
-      }
-    });
+    prompt = f"""
+You are a YouTube content strategy AI.
+Analyze this uploaded YouTube video data and the optional CSV dataset.
+Provide a full breakdown following YouTube's algorithm principles (CTR, AVD, engagement, SEO).
 
-    csvInput.addEventListener("change", () => {
-      if (csvInput.files.length > 0) {
-        csvInfo.textContent = `📊 Uploaded: ${csvInput.files[0].name}`;
-      } else {
-        csvInfo.textContent = "";
-      }
-    });
+Video Info:
+Duration: {video_data['duration']}s
+Resolution: {video_data['resolution']}
+Aspect Ratio: {video_data['aspect_ratio']}
+Brightness: {video_data['brightness']}
+Tone: {video_data['tone']}
 
-    analyzeBtn.addEventListener("click", async () => {
-      const platform = platformSelect.value;
-      const videoFile = videoInput.files[0];
-      const csvFile = csvInput.files[0];
+CSV Insights:
+{csv_context[:2000]}
 
-      if (!videoFile) {
-        alert("Please upload a video file first.");
-        return;
-      }
+Generate the following:
+🎬 Video Overview
+🔑 Top 5 YouTube Keyword Suggestions (SEO)
+💬 Engaging Video Title Suggestion
+🔥 5 Hashtags for YouTube Shorts/Community
+📊 Algorithm Optimization Score (1–100)
+⚙️ Retention & Engagement Improvement Tip
+📈 Comparison with Top Viral Videos (same niche)
+🎯 Strategic Takeaways for Growth
+📋 Actionable Checklist (3–5 quick steps)
+    """
 
-      const formData = new FormData();
-      formData.append("video", videoFile);
-      if (csvFile) formData.append("csv", csvFile);
+    result = get_ai_analysis(prompt)
+    os.remove(video_path)
+    return jsonify({'results': result})
 
-      loadingEl.style.display = "block";
-      resultsEl.textContent = "";
 
-      try {
-        const response = await fetch(`/analyze_${platform}`, {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-
-        if (data.error) {
-          resultsEl.textContent = `❌ Error: ${data.error}`;
-        } else {
-          resultsEl.textContent = data.results || "No results returned.";
-        }
-      } catch (err) {
-        resultsEl.textContent = `⚠️ Request failed: ${err.message}`;
-      } finally {
-        loadingEl.style.display = "none";
-      }
-    });
-  </script>
-</body>
-</html>
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

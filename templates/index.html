@@ -3,161 +3,158 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Viral Video Analyzer</title>
+  <title>TikTok + YouTube Virality Analyzer</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: #0f0f10;
-      color: #f1f1f1;
+      background: #0d1117;
+      color: #e6edf3;
       text-align: center;
-      margin: 0;
-      padding: 0;
+      padding: 40px;
     }
     h1 {
-      font-size: 2rem;
-      margin-top: 1.5rem;
+      color: #58a6ff;
     }
-    .container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 2rem;
-      gap: 2rem;
-    }
-    .tool {
-      background: #1a1a1d;
+    .upload-container {
+      border: 2px dashed #30363d;
       border-radius: 12px;
-      padding: 1.5rem;
-      width: 400px;
-      box-shadow: 0 0 20px rgba(255,255,255,0.1);
+      padding: 30px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 600px;
+      transition: 0.2s;
     }
-    .drop-zone {
-      border: 2px dashed #444;
-      border-radius: 10px;
-      padding: 1.5rem;
-      margin: 1rem 0;
+    .upload-container.dragover {
+      background: #161b22;
+      border-color: #58a6ff;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    label {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 18px;
+      background: #238636;
+      color: white;
+      border-radius: 8px;
       cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .drop-zone:hover {
-      border-color: #00ff99;
     }
     button {
-      background-color: #00ff99;
-      color: #111;
+      background: #1f6feb;
+      color: white;
+      padding: 12px 20px;
       border: none;
-      padding: 0.8rem 1.2rem;
-      font-size: 1rem;
-      border-radius: 6px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 20px 10px;
       cursor: pointer;
-      transition: background 0.2s;
     }
     button:hover {
-      background-color: #00e68a;
+      background: #388bfd;
     }
-    pre {
-      background: #111;
-      color: #00ffcc;
-      padding: 1rem;
-      border-radius: 8px;
+    #loading {
+      display: none;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    #results {
+      margin-top: 30px;
+      white-space: pre-wrap;
       text-align: left;
-      overflow-x: auto;
+      background: #161b22;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 0 10px #0d1117;
     }
-    footer {
-      margin-top: 2rem;
-      font-size: 0.9rem;
-      opacity: 0.8;
+    .filename {
+      color: #8b949e;
+      margin-top: 10px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
+  <h1>🎥 TikTok & YouTube Virality Analyzer</h1>
+  <p>Upload your video and optional CSV data for AI-powered virality insights</p>
 
-  <h1>🎬 Viral Video Analyzer</h1>
-  <p>Upload your video + performance CSV to get AI-powered TikTok or YouTube insights!</p>
-
-  <div class="container">
-    <!-- TikTok Tool -->
-    <div class="tool">
-      <h2>🎵 TikTok Algorithm Rater</h2>
-      <div id="tiktok-drop-zone" class="drop-zone">
-        Drag & drop your TikTok video file here
-      </div>
-      <div id="tiktok-csv-drop" class="drop-zone">
-        Drag & drop your TikTok performance CSV here (optional)
-      </div>
-      <button id="analyze-tiktok">Analyze TikTok Video</button>
-      <pre id="tiktok-results">Awaiting upload...</pre>
-    </div>
-
-    <!-- YouTube Tool -->
-    <div class="tool">
-      <h2>📺 YouTube Virality Analyzer</h2>
-      <div id="youtube-drop-zone" class="drop-zone">
-        Drag & drop your YouTube video file here
-      </div>
-      <div id="youtube-csv-drop" class="drop-zone">
-        Drag & drop your YouTube analytics CSV here (optional)
-      </div>
-      <button id="analyze-youtube">Analyze YouTube Video</button>
-      <pre id="youtube-results">Awaiting upload...</pre>
-    </div>
+  <!-- Video Upload -->
+  <div id="video-upload" class="upload-container">
+    <h3>🎬 Upload Video</h3>
+    <input type="file" id="video" accept="video/mp4,video/mov,video/quicktime" />
+    <label for="video">Choose Video</label>
+    <p class="filename" id="video-filename">No file selected</p>
   </div>
 
-  <footer>🚀 Built for creators who want their content to go viral — powered by AI</footer>
+  <!-- CSV Upload -->
+  <div id="csv-upload" class="upload-container">
+    <h3>📊 Upload CSV (Optional: Past TikTok or YouTube Results)</h3>
+    <input type="file" id="csv" accept=".csv" />
+    <label for="csv">Choose CSV</label>
+    <p class="filename" id="csv-filename">No file selected</p>
+  </div>
+
+  <!-- Buttons -->
+  <button onclick="analyze('tiktok')">Analyze TikTok</button>
+  <button onclick="analyze('youtube')">Analyze YouTube</button>
+
+  <div id="loading">⚙️ Analyzing... please wait</div>
+  <div id="results"></div>
 
   <script>
-    // ---- Helper for Drag & Drop ----
-    function setupDropZone(dropZoneId, fileCallback) {
-      const dropZone = document.getElementById(dropZoneId);
-      dropZone.addEventListener("dragover", e => {
-        e.preventDefault();
-        dropZone.style.borderColor = "#00ff99";
-      });
-      dropZone.addEventListener("dragleave", () => {
-        dropZone.style.borderColor = "#444";
-      });
-      dropZone.addEventListener("drop", e => {
-        e.preventDefault();
-        dropZone.style.borderColor = "#444";
-        const file = e.dataTransfer.files[0];
-        fileCallback(file);
-      });
+    const videoInput = document.getElementById("video");
+    const csvInput = document.getElementById("csv");
+    const videoFilename = document.getElementById("video-filename");
+    const csvFilename = document.getElementById("csv-filename");
+    const resultsDiv = document.getElementById("results");
+    const loadingDiv = document.getElementById("loading");
+
+    videoInput.addEventListener("change", () => {
+      videoFilename.textContent = videoInput.files[0]
+        ? `🎬 Selected: ${videoInput.files[0].name}`
+        : "No file selected";
+    });
+
+    csvInput.addEventListener("change", () => {
+      csvFilename.textContent = csvInput.files[0]
+        ? `📊 Selected: ${csvInput.files[0].name}`
+        : "No file selected";
+    });
+
+    async function analyze(platform) {
+      const video = videoInput.files[0];
+      const csv = csvInput.files[0];
+      if (!video) {
+        alert("Please upload a video first!");
+        return;
+      }
+
+      resultsDiv.innerHTML = "";
+      loadingDiv.style.display = "block";
+
+      const formData = new FormData();
+      formData.append("video", video);
+      if (csv) formData.append("csv", csv);
+
+      const endpoint = platform === "tiktok" ? "/analyze_tiktok" : "/analyze_youtube";
+
+      try {
+        const response = await fetch(endpoint, { method: "POST", body: formData });
+        const data = await response.json();
+        if (data.error) {
+          resultsDiv.textContent = "Error: " + data.error;
+        } else {
+          resultsDiv.innerHTML = `<pre>${data.results}</pre>`;
+        }
+      } catch (err) {
+        resultsDiv.textContent = "⚠️ An error occurred: " + err.message;
+      } finally {
+        loadingDiv.style.display = "none";
+      }
     }
-
-    let tiktokVideo = null, tiktokCSV = null;
-    let youtubeVideo = null, youtubeCSV = null;
-
-    // ---- TikTok Drop Zones ----
-    setupDropZone("tiktok-drop-zone", f => tiktokVideo = f);
-    setupDropZone("tiktok-csv-drop", f => tiktokCSV = f);
-
-    // ---- YouTube Drop Zones ----
-    setupDropZone("youtube-drop-zone", f => youtubeVideo = f);
-    setupDropZone("youtube-csv-drop", f => youtubeCSV = f);
-
-    // ---- Analyze TikTok ----
-    document.getElementById("analyze-tiktok").addEventListener("click", async () => {
-      if (!tiktokVideo) return alert("Please upload a TikTok video file first!");
-      const formData = new FormData();
-      formData.append("video", tiktokVideo);
-      if (tiktokCSV) formData.append("csv", tiktokCSV);
-      document.getElementById("tiktok-results").textContent = "Processing TikTok video...";
-      const res = await fetch("/analyze_tiktok", { method: "POST", body: formData });
-      const data = await res.json();
-      document.getElementById("tiktok-results").textContent = data.results || JSON.stringify(data, null, 2);
-    });
-
-    // ---- Analyze YouTube ----
-    document.getElementById("analyze-youtube").addEventListener("click", async () => {
-      if (!youtubeVideo) return alert("Please upload a YouTube video file first!");
-      const formData = new FormData();
-      formData.append("video", youtubeVideo);
-      if (youtubeCSV) formData.append("csv", youtubeCSV);
-      document.getElementById("youtube-results").textContent = "Processing YouTube video...";
-      const res = await fetch("/analyze_youtube", { method: "POST", body: formData });
-      const data = await res.json();
-      document.getElementById("youtube-results").textContent = data.results || JSON.stringify(data, null, 2);
-    });
   </script>
 </body>
 </html>
