@@ -6,178 +6,214 @@
   <title>TikTok Algorithm Rater Tool</title>
   <style>
     body {
-      font-family: "Inter", sans-serif;
-      background-color: #0d0d0d;
-      color: #fff;
+      font-family: 'Inter', Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
       text-align: center;
       padding: 40px;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+
+    h1 { 
+      color: #00bfff; 
+      margin-bottom: 20px;
     }
-    p {
-      color: #aaa;
-      font-size: 1rem;
-      margin-bottom: 30px;
-    }
-    .upload-container {
-      border: 2px dashed #666;
-      border-radius: 20px;
-      padding: 40px;
+
+    .upload-box {
+      border: 2px dashed #00bfff;
+      padding: 30px;
       margin: 20px auto;
-      max-width: 600px;
-      background: #1a1a1a;
-      transition: all 0.3s ease;
-    }
-    .upload-container.dragover {
-      border-color: #00c853;
-      background: #151515;
-    }
-    .upload-container h2 {
-      margin-bottom: 10px;
-      font-weight: 500;
-      font-size: 1.2rem;
-    }
-    .file-label {
-      display: block;
-      margin-top: 15px;
-      color: #00c853;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #analyze-btn {
-      background: linear-gradient(90deg, #00c853, #1de9b6);
-      border: none;
-      padding: 15px 40px;
-      border-radius: 50px;
-      color: #000;
-      font-weight: bold;
-      font-size: 1.1rem;
-      cursor: pointer;
-      margin-top: 30px;
-      transition: all 0.2s ease;
-    }
-    #analyze-btn:hover {
-      transform: scale(1.05);
-      background: linear-gradient(90deg, #1de9b6, #00c853);
-    }
-    pre {
-      text-align: left;
-      background: #111;
-      padding: 20px;
+      width: 70%;
       border-radius: 12px;
-      overflow-x: auto;
+      cursor: pointer;
+      transition: 0.3s;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .upload-box:hover { background: rgba(0,191,255,0.1); }
+
+    .file-label {
+      margin-top: 10px;
+      display: block;
+      color: #bbb;
+    }
+
+    button {
+      background: #00bfff;
+      color: white;
+      padding: 10px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover { background: #0095cc; }
+
+    #result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #161b22;
+      border-radius: 10px;
+      text-align: left;
       white-space: pre-wrap;
-      margin-top: 40px;
+      line-height: 1.5;
     }
-    .hidden {
+
+    /* Spinner + progress bar styling */
+    #loading-container {
       display: none;
+      margin-top: 30px;
+      text-align: center;
     }
+
     .spinner {
-      margin-top: 20px;
-      width: 40px;
-      height: 40px;
-      border: 4px solid #444;
-      border-top: 4px solid #00c853;
+      border: 5px solid rgba(255,255,255,0.1);
+      border-left-color: #00bfff;
       border-radius: 50%;
+      width: 60px;
+      height: 60px;
       animation: spin 1s linear infinite;
-      display: inline-block;
+      margin: 0 auto 15px;
     }
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      width: 70%;
+      margin: 0 auto;
+      height: 10px;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00bfff, #0095cc);
+      transition: width 0.3s;
     }
   </style>
 </head>
 <body>
   <h1>🎯 TikTok Algorithm Rater Tool</h1>
-  <p>Upload your TikTok video and optional CSV of past results to generate the most accurate AI-powered recommendations.</p>
 
-  <!-- Video Upload -->
-  <div id="video-drop" class="upload-container">
-    <h2>🎥 Drag & Drop Your TikTok Video Here</h2>
-    <p>or click to select</p>
-    <input type="file" id="video-input" accept="video/*" hidden />
-    <label class="file-label" for="video-input">Choose Video File</label>
+  <form id="analyzeForm">
+    <div id="videoDrop" class="upload-box">
+      <p>🎥 Drag and drop your TikTok video here or click to upload</p>
+      <input type="file" id="videoInput" name="video" accept="video/*" hidden required />
+      <span class="file-label" id="videoLabel">No video selected</span>
+    </div>
+
+    <div id="csvDrop" class="upload-box">
+      <p>📊 Drag and drop your performance CSV here or click to upload (optional)</p>
+      <input type="file" id="csvInput" name="csv" accept=".csv" hidden />
+      <span class="file-label" id="csvLabel">No CSV selected</span>
+    </div>
+
+    <button type="submit">🚀 Analyze</button>
+  </form>
+
+  <div id="loading-container">
+    <div class="spinner"></div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p id="loading-text">⏳ Uploading and analyzing video... Please wait.</p>
   </div>
 
-  <!-- CSV Upload -->
-  <div id="csv-drop" class="upload-container">
-    <h2>📊 Drag & Drop Your TikTok CSV Data Here (optional)</h2>
-    <p>or click to select</p>
-    <input type="file" id="csv-input" accept=".csv" hidden />
-    <label class="file-label" for="csv-input">Choose CSV File</label>
-  </div>
-
-  <button id="analyze-btn">🚀 Analyze</button>
-  <div id="loading" class="spinner hidden"></div>
-  <pre id="results" class="hidden"></pre>
+  <div id="result"></div>
 
   <script>
-    const videoDrop = document.getElementById('video-drop');
-    const csvDrop = document.getElementById('csv-drop');
-    const videoInput = document.getElementById('video-input');
-    const csvInput = document.getElementById('csv-input');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const loading = document.getElementById('loading');
-    const results = document.getElementById('results');
+    const videoDrop = document.getElementById("videoDrop");
+    const csvDrop = document.getElementById("csvDrop");
+    const videoInput = document.getElementById("videoInput");
+    const csvInput = document.getElementById("csvInput");
+    const videoLabel = document.getElementById("videoLabel");
+    const csvLabel = document.getElementById("csvLabel");
+    const resultDiv = document.getElementById("result");
+    const loadingContainer = document.getElementById("loading-container");
+    const progressFill = document.getElementById("progressFill");
+    const loadingText = document.getElementById("loading-text");
 
-    function setupDragDrop(container, input) {
-      container.addEventListener('dragover', e => {
+    function setupDropZone(dropZone, input, label) {
+      dropZone.addEventListener("click", () => input.click());
+      dropZone.addEventListener("dragover", e => {
         e.preventDefault();
-        container.classList.add('dragover');
+        dropZone.style.background = "rgba(0,191,255,0.2)";
       });
-      container.addEventListener('dragleave', () => {
-        container.classList.remove('dragover');
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.style.background = "rgba(0,0,0,0.2)";
       });
-      container.addEventListener('drop', e => {
+      dropZone.addEventListener("drop", e => {
         e.preventDefault();
-        container.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
         input.files = e.dataTransfer.files;
-        container.querySelector('p').textContent = file.name;
+        label.textContent = input.files[0].name;
+        dropZone.style.background = "rgba(0,0,0,0.2)";
       });
-      container.addEventListener('click', () => input.click());
-      input.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (file) container.querySelector('p').textContent = file.name;
+      input.addEventListener("change", () => {
+        if (input.files.length > 0) label.textContent = input.files[0].name;
       });
     }
 
-    setupDragDrop(videoDrop, videoInput);
-    setupDragDrop(csvDrop, csvInput);
+    setupDropZone(videoDrop, videoInput, videoLabel);
+    setupDropZone(csvDrop, csvInput, csvLabel);
 
-    analyzeBtn.addEventListener('click', async () => {
-      const videoFile = videoInput.files[0];
-      if (!videoFile) {
-        alert('Please upload a video file before analyzing.');
+    function simulateProgress() {
+      let width = 0;
+      const interval = setInterval(() => {
+        if (width >= 100) {
+          clearInterval(interval);
+        } else {
+          width += Math.random() * 4;
+          progressFill.style.width = Math.min(width, 100) + "%";
+        }
+      }, 400);
+      return interval;
+    }
+
+    document.getElementById("analyzeForm").addEventListener("submit", async e => {
+      e.preventDefault();
+
+      if (videoInput.files.length === 0) {
+        alert("Please upload a video before analyzing.");
         return;
       }
 
-      const formData = new FormData();
-      formData.append('video', videoFile);
-      if (csvInput.files[0]) formData.append('csv', csvInput.files[0]);
+      loadingContainer.style.display = "block";
+      resultDiv.textContent = "";
+      progressFill.style.width = "0%";
+      const progressInterval = simulateProgress();
 
-      loading.classList.remove('hidden');
-      results.classList.add('hidden');
-      results.textContent = '';
+      const formData = new FormData();
+      formData.append("video", videoInput.files[0]);
+      if (csvInput.files.length > 0) formData.append("csv", csvInput.files[0]);
 
       try {
-        const response = await fetch('/analyze', { method: 'POST', body: formData });
-        const data = await response.json();
-        loading.classList.add('hidden');
-        results.classList.remove('hidden');
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData
+        });
 
-        if (data.error) {
-          results.textContent = '❌ ' + data.error;
-        } else {
-          results.textContent = data.ai_results;
+        clearInterval(progressInterval);
+        loadingContainer.style.display = "none";
+
+        if (!response.ok) {
+          const error = await response.json();
+          resultDiv.textContent = `❌ Error: ${error.error || "Unknown error"}`;
+          return;
         }
+
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${data.ai_results}</pre>`;
       } catch (err) {
-        loading.classList.add('hidden');
-        results.classList.remove('hidden');
-        results.textContent = '⚠️ Error: ' + err.message;
+        clearInterval(progressInterval);
+        loadingContainer.style.display = "none";
+        resultDiv.textContent = "❌ Request failed. Please check the server or console logs.";
+        console.error(err);
       }
     });
   </script>
