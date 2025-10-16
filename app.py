@@ -115,26 +115,26 @@ def analyze_video_properties(video_path):
 # 🔹 Adaptive CSV-Based Optimization
 # ==================================================
 def analyze_csv_performance(csv_path):
-    """Read CSV file and summarize what content types perform best."""
+    """Read CSV and summarize performance insights."""
     try:
         df = pd.read_csv(csv_path)
-        key_columns = ["views", "likes", "comments", "shares", "saves"]
-        available = [c for c in key_columns if c in df.columns]
-
+        key_cols = ["views", "likes", "comments", "shares", "saves"]
+        available = [c for c in key_cols if c in df.columns]
         if not available:
             return None
 
-        performance_summary = df[available].mean().to_dict()
+        avg_perf = df[available].mean().to_dict()
         best_video = df.loc[df["views"].idxmax()] if "views" in df.columns else None
 
-        context = f"""
-Average performance:
-{performance_summary}
+        summary = f"""
+📊 **CSV Performance Insights Used in Analysis**
+Average Performance:
+{avg_perf}
 
-Top performing video insight:
+Top Performing Video:
 {best_video.to_dict() if best_video is not None else "N/A"}
 """
-        return context
+        return summary
     except Exception as e:
         return f"⚠️ CSV analysis failed: {str(e)}"
 
@@ -166,23 +166,6 @@ def analyze_video():
             csv_file.save(csv_path)
             csv_context = analyze_csv_performance(csv_path) or ""
 
-        file_size_mb = os.path.getsize(video_path) / (1024 * 1024)
-        warning_message = None
-
-        if file_size_mb > MAX_SIZE_MB:
-            os.remove(video_path)
-            return jsonify({
-                "error": f"Video too large ({file_size_mb:.1f}MB). Please compress below {MAX_SIZE_MB}MB and try again."
-            }), 400
-
-        if file_size_mb > TRIM_THRESHOLD_MB:
-            warning_message = "⚠️ Video trimmed automatically to reduce file size before analysis."
-            clip = VideoFileClip(video_path)
-            trimmed_clip = clip.subclip(0, min(clip.duration, 45))
-            temp_path = tempfile.mktemp(suffix=".mp4")
-            trimmed_clip.write_videofile(temp_path, codec="libx264", audio_codec="aac")
-            video_path = temp_path
-
         clip = VideoFileClip(video_path)
         duration = round(clip.duration, 2)
         width, height = clip.size
@@ -192,9 +175,11 @@ def analyze_video():
         if "error" in analysis:
             return jsonify(analysis), 500
 
+        # === AI Prompt ===
         prompt = f"""
 You are a TikTok algorithm analysis assistant.
-Analyze this video and integrate past performance data for smarter recommendations.
+
+Analyze this video and use past performance insights (if any) to adjust your recommendations.
 
 Video Data:
 - Brightness: {analysis['brightness']}
@@ -204,10 +189,9 @@ Video Data:
 - Resolution: {width}x{height}
 - Aspect Ratio: {aspect_ratio}
 
-Past CSV Performance (if available):
-{csv_context}
+{csv_context if csv_context else "No CSV uploaded — use general TikTok trends."}
 
-Generate a full, detailed response in this **exact format**:
+Respond in this EXACT format:
 
 🎬 Drag and drop your TikTok video file here: "{video.filename}"
 🎥 Running TikTok Viral Optimizer...
@@ -231,7 +215,7 @@ Generate a full, detailed response in this **exact format**:
 (Create one engaging caption using emojis and emotional hooks.)
 
 ### 2. 5 Viral Hashtags
-(List five relevant hashtags — include 3 trending + 2 niche-targeted less popular ones to maximize discovery.)
+(List five relevant hashtags — include 3 trending + 2 niche-targeted less popular ones.)
 
 ### 3. Actionable Improvement Tip for Engagement
 (Provide one concise, actionable engagement tip.)
@@ -244,7 +228,6 @@ Generate a full, detailed response in this **exact format**:
 
 🔥 Viral Comparison Results:
 ### Comparison with Viral TikToks in the Same Niche
-
 Include 3 examples — each must include:
 #### Viral Example 1
 - **Video Concept Summary:**
@@ -262,7 +245,7 @@ Include 3 examples — each must include:
 - **How to Replicate Success:**
 
 ### Takeaway Strategy
-(Provide a 3–4 sentence takeaway on how to improve virality and viewer engagement.)
+(Provide a 3–4 sentence takeaway on how to improve virality.)
 
 📋 Actionable Checklist:
 - Hook viewers in under 2 seconds.
@@ -277,19 +260,16 @@ Include 3 examples — each must include:
             temperature=0.8,
             max_tokens=900
         )
-
         ai_text = ai_response.choices[0].message.content.strip()
 
-        # === Niche Detection + Posting Time ===
+        # === Detect Niche + Posting Time ===
         try:
             niche_prompt = f"""
-            Based on this analysis, determine its most likely TikTok content niche.
-            {ai_text}
-
-            Possible niches: Gaming, Beauty, Music, Fitness, Comedy, Other.
-            Return ONLY the niche name.
-            """
-
+Based on this analysis, determine its most likely TikTok content niche.
+{ai_text}
+Possible niches: Gaming, Beauty, Music, Fitness, Comedy, Other.
+Return ONLY the niche name.
+"""
             niche_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -298,16 +278,16 @@ Include 3 examples — each must include:
                 ],
                 max_tokens=20
             )
-
             detected_niche = niche_response.choices[0].message.content.strip().lower()
             best_time_text = get_best_posting_time(detected_niche)
             ai_text += f"\n\n🎯 **Detected Niche:** {detected_niche.title()}\n{best_time_text}"
+            if csv_context:
+                ai_text += "\n\n📈 (Adaptive insights powered by your uploaded TikTok CSV.)"
         except Exception as e:
             ai_text += f"\n\n⚠️ Niche detection failed: {str(e)}"
 
         return jsonify({
             "success": True,
-            "warning": warning_message,
             "analysis": {
                 "filename": video.filename,
                 "duration": duration,
