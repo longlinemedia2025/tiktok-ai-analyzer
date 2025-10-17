@@ -3,153 +3,338 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Viral Analyzer – TikTok & YouTube</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>TikTok & YouTube Viral Optimizer</title>
+  <style>
+    body {
+      font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0b0b0b;
+      color: #f5f5f5;
+      text-align: center;
+      padding: 40px;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 1.5rem;
+      color: #00bcd4;
+      text-shadow: 0 0 8px rgba(0, 188, 212, 0.6);
+    }
+
+    .upload-container {
+      border: 2px dashed #333;
+      border-radius: 16px;
+      padding: 30px;
+      margin: 20px auto;
+      width: 80%;
+      max-width: 600px;
+      background-color: #141414;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .upload-container:hover {
+      border-color: #00bcd4;
+      background-color: #1c1c1c;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label {
+      cursor: pointer;
+      color: #00bcd4;
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    label:hover {
+      color: #26d9ff;
+    }
+
+    button {
+      background-color: #00bcd4;
+      border: none;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.3s;
+      margin-top: 25px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0, 188, 212, 0.4);
+    }
+
+    button:hover {
+      background-color: #0097a7;
+      box-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
+    }
+
+    select {
+      background-color: #141414;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      outline: none;
+    }
+
+    select:hover {
+      border-color: #00bcd4;
+    }
+
+    #results {
+      margin-top: 30px;
+      white-space: pre-wrap;
+      background-color: #141414;
+      border-radius: 14px;
+      padding: 25px;
+      width: 85%;
+      max-width: 780px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+      line-height: 1.7;
+      box-shadow: 0 0 20px rgba(0, 188, 212, 0.15);
+    }
+
+    .detected-section {
+      margin-top: 20px;
+      text-align: left;
+      width: 85%;
+      max-width: 750px;
+      margin-left: auto;
+      margin-right: auto;
+      background-color: #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      box-shadow: 0 0 15px rgba(0, 188, 212, 0.15);
+    }
+
+    .detected-section.visible {
+      opacity: 1;
+    }
+
+    .detected-section h3 {
+      color: #00bcd4;
+      margin-bottom: 10px;
+    }
+
+    .detected-section p {
+      margin: 5px 0;
+    }
+
+    .loader {
+      display: none;
+      margin: 30px auto;
+      text-align: center;
+    }
+
+    .dots {
+      margin: 10px auto;
+    }
+
+    .dot {
+      height: 12px;
+      width: 12px;
+      margin: 0 4px;
+      background-color: #00bcd4;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.4s infinite ease-in-out both;
+    }
+
+    .dot:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    #loader-text {
+      color: #aaa;
+      font-style: italic;
+      margin-top: 10px;
+      font-size: 0.95rem;
+      min-height: 20px;
+    }
+
+    #reset-btn {
+      display: none;
+      margin-top: 25px;
+      background-color: #333;
+    }
+
+    #reset-btn:hover {
+      background-color: #444;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col items-center p-6">
-  <div class="max-w-3xl w-full bg-white rounded-2xl shadow-lg p-8">
-    <h1 class="text-3xl font-bold text-center mb-2">🎬 Viral Video Analyzer</h1>
-    <p class="text-center text-gray-600 mb-6">
-      Upload your video and optional CSV for AI-powered optimization insights.
-    </p>
+<body>
+  <h1>🎬 TikTok & YouTube Viral Optimizer</h1>
 
-    <!-- Platform Selection -->
-    <label class="block text-gray-700 font-semibold mb-1">Platform</label>
-    <select id="platform" class="w-full border rounded-lg p-2 mb-4 focus:ring-2 focus:ring-indigo-400">
-      <option value="tiktok">TikTok</option>
-      <option value="youtube">YouTube</option>
+  <div>
+    <label for="platform">Select Platform:</label><br />
+    <select id="platform">
+      <option value="TikTok">TikTok</option>
+      <option value="YouTube">YouTube</option>
     </select>
-
-    <!-- File Uploads -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition">
-        <input type="file" id="video" accept="video/*" class="hidden" />
-        <label for="video" class="cursor-pointer text-indigo-600 font-semibold">🎥 Upload Video</label>
-        <p id="video-name" class="mt-2 text-sm text-gray-500">No file chosen</p>
-      </div>
-
-      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition">
-        <input type="file" id="csv" accept=".csv" class="hidden" />
-        <label for="csv" class="cursor-pointer text-indigo-600 font-semibold">📊 Upload CSV (optional)</label>
-        <p id="csv-name" class="mt-2 text-sm text-gray-500">No file chosen</p>
-      </div>
-    </div>
-
-    <!-- Keyword, Tone, Niche Inputs -->
-    <div class="mt-6">
-      <label class="block text-gray-700 font-semibold mb-1">Keywords (comma separated)</label>
-      <input id="keywords" class="w-full border rounded-lg p-2 mb-3" placeholder="haircut, transformation, fade" />
-
-      <label class="block text-gray-700 font-semibold mb-1">Tone</label>
-      <input id="tone" class="w-full border rounded-lg p-2 mb-3" placeholder="energetic, funny, inspiring" />
-
-      <label class="block text-gray-700 font-semibold mb-1">Niche</label>
-      <input id="niche" class="w-full border rounded-lg p-2" placeholder="beauty, gaming, fitness, etc." />
-    </div>
-
-    <!-- Analyze Button -->
-    <div class="mt-6 text-center">
-      <button id="analyze-btn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-        🔍 Analyze
-      </button>
-    </div>
-
-    <!-- Loading Spinner -->
-    <div id="loading" class="hidden mt-6 text-center">
-      <div class="animate-spin rounded-full h-10 w-10 border-t-4 border-indigo-600 mx-auto"></div>
-      <p class="mt-2 text-gray-600">Analyzing your video… please wait.</p>
-    </div>
-
-    <!-- Results -->
-    <div id="results" class="mt-8 whitespace-pre-line bg-gray-50 p-4 rounded-lg border hidden"></div>
   </div>
+
+  <div class="upload-container" id="video-dropzone">
+    <p>🎬 Drag and drop your video here or click to upload</p>
+    <input type="file" id="video" accept="video/*" />
+    <label for="video">Choose a video</label>
+    <p id="video-filename"></p>
+  </div>
+
+  <div class="upload-container" id="csv-dropzone">
+    <p>📄 Upload your CSV data (optional)</p>
+    <input type="file" id="csv" accept=".csv" />
+    <label for="csv">Choose a CSV</label>
+    <p id="csv-filename"></p>
+  </div>
+
+  <button id="analyze-btn">Analyze</button>
+
+  <div class="loader" id="loader">
+    <div class="dots">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <p id="loader-text">Initializing AI analysis...</p>
+  </div>
+
+  <div id="detected" class="detected-section">
+    <h3>🤖 Auto-Detected Video Attributes</h3>
+    <p><strong>Niche:</strong> <span id="niche"></span></p>
+    <p><strong>Tone:</strong> <span id="tone"></span></p>
+    <p><strong>Keywords:</strong> <span id="keywords"></span></p>
+  </div>
+
+  <div id="results"></div>
+  <button id="reset-btn">🔄 New Analysis</button>
 
   <script>
     const videoInput = document.getElementById("video");
     const csvInput = document.getElementById("csv");
-    const videoName = document.getElementById("video-name");
-    const csvName = document.getElementById("csv-name");
+    const videoFilename = document.getElementById("video-filename");
+    const csvFilename = document.getElementById("csv-filename");
     const analyzeBtn = document.getElementById("analyze-btn");
+    const resetBtn = document.getElementById("reset-btn");
     const resultsDiv = document.getElementById("results");
-    const loadingDiv = document.getElementById("loading");
+    const detectedDiv = document.getElementById("detected");
+    const nicheEl = document.getElementById("niche");
+    const toneEl = document.getElementById("tone");
+    const keywordsEl = document.getElementById("keywords");
+    const platformSelect = document.getElementById("platform");
+    const loader = document.getElementById("loader");
+    const loaderText = document.getElementById("loader-text");
 
-    // Show uploaded filenames
+    let loaderInterval;
+
+    function resetAll() {
+      resultsDiv.textContent = "";
+      videoFilename.textContent = "";
+      csvFilename.textContent = "";
+      detectedDiv.classList.remove("visible");
+      detectedDiv.style.display = "none";
+      loader.style.display = "none";
+      analyzeBtn.style.display = "inline-block";
+      resetBtn.style.display = "none";
+      videoInput.value = "";
+      csvInput.value = "";
+    }
+
     videoInput.addEventListener("change", () => {
-      videoName.textContent = videoInput.files.length ? videoInput.files[0].name : "No file chosen";
+      if (videoInput.files.length > 0)
+        videoFilename.textContent = `Uploaded: ${videoInput.files[0].name}`;
     });
+
     csvInput.addEventListener("change", () => {
-      csvName.textContent = csvInput.files.length ? csvInput.files[0].name : "No file chosen";
+      if (csvInput.files.length > 0)
+        csvFilename.textContent = `Uploaded: ${csvInput.files[0].name}`;
     });
 
     analyzeBtn.addEventListener("click", async () => {
-      const platform = document.getElementById("platform").value;
-      const keywords = document.getElementById("keywords").value;
-      const tone = document.getElementById("tone").value;
-      const niche = document.getElementById("niche").value;
-      const video = videoInput.files[0];
-      const csv = csvInput.files[0];
+      const videoFile = videoInput.files[0];
+      const csvFile = csvInput.files[0];
+      const platform = platformSelect.value;
 
-      if (!video) {
-        alert("Please upload a video first!");
-        return;
-      }
+      if (!videoFile) return alert("Please upload a video file first.");
+
+      resultsDiv.textContent = `🎥 Running ${platform} Viral Optimizer...\n\n🤖 Generating AI-powered analysis...`;
+      detectedDiv.classList.remove("visible");
+      loader.style.display = "block";
+
+      const messages = [
+        "🔍 Extracting video metadata...",
+        "🎨 Detecting tone and visuals...",
+        "🧠 Analyzing engagement potential...",
+        "📊 Comparing with viral examples...",
+        "💡 Generating captions, tags & insights..."
+      ];
+
+      let i = 0;
+      loaderInterval = setInterval(() => {
+        loaderText.textContent = messages[i % messages.length];
+        i++;
+      }, 2000);
 
       const formData = new FormData();
+      formData.append("video", videoFile);
       formData.append("platform", platform);
-      formData.append("keywords", keywords);
-      formData.append("tone", tone);
-      formData.append("niche", niche);
-      formData.append("video", video);
-      if (csv) formData.append("csv", csv);
-
-      loadingDiv.classList.remove("hidden");
-      resultsDiv.classList.add("hidden");
-      resultsDiv.textContent = "";
+      if (csvFile) formData.append("csv", csvFile);
 
       try {
-        const response = await fetch("/analyze", {
-          method: "POST",
-          body: formData
-        });
+        const response = await fetch("/analyze", { method: "POST", body: formData });
         const data = await response.json();
+        clearInterval(loaderInterval);
+        loader.style.display = "none";
 
-        if (data.status === "success") {
-          const res = data.results;
-          const platformLabel = res.platform === "tiktok" ? "TikTok" : "YouTube";
-          const baseFormat = `
-🎬 Drag and drop your ${platformLabel} video file here: "${res.video}"
-🎥 Running ${platformLabel} Viral Optimizer...
-
-🔥 Fetching viral video comparisons and strategic insights...
-
-✅ ${platformLabel} Video Analysis Complete!
-
-🎬 Video: ${res.video}
-📏 Duration: ${res.meta.duration_seconds}s
-🖼 Resolution: ${res.meta.resolution[0]}x${res.meta.resolution[1]}
-📱 Aspect Ratio: ${res.meta.aspect_ratio}
-💡 Brightness: ${res.meta.mean_brightness_first_frame}
-⭐ Heuristic Score: ${res.meta.heuristics.normalized_0_10}/10 (${res.meta.heuristics.notes.join(" ")})
-
-💬 AI-Generated ${platformLabel} Insights:
-${res.ai_insights}
-
-${res.csv_used ? "📈 CSV data included in analysis." : ""}
-📅 Timestamp: ${res.timestamp}
-`;
-          resultsDiv.textContent = baseFormat;
-          resultsDiv.classList.remove("hidden");
+        if (data.error) {
+          resultsDiv.textContent = "❌ Error: " + data.error;
         } else {
-          resultsDiv.textContent = "⚠️ Error: " + data.error;
-          resultsDiv.classList.remove("hidden");
+          const resultText = data.result;
+          const nicheMatch = resultText.match(/Niche:\s*\*\*(.+?)\*\*/);
+          const toneMatch = resultText.match(/Tone:\s*(.+)/);
+          const keywordsMatch = resultText.match(/Keywords?:\s*(.+)/);
+
+          if (nicheMatch || toneMatch || keywordsMatch) {
+            detectedDiv.style.display = "block";
+            setTimeout(() => detectedDiv.classList.add("visible"), 100);
+            nicheEl.textContent = nicheMatch ? nicheMatch[1].trim() : "N/A";
+            toneEl.textContent = toneMatch ? toneMatch[1].trim() : "N/A";
+            keywordsEl.textContent = keywordsMatch ? keywordsMatch[1].trim() : "N/A";
+          }
+
+          setTimeout(() => {
+            resultsDiv.textContent = resultText;
+            analyzeBtn.style.display = "none";
+            resetBtn.style.display = "inline-block";
+          }, 1000);
         }
       } catch (err) {
-        resultsDiv.textContent = "❌ Failed to analyze video. " + err;
-        resultsDiv.classList.remove("hidden");
-      } finally {
-        loadingDiv.classList.add("hidden");
+        clearInterval(loaderInterval);
+        loader.style.display = "none";
+        resultsDiv.textContent = "❌ Error processing your request.";
+        console.error(err);
       }
     });
+
+    resetBtn.addEventListener("click", resetAll);
   </script>
 </body>
 </html>
