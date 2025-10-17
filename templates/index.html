@@ -5,91 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TikTok & YouTube Viral Optimizer</title>
   <style>
-    :root{
-      --bg:#0b0b0b;
-      --card:#141414;
-      --muted:#aaa;
-      --accent-tiktok-1: #00f2ea;
-      --accent-tiktok-2: #ff2ea6;
-      --accent-youtube-1: #ff0000;
-      --accent-youtube-2: #ffffff;
-    }
-
     body {
       font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg);
+      background: linear-gradient(-45deg, #0b0b0b, #141414, #1a1a1a, #0b0b0b);
+      background-size: 400% 400%;
+      animation: gradientFlow 15s ease infinite;
       color: #f5f5f5;
       text-align: center;
       padding: 40px;
       margin: 0;
-      transition: background 0.8s ease, color 0.6s ease;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      transition: background 1.2s ease-in-out, color 0.6s;
+    }
+
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* TikTok animated gradient */
+    body.tiktok-mode {
+      background: linear-gradient(-45deg, #0b0b0b, #111, #00f2ea, #ff0050);
+      background-size: 400% 400%;
+      animation: gradientFlow 10s ease infinite;
+    }
+
+    /* YouTube animated gradient */
+    body.youtube-mode {
+      background: linear-gradient(-45deg, #0b0b0b, #111, #ff0000, #ff4d00);
+      background-size: 400% 400%;
+      animation: gradientFlow 10s ease infinite;
     }
 
     #logo {
       width: 110px;
-      margin-bottom: 14px;
-      filter: drop-shadow(0 0 15px rgba(255,255,255,0.12));
-      transition: filter 0.5s ease-in-out, transform 0.3s;
-      display:block;
-      margin-left:auto;
-      margin-right:auto;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+      transition: filter 0.5s ease-in-out;
     }
 
     h1 {
       font-size: 2.2rem;
-      margin: 8px 0 18px 0;
-      color: var(--accent-tiktok-1);
-      text-shadow: 0 0 8px rgba(0, 242, 234, 0.45);
+      margin-bottom: 1.5rem;
+      color: #00f2ea; /* TikTok cyan default */
+      text-shadow: 0 0 8px rgba(0, 242, 234, 0.6);
       transition: color 0.6s, text-shadow 0.6s;
     }
 
     .upload-container {
       border: 2px dashed #333;
       border-radius: 16px;
-      padding: 24px;
-      margin: 16px auto;
+      padding: 30px;
+      margin: 20px auto;
       width: 80%;
-      max-width: 640px;
-      background-color: var(--card);
+      max-width: 600px;
+      background-color: rgba(20, 20, 20, 0.9);
       transition: all 0.3s ease-in-out;
     }
 
     .upload-container:hover {
-      transform: translateY(-3px);
+      border-color: #00f2ea;
+      background-color: #1c1c1c;
     }
 
-    input[type="file"]{ display:none; }
+    input[type="file"] {
+      display: none;
+    }
 
     label {
       cursor: pointer;
-      color: var(--accent-tiktok-1);
+      color: #00f2ea;
       font-weight: bold;
-      display: inline-block;
+      display: block;
       margin-top: 10px;
-      transition: color 0.25s;
+      transition: 0.3s;
     }
 
-    label:hover { color:#9ff4f0; }
+    label:hover {
+      color: #26d9ff;
+    }
 
     button {
-      background-color: var(--accent-tiktok-1);
+      background-color: #00f2ea;
       border: none;
-      color: #000;
-      padding: 12px 26px;
+      color: #fff;
+      padding: 14px 28px;
       border-radius: 10px;
       cursor: pointer;
       font-size: 1rem;
-      transition: all 0.25s;
-      margin-top: 16px;
-      font-weight: 700;
-      box-shadow: 0 8px 18px rgba(0, 242, 234, 0.12);
+      transition: 0.3s;
+      margin-top: 25px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0, 242, 234, 0.4);
     }
 
     button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 30px rgba(0, 242, 234, 0.16);
+      background-color: #0097a7;
+      box-shadow: 0 0 15px rgba(0, 242, 234, 0.6);
     }
 
     select {
@@ -99,186 +111,139 @@
       border-radius: 8px;
       padding: 8px 12px;
       font-size: 1rem;
-      margin-bottom: 8px;
+      margin-bottom: 15px;
       outline: none;
     }
 
+    select:hover {
+      border-color: #00f2ea;
+    }
+
     #results {
-      margin-top: 28px;
+      margin-top: 30px;
       white-space: pre-wrap;
       background-color: #141414;
       border-radius: 14px;
-      padding: 24px;
-      width: 86%;
-      max-width: 900px;
+      padding: 25px;
+      width: 85%;
+      max-width: 780px;
       margin-left: auto;
       margin-right: auto;
       text-align: left;
-      line-height: 1.65;
-      box-shadow: 0 0 20px rgba(0, 242, 234, 0.06);
-      min-height: 120px;
-      overflow: auto;
+      line-height: 1.7;
+      box-shadow: 0 0 20px rgba(0, 242, 234, 0.15);
     }
 
     .detected-section {
-      margin-top: 18px;
+      margin-top: 20px;
       text-align: left;
-      width: 86%;
-      max-width: 880px;
+      width: 85%;
+      max-width: 750px;
       margin-left: auto;
       margin-right: auto;
       background-color: #1a1a1a;
       border-radius: 12px;
-      padding: 14px 18px;
+      padding: 20px;
       opacity: 0;
-      transition: opacity 0.6s ease-in-out, transform 0.35s;
-      box-shadow: 0 0 18px rgba(0, 242, 234, 0.05);
-      transform: translateY(6px);
+      transition: opacity 0.8s ease-in-out;
+      box-shadow: 0 0 15px rgba(0, 242, 234, 0.15);
     }
 
     .detected-section.visible {
       opacity: 1;
-      transform: translateY(0);
     }
 
-    .detected-section h3 { color: var(--accent-tiktok-1); margin: 0 0 8px 0; }
-
-    .info-row { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-    .info-left{ text-align:left; }
-    .file-meta { color: var(--muted); font-size: 0.92rem; margin-top:6px; }
-
-    #analyze-area { margin-top:12px; position:relative; }
-
-    /* Progress bar container centered under analyze button */
-    .progress-wrap {
-      width: 72%;
-      max-width: 720px;
-      margin: 16px auto 0 auto;
-      display: none; /* only show while analyzing */
-      align-items: center;
-      justify-content:center;
-      flex-direction:column;
-      gap: 10px;
+    .detected-section h3 {
+      color: #00f2ea;
+      margin-bottom: 10px;
     }
 
-    .progress-bar {
-      width: 100%;
-      height: 14px;
-      border-radius: 999px;
-      overflow: hidden;
-      position: relative;
-      background: rgba(255,255,255,0.03);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 -6px 20px rgba(0,0,0,0.3);
-      backdrop-filter: blur(4px);
+    .loader {
+      display: none;
+      margin: 30px auto;
+      text-align: center;
     }
 
-    /* Animated gradient filler (moves) */
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 999px;
-      transition: width 0.45s cubic-bezier(.2,.9,.2,1);
-      position: relative;
-      overflow: hidden;
+    .dots {
+      margin: 10px auto;
     }
 
-    .progress-fill::before{
-      content:'';
-      position:absolute;
-      top:-40%;
-      left:-50%;
-      width:200%;
-      height:200%;
-      background: linear-gradient(120deg,
-        var(--grad-start, #00f2ea) 0%,
-        var(--grad-mid, #ff2ea6) 40%,
-        rgba(255,255,255,0.85) 55%,
-        var(--grad-mid, #ff2ea6) 70%,
-        var(--grad-start, #00f2ea) 100%);
-      transform: translateX(var(--shift, 0%)) rotate(-6deg);
-      filter: blur(8px) saturate(1.2);
-      animation: shimmer 2.8s linear infinite;
-      mix-blend-mode: screen;
-      opacity: 0.95;
+    .dot {
+      height: 12px;
+      width: 12px;
+      margin: 0 4px;
+      background-color: #00f2ea;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.4s infinite ease-in-out both;
     }
 
-    @keyframes shimmer {
-      0% { transform: translateX(-40%) rotate(-6deg); }
-      100% { transform: translateX(40%) rotate(-6deg); }
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
     }
 
-    /* subtle inner gloss */
-    .progress-fill::after{
-      content:'';
-      position:absolute;
-      left:0;
-      top:0;
-      height:100%;
-      width:100%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
-      mix-blend-mode: overlay;
-      pointer-events:none;
-    }
-
-    /* blurred neon reflection under bar */
-    .progress-reflection {
-      width: 72%;
-      max-width:720px;
-      height: 22px;
-      margin: -6px auto 0 auto;
-      filter: blur(14px) saturate(1.2);
-      opacity: 0.26;
-      border-radius: 999px;
-      pointer-events:none;
-      transform: translateY(6px);
-      display:none;
-    }
-
-    /* Live feed messages (cycling) */
-    .live-feed {
-      width: 82%;
-      max-width:800px;
-      margin: 8px auto 0 auto;
-      color: var(--muted);
+    #loader-text {
+      color: #aaa;
+      font-style: italic;
+      margin-top: 10px;
       font-size: 0.95rem;
-      min-height: 22px;
-      text-align:center;
+      min-height: 20px;
     }
 
-    /* small timestamp label */
-    .uploaded-ts { font-size:0.9rem; color:var(--muted); margin-top:6px; }
+    #reset-btn {
+      display: none;
+      margin-top: 25px;
+      background-color: #333;
+    }
 
-    /* Platform-specific themes */
+    #reset-btn:hover {
+      background-color: #444;
+    }
+
+    /* YouTube mode overrides */
     body.youtube-mode h1 {
-      color: var(--accent-youtube-1);
-      text-shadow: 0 0 10px rgba(255, 0, 0, 0.32);
-    }
-    body.youtube-mode label { color: var(--accent-youtube-1); }
-    body.youtube-mode button { background-color: var(--accent-youtube-1); color: #fff; box-shadow: 0 8px 18px rgba(255,0,0,0.08); }
-    body.youtube-mode .detected-section h3 { color: var(--accent-youtube-1); }
-    body.youtube-mode .progress-fill::before{ background: linear-gradient(120deg, #ff0000 0%, #ffffff 45%, #bbbbbb 80%); }
-    body.youtube-mode .dot { background-color: #ff0000; }
-
-    /* TikTok theme */
-    body.tiktok-mode h1 { color: var(--accent-tiktok-1); }
-    body.tiktok-mode label { color: var(--accent-tiktok-1); }
-    body.tiktok-mode button { background-color: var(--accent-tiktok-1); color:#000; }
-    body.tiktok-mode .progress-fill::before{ background: linear-gradient(120deg, var(--accent-tiktok-1) 0%, var(--accent-tiktok-2) 45%, #ffffff 60%); }
-    body.tiktok-mode .dot { background-color: var(--accent-tiktok-1); }
-
-    /* loader dots */
-    .dots { margin: 10px auto; display:inline-block; }
-    .dot { height: 10px; width: 10px; margin: 0 5px; border-radius: 50%; display:inline-block; opacity:0.6; animation: pulse 1.4s infinite; }
-    .dot:nth-child(1){ animation-delay: -0.28s; }
-    .dot:nth-child(2){ animation-delay: -0.14s; }
-    @keyframes pulse { 0%{ transform:scale(.5); opacity:0.2 } 50%{ transform:scale(1); opacity:1 } 100%{ transform:scale(.5); opacity:0.2 } }
-
-    /* responsive tweaks */
-    @media (max-width:600px){
-      .progress-wrap{ width:92% }
-      .progress-reflection{ width:92% }
+      color: #ff0000;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
     }
 
+    body.youtube-mode .upload-container:hover {
+      border-color: #ff0000;
+    }
+
+    body.youtube-mode label {
+      color: #ff0000;
+    }
+
+    body.youtube-mode label:hover {
+      color: #ff4d4d;
+    }
+
+    body.youtube-mode button {
+      background-color: #ff0000;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+    }
+
+    body.youtube-mode button:hover {
+      background-color: #c40000;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+    }
+
+    body.youtube-mode #results,
+    body.youtube-mode .detected-section {
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.15);
+    }
+
+    body.youtube-mode .detected-section h3 {
+      color: #ff0000;
+    }
+
+    body.youtube-mode .dot {
+      background-color: #ff0000;
+    }
   </style>
 </head>
 <body class="tiktok-mode">
@@ -297,56 +262,38 @@
     <p>🎬 Drag and drop your video here or click to upload</p>
     <input type="file" id="video" accept="video/*" />
     <label for="video">Choose a video</label>
-    <div class="file-meta">
-      <div id="video-filename"></div>
-      <div class="uploaded-ts" id="video-ts"></div>
-    </div>
+    <p id="video-filename"></p>
   </div>
 
   <div class="upload-container" id="csv-dropzone">
     <p>📄 Upload your CSV data (optional)</p>
     <input type="file" id="csv" accept=".csv" />
     <label for="csv">Choose a CSV</label>
-    <div class="file-meta">
-      <div id="csv-filename"></div>
-      <div class="uploaded-ts" id="csv-ts"></div>
-    </div>
+    <p id="csv-filename"></p>
   </div>
 
-  <div id="analyze-area">
-    <button id="analyze-btn">Analyze</button>
-    <!-- Progress + reflection + live feed -->
-    <div class="progress-wrap" id="progress-wrap" aria-hidden="true">
-      <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="progress-fill" id="progress-fill" style="--shift:0%"></div>
-      </div>
-      <div class="progress-reflection" id="progress-reflection" aria-hidden="true"></div>
-      <div class="live-feed" id="live-feed"></div>
-    </div>
+  <button id="analyze-btn">Analyze</button>
+
+  <div class="loader" id="loader">
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p id="loader-text">Initializing AI analysis...</p>
   </div>
 
-  <div class="loader" id="loader" aria-hidden="true">
-    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <p id="loader-text" style="color:var(--muted); margin-top:8px;">Initializing AI analysis...</p>
-  </div>
-
-  <div id="detected" class="detected-section" aria-hidden="true">
+  <div id="detected" class="detected-section">
     <h3>🤖 Auto-Detected Video Attributes</h3>
-    <p><strong>Niche:</strong> <span id="niche">N/A</span></p>
-    <p><strong>Tone:</strong> <span id="tone">N/A</span></p>
-    <p><strong>Keywords:</strong> <span id="keywords">None detected</span></p>
+    <p><strong>Niche:</strong> <span id="niche"></span></p>
+    <p><strong>Tone:</strong> <span id="tone"></span></p>
+    <p><strong>Keywords:</strong> <span id="keywords"></span></p>
   </div>
 
   <div id="results"></div>
-  <button id="reset-btn" style="display:none;">🔄 New Analysis</button>
+  <button id="reset-btn">🔄 New Analysis</button>
 
   <script>
     const videoInput = document.getElementById("video");
     const csvInput = document.getElementById("csv");
     const videoFilename = document.getElementById("video-filename");
     const csvFilename = document.getElementById("csv-filename");
-    const videoTs = document.getElementById("video-ts");
-    const csvTs = document.getElementById("csv-ts");
     const analyzeBtn = document.getElementById("analyze-btn");
     const resetBtn = document.getElementById("reset-btn");
     const resultsDiv = document.getElementById("results");
@@ -357,217 +304,26 @@
     const platformSelect = document.getElementById("platform");
     const loader = document.getElementById("loader");
     const loaderText = document.getElementById("loader-text");
-    const progressWrap = document.getElementById("progress-wrap");
-    const progressFill = document.getElementById("progress-fill");
-    const progressReflection = document.getElementById("progress-reflection");
-    const liveFeed = document.getElementById("live-feed");
     const logo = document.getElementById("logo");
+    let loaderInterval;
 
-    let progress = 0;
-    let progressInterval = null;
-    let feedInterval = null;
-
-    // messages for live feed while analyzing
-    const liveMessages = [
-      "🔍 Extracting video metadata...",
-      "🎨 Detecting tone and visuals...",
-      "🔊 Processing audio & beats...",
-      "🧠 Analyzing engagement potential...",
-      "📊 Comparing with viral examples...",
-      "💡 Generating captions, tags & insights..."
-    ];
-
-    function setTheme(platform) {
-      if (platform === "YouTube") {
-        document.body.classList.add("youtube-mode");
-        document.body.classList.remove("tiktok-mode");
-      } else {
-        document.body.classList.add("tiktok-mode");
-        document.body.classList.remove("youtube-mode");
-      }
-      // neutral glow for logo currently
-      logo.style.filter = "drop-shadow(0 0 18px rgba(255,255,255,0.08))";
-    }
-
-    // show file name + timestamp
-    function setUploadedFileUI(inputEl, filenameEl, tsEl) {
-      if (inputEl.files && inputEl.files[0]) {
-        filenameEl.textContent = `Uploaded: ${inputEl.files[0].name}`;
-        const now = new Date();
-        tsEl.textContent = `Uploaded at ${now.toLocaleString()}`;
-      }
-    }
-
-    videoInput.addEventListener("change", () => setUploadedFileUI(videoInput, videoFilename, videoTs));
-    csvInput.addEventListener("change", () => setUploadedFileUI(csvInput, csvFilename, csvTs));
-
-    platformSelect.addEventListener("change", () => {
-      setTheme(platformSelect.value);
-    });
-
-    function startProgressSimulation() {
-      progress = 2;
-      progressFill.style.width = progress + "%";
-      progressWrap.style.display = "flex";
-      progressReflection.style.display = "block";
-
-      // rotate shift variable slightly to vary shimmer start
-      let shift = -30;
-      progressFill.style.setProperty('--shift', shift + '%');
-
-      // update shimmer shift subtly
-      let shimmerOffset = 0;
-      progressInterval = setInterval(() => {
-        // slow incremental progress while waiting for server
-        const increment = Math.random() * 6 + 4; // 4-10%
-        progress = Math.min(98, progress + increment);
-        progressFill.style.width = progress + "%";
-
-        shimmerOffset = (shimmerOffset + 3) % 100;
-        progressFill.style.setProperty('--shift', shimmerOffset + '%');
-      }, 1200);
-
-      // live feed cycling
-      let idx = 0;
-      liveFeed.textContent = liveMessages[0];
-      feedInterval = setInterval(() => {
-        idx = (idx + 1) % liveMessages.length;
-        liveFeed.textContent = liveMessages[idx];
-      }, 1800);
-    }
-
-    function stopProgressSimulation() {
-      clearInterval(progressInterval);
-      clearInterval(feedInterval);
-      progressInterval = null;
-      feedInterval = null;
-      progress = 100;
-      progressFill.style.width = "100%";
-      liveFeed.textContent = "✅ Finalizing results...";
-      setTimeout(() => {
-        progressWrap.style.display = "none";
-        progressReflection.style.display = "none";
-        liveFeed.textContent = "";
-      }, 800);
-    }
-
-    analyzeBtn.addEventListener("click", async () => {
-      const videoFile = videoInput.files[0];
-      const csvFile = csvInput.files[0];
-      const platform = platformSelect.value;
-
-      if (!videoFile) { alert("Please upload a video file first."); return; }
-
-      // reset UI states
-      resultsDiv.textContent = `🎥 Running ${platform} Viral Optimizer...\n\n🤖 Generating AI-powered analysis...`;
-      detectedDiv.classList.remove("visible");
-      detectedDiv.style.display = "none";
-      resultsDiv.scrollIntoView({behavior:"smooth", block:"center"});
-
-      // start animated progress + live feed
-      startProgressSimulation();
-      loader.style.display = "block";
-
-      // show analyze button in 'busy' state
-      analyzeBtn.disabled = true;
-      analyzeBtn.style.opacity = 0.7;
-
-      const formData = new FormData();
-      formData.append("video", videoFile);
-      formData.append("platform", platform);
-      if (csvFile) formData.append("csv", csvFile);
-
-      try {
-        const resp = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await resp.json();
-        stopProgressSimulation();
-        loader.style.display = "none";
-
-        analyzeBtn.disabled = false;
-        analyzeBtn.style.opacity = 1;
-
-        if (data.error) {
-          resultsDiv.textContent = "❌ Error: " + data.error;
-          return;
-        }
-
-        // results returned from server (expected field: result or ai_results; handle both)
-        const resultText = data.result || data.ai_results || data.results || JSON.stringify(data, null, 2);
-        // display results
-        resultsDiv.textContent = resultText;
-
-        // auto-detect niche/tone/keywords in returned text if present
-        const nicheMatch = resultText.match(/Detected Niche:\s*([A-Za-z0-9\/\-\s]+)/) || resultText.match(/Niche:\s*\*\*(.+?)\*\*/);
-        const toneMatch = resultText.match(/Tone:\s*([A-Za-z0-9\/\-\s]+)/);
-        const keywordsMatch = resultText.match(/Keywords?:\s*([^\n]+)/);
-
-        nicheEl.textContent = nicheMatch ? (nicheMatch[1] || nicheMatch[0]).trim() : "N/A";
-        toneEl.textContent = toneMatch ? toneMatch[1].trim() : "Neutral/Mixed";
-        keywordsEl.textContent = keywordsMatch ? keywordsMatch[1].trim() : "None detected";
-
-        // reveal detected section
-        detectedDiv.style.display = "block";
-        setTimeout(()=>detectedDiv.classList.add("visible"), 80);
-
-        // show reset
-        resetBtn.style.display = "inline-block";
-
-      } catch (err) {
-        stopProgressSimulation();
-        loader.style.display = "none";
-        analyzeBtn.disabled = false;
-        analyzeBtn.style.opacity = 1;
-        resultsDiv.textContent = "❌ Error processing your request.";
-        console.error(err);
-      }
-    });
-
-    resetBtn.addEventListener("click", () => {
+    function resetAll() {
       resultsDiv.textContent = "";
       videoFilename.textContent = "";
       csvFilename.textContent = "";
-      videoTs.textContent = "";
-      csvTs.textContent = "";
       detectedDiv.classList.remove("visible");
       detectedDiv.style.display = "none";
+      loader.style.display = "none";
+      analyzeBtn.style.display = "inline-block";
       resetBtn.style.display = "none";
-      progressWrap.style.display = "none";
-      progressReflection.style.display = "none";
-      progressFill.style.width = "0%";
       videoInput.value = "";
       csvInput.value = "";
+    }
+
+    platformSelect.addEventListener("change", () => {
+      document.body.classList.toggle("youtube-mode", platformSelect.value === "YouTube");
+      document.body.classList.toggle("tiktok-mode", platformSelect.value === "TikTok");
     });
-
-    // Initialize theme at load
-    setTheme(platformSelect.value);
-
-    // support drag & drop (simple)
-    const videoZone = document.getElementById("video-dropzone");
-    videoZone.addEventListener("dragover", e => { e.preventDefault(); videoZone.style.borderColor = "#66ffd8"; });
-    videoZone.addEventListener("dragleave", e => { videoZone.style.borderColor = "#333"; });
-    videoZone.addEventListener("drop", e => {
-      e.preventDefault();
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) {
-        videoInput.files = e.dataTransfer.files;
-        setUploadedFileUI(videoInput, videoFilename, videoTs);
-      }
-      videoZone.style.borderColor = "#333";
-    });
-
-    const csvZone = document.getElementById("csv-dropzone");
-    csvZone.addEventListener("dragover", e => { e.preventDefault(); csvZone.style.borderColor = "#66ffd8"; });
-    csvZone.addEventListener("dragleave", e => { csvZone.style.borderColor = "#333"; });
-    csvZone.addEventListener("drop", e => {
-      e.preventDefault();
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) {
-        csvInput.files = e.dataTransfer.files;
-        setUploadedFileUI(csvInput, csvFilename, csvTs);
-      }
-      csvZone.style.borderColor = "#333";
-    });
-
   </script>
 </body>
 </html>
