@@ -1,340 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok & YouTube Viral Optimizer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Viral Video Analyzer</title>
   <style>
+    :root {
+      --tiktok-pink: #ff0050;
+      --tiktok-cyan: #00f2ea;
+      --youtube-red: #ff0000;
+      --dark-bg: #0f0f0f;
+      --light-text: #ffffff;
+    }
+
     body {
-      font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0b0b0b;
-      color: #f5f5f5;
-      text-align: center;
-      padding: 40px;
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--dark-bg);
+      color: var(--light-text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
       margin: 0;
+      transition: background 0.5s ease;
     }
 
     h1 {
-      font-size: 2.2rem;
+      font-size: 2rem;
+      text-align: center;
       margin-bottom: 1.5rem;
-      color: #00bcd4;
-      text-shadow: 0 0 8px rgba(0, 188, 212, 0.6);
+      animation: fadeIn 1s ease-in-out;
     }
 
-    .upload-container {
-      border: 2px dashed #333;
-      border-radius: 16px;
-      padding: 30px;
-      margin: 20px auto;
-      width: 80%;
-      max-width: 600px;
-      background-color: #141414;
-      transition: all 0.3s ease-in-out;
+    form {
+      background: rgba(20, 20, 20, 0.8);
+      padding: 2rem;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+      animation: fadeInUp 1s ease-in-out;
+      border: 2px solid transparent;
     }
 
-    .upload-container:hover {
-      border-color: #00bcd4;
-      background-color: #1c1c1c;
+    select, input[type="file"], button {
+      width: 100%;
+      margin: 0.7rem 0;
+      padding: 0.7rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
     }
 
-    input[type="file"] {
-      display: none;
-    }
-
-    label {
-      cursor: pointer;
-      color: #00bcd4;
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-      transition: 0.3s;
-    }
-
-    label:hover {
-      color: #26d9ff;
+    select, input[type="file"] {
+      background-color: #1a1a1a;
+      color: white;
     }
 
     button {
-      background-color: #00bcd4;
-      border: none;
-      color: #fff;
-      padding: 14px 28px;
-      border-radius: 10px;
+      background: linear-gradient(90deg, var(--tiktok-pink), var(--tiktok-cyan));
+      color: white;
       cursor: pointer;
-      font-size: 1rem;
+      font-weight: 600;
       transition: 0.3s;
-      margin-top: 25px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(0, 188, 212, 0.4);
+      border: none;
+      border-radius: 10px;
+      padding: 0.8rem;
+    }
+
+    /* TikTok button glow animation */
+    @keyframes pulseGlowTikTokBtn {
+      0% { box-shadow: 0 0 10px var(--tiktok-pink), 0 0 20px var(--tiktok-cyan); }
+      50% { box-shadow: 0 0 25px var(--tiktok-pink), 0 0 35px var(--tiktok-cyan); }
+      100% { box-shadow: 0 0 10px var(--tiktok-pink), 0 0 20px var(--tiktok-cyan); }
+    }
+
+    /* YouTube button glow animation */
+    @keyframes pulseGlowYouTubeBtn {
+      0% { box-shadow: 0 0 10px var(--youtube-red), 0 0 20px white; }
+      50% { box-shadow: 0 0 25px var(--youtube-red), 0 0 35px white; }
+      100% { box-shadow: 0 0 10px var(--youtube-red), 0 0 20px white; }
+    }
+
+    .btn-tiktok {
+      background: linear-gradient(90deg, var(--tiktok-pink), var(--tiktok-cyan));
+      animation: pulseGlowTikTokBtn 2s infinite alternate;
+    }
+
+    .btn-youtube {
+      background: linear-gradient(90deg, var(--youtube-red), #ffffff);
+      animation: pulseGlowYouTubeBtn 2s infinite alternate;
     }
 
     button:hover {
-      background-color: #0097a7;
-      box-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
+      transform: scale(1.05);
     }
 
-    select {
-      background-color: #141414;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      outline: none;
-    }
-
-    select:hover {
-      border-color: #00bcd4;
-    }
-
-    #results {
-      margin-top: 30px;
+    pre {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 1rem;
+      border-radius: 10px;
       white-space: pre-wrap;
-      background-color: #141414;
-      border-radius: 14px;
-      padding: 25px;
-      width: 85%;
-      max-width: 780px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-      line-height: 1.7;
-      box-shadow: 0 0 20px rgba(0, 188, 212, 0.15);
+      word-wrap: break-word;
+      width: 90%;
+      max-width: 700px;
+      margin-top: 2rem;
+      animation: fadeIn 0.5s ease-in-out;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .detected-section {
-      margin-top: 20px;
-      text-align: left;
-      width: 85%;
-      max-width: 750px;
-      margin-left: auto;
-      margin-right: auto;
-      background-color: #1a1a1a;
-      border-radius: 12px;
-      padding: 20px;
-      opacity: 0;
-      transition: opacity 0.8s ease-in-out;
-      box-shadow: 0 0 15px rgba(0, 188, 212, 0.15);
+    /* Card glow animations */
+    @keyframes pulseGlowTikTok {
+      0% { box-shadow: 0 0 10px var(--tiktok-pink), 0 0 20px var(--tiktok-cyan); }
+      50% { box-shadow: 0 0 25px var(--tiktok-pink), 0 0 35px var(--tiktok-cyan); }
+      100% { box-shadow: 0 0 10px var(--tiktok-pink), 0 0 20px var(--tiktok-cyan); }
     }
 
-    .detected-section.visible {
-      opacity: 1;
+    @keyframes pulseGlowYouTube {
+      0% { box-shadow: 0 0 10px var(--youtube-red), 0 0 20px white; }
+      50% { box-shadow: 0 0 25px var(--youtube-red), 0 0 35px white; }
+      100% { box-shadow: 0 0 10px var(--youtube-red), 0 0 20px white; }
     }
 
-    .detected-section h3 {
-      color: #00bcd4;
-      margin-bottom: 10px;
+    .tiktok-theme {
+      border: 2px solid var(--tiktok-pink);
+      animation: pulseGlowTikTok 2s infinite alternate;
+      background: radial-gradient(circle at top left, rgba(255,0,80,0.15), rgba(0,0,0,0.8));
     }
 
-    .detected-section p {
-      margin: 5px 0;
+    .youtube-theme {
+      border: 2px solid var(--youtube-red);
+      animation: pulseGlowYouTube 2s infinite alternate;
+      background: radial-gradient(circle at top left, rgba(255,0,0,0.15), rgba(0,0,0,0.8));
     }
 
-    .loader {
-      display: none;
-      margin: 30px auto;
-      text-align: center;
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
-    .dots {
-      margin: 10px auto;
-    }
-
-    .dot {
-      height: 12px;
-      width: 12px;
-      margin: 0 4px;
-      background-color: #00bcd4;
-      border-radius: 50%;
-      display: inline-block;
-      animation: pulse 1.4s infinite ease-in-out both;
-    }
-
-    .dot:nth-child(1) {
-      animation-delay: -0.32s;
-    }
-
-    .dot:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-
-    @keyframes pulse {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
-    }
-
-    #loader-text {
-      color: #aaa;
-      font-style: italic;
-      margin-top: 10px;
-      font-size: 0.95rem;
-      min-height: 20px;
-    }
-
-    #reset-btn {
-      display: none;
-      margin-top: 25px;
-      background-color: #333;
-    }
-
-    #reset-btn:hover {
-      background-color: #444;
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <h1>🎬 TikTok & YouTube Viral Optimizer</h1>
-
-  <div>
-    <label for="platform">Select Platform:</label><br />
-    <select id="platform">
-      <option value="TikTok">TikTok</option>
+  <h1>🎬 AI Viral Video Analyzer</h1>
+  <form id="analyzeForm" class="tiktok-theme">
+    <label for="platform">Select Platform:</label>
+    <select name="platform" id="platform" required>
+      <option value="TikTok" selected>TikTok</option>
       <option value="YouTube">YouTube</option>
     </select>
-  </div>
 
-  <div class="upload-container" id="video-dropzone">
-    <p>🎬 Drag and drop your video here or click to upload</p>
-    <input type="file" id="video" accept="video/*" />
-    <label for="video">Choose a video</label>
-    <p id="video-filename"></p>
-  </div>
+    <label for="video">Upload Video:</label>
+    <input type="file" name="video" accept="video/*" required>
 
-  <div class="upload-container" id="csv-dropzone">
-    <p>📄 Upload your CSV data (optional)</p>
-    <input type="file" id="csv" accept=".csv" />
-    <label for="csv">Choose a CSV</label>
-    <p id="csv-filename"></p>
-  </div>
+    <label for="csv">Optional CSV File:</label>
+    <input type="file" name="csv" accept=".csv">
 
-  <button id="analyze-btn">Analyze</button>
+    <button type="submit" id="analyzeBtn" class="btn-tiktok">Analyze</button>
+  </form>
 
-  <div class="loader" id="loader">
-    <div class="dots">
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    </div>
-    <p id="loader-text">Initializing AI analysis...</p>
-  </div>
-
-  <div id="detected" class="detected-section">
-    <h3>🤖 Auto-Detected Video Attributes</h3>
-    <p><strong>Niche:</strong> <span id="niche"></span></p>
-    <p><strong>Tone:</strong> <span id="tone"></span></p>
-    <p><strong>Keywords:</strong> <span id="keywords"></span></p>
-  </div>
-
-  <div id="results"></div>
-  <button id="reset-btn">🔄 New Analysis</button>
+  <pre id="result"></pre>
 
   <script>
-    const videoInput = document.getElementById("video");
-    const csvInput = document.getElementById("csv");
-    const videoFilename = document.getElementById("video-filename");
-    const csvFilename = document.getElementById("csv-filename");
-    const analyzeBtn = document.getElementById("analyze-btn");
-    const resetBtn = document.getElementById("reset-btn");
-    const resultsDiv = document.getElementById("results");
-    const detectedDiv = document.getElementById("detected");
-    const nicheEl = document.getElementById("niche");
-    const toneEl = document.getElementById("tone");
-    const keywordsEl = document.getElementById("keywords");
+    const form = document.getElementById("analyzeForm");
+    const result = document.getElementById("result");
     const platformSelect = document.getElementById("platform");
-    const loader = document.getElementById("loader");
-    const loaderText = document.getElementById("loader-text");
+    const analyzeBtn = document.getElementById("analyzeBtn");
 
-    let loaderInterval;
-
-    function resetAll() {
-      resultsDiv.textContent = "";
-      videoFilename.textContent = "";
-      csvFilename.textContent = "";
-      detectedDiv.classList.remove("visible");
-      detectedDiv.style.display = "none";
-      loader.style.display = "none";
-      analyzeBtn.style.display = "inline-block";
-      resetBtn.style.display = "none";
-      videoInput.value = "";
-      csvInput.value = "";
-    }
-
-    videoInput.addEventListener("change", () => {
-      if (videoInput.files.length > 0)
-        videoFilename.textContent = `Uploaded: ${videoInput.files[0].name}`;
-    });
-
-    csvInput.addEventListener("change", () => {
-      if (csvInput.files.length > 0)
-        csvFilename.textContent = `Uploaded: ${csvInput.files[0].name}`;
-    });
-
-    analyzeBtn.addEventListener("click", async () => {
-      const videoFile = videoInput.files[0];
-      const csvFile = csvInput.files[0];
+    // Theme toggle logic
+    platformSelect.addEventListener("change", () => {
       const platform = platformSelect.value;
+      form.classList.remove("tiktok-theme", "youtube-theme");
+      analyzeBtn.classList.remove("btn-tiktok", "btn-youtube");
 
-      if (!videoFile) return alert("Please upload a video file first.");
-
-      resultsDiv.textContent = `🎥 Running ${platform} Viral Optimizer...\n\n🤖 Generating AI-powered analysis...`;
-      detectedDiv.classList.remove("visible");
-      loader.style.display = "block";
-
-      const messages = [
-        "🔍 Extracting video metadata...",
-        "🎨 Detecting tone and visuals...",
-        "🧠 Analyzing engagement potential...",
-        "📊 Comparing with viral examples...",
-        "💡 Generating captions, tags & insights..."
-      ];
-
-      let i = 0;
-      loaderInterval = setInterval(() => {
-        loaderText.textContent = messages[i % messages.length];
-        i++;
-      }, 2000);
-
-      const formData = new FormData();
-      formData.append("video", videoFile);
-      formData.append("platform", platform);
-      if (csvFile) formData.append("csv", csvFile);
-
-      try {
-        const response = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await response.json();
-        clearInterval(loaderInterval);
-        loader.style.display = "none";
-
-        if (data.error) {
-          resultsDiv.textContent = "❌ Error: " + data.error;
-        } else {
-          const resultText = data.result;
-          const nicheMatch = resultText.match(/Niche:\s*\*\*(.+?)\*\*/);
-          const toneMatch = resultText.match(/Tone:\s*(.+)/);
-          const keywordsMatch = resultText.match(/Keywords?:\s*(.+)/);
-
-          if (nicheMatch || toneMatch || keywordsMatch) {
-            detectedDiv.style.display = "block";
-            setTimeout(() => detectedDiv.classList.add("visible"), 100);
-            nicheEl.textContent = nicheMatch ? nicheMatch[1].trim() : "N/A";
-            toneEl.textContent = toneMatch ? toneMatch[1].trim() : "N/A";
-            keywordsEl.textContent = keywordsMatch ? keywordsMatch[1].trim() : "N/A";
-          }
-
-          setTimeout(() => {
-            resultsDiv.textContent = resultText;
-            analyzeBtn.style.display = "none";
-            resetBtn.style.display = "inline-block";
-          }, 1000);
-        }
-      } catch (err) {
-        clearInterval(loaderInterval);
-        loader.style.display = "none";
-        resultsDiv.textContent = "❌ Error processing your request.";
-        console.error(err);
+      if (platform === "TikTok") {
+        form.classList.add("tiktok-theme");
+        analyzeBtn.classList.add("btn-tiktok");
+      } else {
+        form.classList.add("youtube-theme");
+        analyzeBtn.classList.add("btn-youtube");
       }
     });
 
-    resetBtn.addEventListener("click", resetAll);
+    // Handle form submission
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      result.textContent = "🎥 Analyzing your video with AI... please wait ⏳";
+
+      const response = await fetch("/analyze", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      result.textContent = data.result || data.error;
+    });
   </script>
 </body>
 </html>

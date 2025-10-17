@@ -14,6 +14,7 @@ app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 def analyze_video_features(video_path):
     """Extracts key video metrics like brightness, duration, and resolution."""
     clip = VideoFileClip(video_path)
@@ -29,21 +30,36 @@ def analyze_video_features(video_path):
         "brightness": round(brightness, 2),
     }
 
-def detect_niche_tone_keywords(video_name, csv_data=None):
-    """Uses AI to auto-detect niche, tone, and keywords."""
-    prompt = f"""
-    Analyze the following TikTok or YouTube video name and CSV (if provided) 
-    to detect its niche, tone, and most relevant keywords.
-    
-    Video: {video_name}
-    CSV sample data: {csv_data if csv_data else 'No CSV provided'}
-    
-    Return a JSON with keys: niche, tone, keywords.
+
+def extract_audio_features(video_path):
+    """Extracts average volume and audio presence using moviepy."""
+    try:
+        clip = VideoFileClip(video_path)
+        audio = clip.audio
+        if audio is None:
+            return {"audio_volume": 0, "has_audio": False}
+        samples = audio.to_soundarray(fps=22000)
+        volume = np.mean(np.abs(samples))
+        return {"audio_volume": round(float(volume), 4), "has_audio": True}
+    except Exception:
+        return {"audio_volume": 0, "has_audio": False}
+
+
+def detect_niche_tone_keywords(video_name, csv_data=None, video_insights=None):
+    """Uses AI to detect niche, tone, and keywords with fallback logic."""
+    base_prompt = f"""
+    Analyze this TikTok or YouTube video to detect its niche, tone, and most relevant keywords.
+
+    Video Name: {video_name}
+    Video Insights: {video_insights if video_insights else 'No media insights available'}
+    CSV Sample Data: {csv_data if csv_data else 'No CSV provided'}
+
+    Return only JSON with keys: niche, tone, keywords.
     """
 
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=prompt
+        input=base_prompt
     )
 
     text = response.output[0].content[0].text
@@ -55,8 +71,9 @@ def detect_niche_tone_keywords(video_name, csv_data=None):
         "keywords": result.get("keywords", "None detected")
     }
 
+
 def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None):
-    """Generates the AI-enhanced viral analysis with your exact format."""
+    """Generates the AI-enhanced viral analysis in your exact format."""
     duration = metrics["duration"]
     resolution = metrics["resolution"]
     aspect_ratio = metrics["aspect_ratio"]
@@ -161,16 +178,26 @@ def analyze():
     if not video:
         return jsonify({"error": "No video uploaded."}), 400
 
+    # Save video temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         video.save(tmp.name)
         metrics = analyze_video_features(tmp.name)
+        audio_features = extract_audio_features(tmp.name)
 
     csv_data = None
     if csv_file:
         df = pd.read_csv(csv_file)
         csv_data = df.head(5).to_dict()
 
-    detected = detect_niche_tone_keywords(video.filename, csv_data)
+    # First try AI media analysis
+    video_insights = None
+    try:
+        clip = VideoFileClip(tmp.name)
+        video_insights = f"Duration: {clip.duration}s, Avg Brightness: {metrics['brightness']}, Audio Volume: {audio_features['audio_volume']}, Has Audio: {audio_features['has_audio']}"
+    except Exception as e:
+        print("Media analysis failed, falling back:", e)
+
+    detected = detect_niche_tone_keywords(video.filename, csv_data, video_insights)
     result_text = generate_ai_analysis(platform, video.filename, metrics, detected, csv_data)
 
     return jsonify({"result": result_text})
