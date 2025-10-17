@@ -73,7 +73,7 @@ def detect_niche_tone_keywords(video_name, csv_data=None, video_insights=None):
 
 
 def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None):
-    """Generates the AI-enhanced viral analysis in your exact format."""
+    """Generates the AI-enhanced viral analysis with your exact format."""
     duration = metrics["duration"]
     resolution = metrics["resolution"]
     aspect_ratio = metrics["aspect_ratio"]
@@ -83,7 +83,40 @@ def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None)
     tone = detected["tone"]
     keywords = detected["keywords"]
 
+    # Platform-specific instructions
+    if platform == "TikTok":
+        algo_focus = (
+            "Analyze this TikTok video using TikTok’s algorithmic preferences: "
+            "short watch loops, high early engagement, strong hook within first 2 seconds, trending sounds, "
+            "and authentic visual appeal. Focus on captions, hashtags, and timing that improve For You Page visibility."
+        )
+        tag_label = "Hashtags"
+        insights_label = "AI-Generated Viral Insights"
+    elif platform == "YouTube":
+        algo_focus = (
+            "Analyze this YouTube video using YouTube’s algorithm: "
+            "click-through rate, watch time, audience retention, SEO tags, and consistency in content topic. "
+            "Focus on title optimization, tags, and viewer engagement strategies."
+        )
+        tag_label = "Tags"
+        insights_label = "AI-Generated Viral Insights"
+    elif platform == "Instagram":
+        algo_focus = (
+            "Analyze this Instagram Reel or post according to Instagram’s algorithm: "
+            "prioritize early saves, shares, comments, Reels completion rate, trending audio use, "
+            "and strong visual storytelling. Focus on boosting discoverability via Explore and Reels tabs, "
+            "and tailoring captions, sounds, and timing for Instagram’s content behavior."
+        )
+        tag_label = "Hashtags"
+        insights_label = "Reels-Focused Viral Insights"
+    else:
+        algo_focus = "Analyze this video for general social media virality."
+        tag_label = "Tags"
+        insights_label = "AI-Generated Viral Insights"
+
     prompt = f"""
+    {algo_focus}
+
     Create a viral video analysis for {platform} with this structure EXACTLY:
 
     🎬 Drag and drop your {platform} video file here: "{video_name}"
@@ -108,24 +141,28 @@ def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None)
     - Tone: {tone}
     - Keywords: {keywords}
 
-    💬 AI-Generated Viral Insights:
+    💬 {insights_label}:
     ### 1. Scroll-Stopping Caption
-    (Give one creative, high-performing caption idea.)
+    (Give one creative, high-performing caption idea. 
+    For Instagram: make it emotional, story-driven, and include a subtle CTA to save/share.)
 
-    ### 2. 5 Viral {"Hashtags" if platform == "TikTok" else "Tags"}
-    (Provide 5 platform-relevant tags.)
+    ### 2. 5 Viral {tag_label}
+    (Provide 5 platform-relevant {tag_label.lower()} that match the {platform} algorithm 
+    — for Instagram, include niche + trending Reels hashtags like #reelitfeelit, #instagrowth.)
 
     ### 3. Actionable Improvement Tip for Engagement
-    (Provide a short suggestion for improving engagement.)
+    (Provide a short suggestion for improving engagement on {platform}. 
+    For Instagram, prioritize “save-worthy” content, visually cohesive style, and authentic storytelling.)
 
     ### 4. Viral Optimization Score (1–100)
-    (Give a score with an explanation for why it earned that score.)
+    (Give a score with an explanation tailored to the {platform} algorithm.)
 
-    ### 5. Short Motivation on How to Increase Virality
-    (Add an encouraging tip for the creator.)
+    ### 5. Motivation to Increase Virality
+    (Add an encouraging, platform-specific creator tip. 
+    For Instagram: mention Reels consistency, audio trends, and storytelling over perfection.)
 
     🔥 Viral Comparison Results:
-    ### Comparison with Viral {platform}s in the Same Niche
+    ### Comparison with Viral {platform} Videos in the Same Niche
     #### Viral Example 1
     - **Video Concept Summary:** ...
     - **What Made It Go Viral:** ...
@@ -142,16 +179,17 @@ def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None)
     - **How to Replicate Success:** ...
 
     ### Takeaway Strategy
-    (Summarize actionable insights.)
+    (Summarize actionable insights for {platform} creators.)
 
     📋 Actionable Checklist:
-    - Hook viewers in under 2 seconds.
-    - Add trending sound if relevant.
-    - Post during high activity times (Fri–Sun, 6–10pm).
-    - Encourage comments by asking a question.
+    - Hook viewers in the first 2 seconds.
+    - Use trending audio and relevant captions.
+    - Encourage saves and shares with call-to-actions.
+    - Post during peak activity windows (Fri–Sun, 6–10pm).
+    - Maintain visual consistency across Reels.
 
     🎯 **Detected Niche:** {niche}
-    🕓 **Best Time to Post for {niche} (Thu)**:
+    🕓 **Best Time to Post for {niche} ({platform})**:
     ⏰ 4–7 PM EST
     💡 Peak engagement around 8:43 PM EST.
     """
