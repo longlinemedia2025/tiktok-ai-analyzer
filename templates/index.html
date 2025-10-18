@@ -1,234 +1,221 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TikTok & YouTube Viral Optimizer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Caption Generator</title>
+
   <style>
-    :root{
-      --tiktok-a: #00f2ea;
-      --tiktok-b: #ff0066;
-      --yt-a: #ff0000;
-      --yt-b: #ff6a00;
-      --ig-a: #feda75;
-      --ig-b: #d62976;
-      --text: #f5f5f5;
-      --muted: #aaa;
-      --bg-default: linear-gradient(-45deg,#0b0b0b,#141414,#1a1a1a,#0b0b0b);
-    }
-
     html, body {
-      height: 100%;
+      min-height: 100%;
       margin: 0;
-      overflow: hidden; /* prevent scrollbars */
-    }
-    body {
-      font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg-default);
-      background-size: 400% 400%;
-      animation: gradientFlow 15s ease infinite;
-      color: var(--text);
-      text-align: center;
-      padding: 40px 20px;
-      transition: background 1.2s ease-in-out, color .6s;
-      position: relative;
+      overflow-x: hidden;
+      overflow-y: auto;
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+      background: #000;
     }
 
-    @keyframes gradientFlow {
-      0% { background-position: 0% 50% }
-      50% { background-position: 100% 50% }
-      100% { background-position: 0% 50% }
-    }
-
-    /* ========= FULLSCREEN METABALL BACKGROUND ========= */
-    .metaball-svg {
+    /* --- Gooey Background --- */
+    #gooey-bg {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      z-index: -1;
-      pointer-events: none;
       overflow: hidden;
+      z-index: -1;
     }
-    svg.metaball-svg {
-      display: block;
+
+    svg {
       width: 100%;
       height: 100%;
     }
-    .metagroup { opacity: 0; transition: opacity 1s ease; }
-    .metagroup.visible { opacity: 1; }
-    .metaball { fill-opacity: 0.95; }
 
-    /* ========= UI STYLING ========= */
-    #logo { width:110px; margin-bottom:20px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.12)); }
-    h1 { font-size:2.2rem; margin-bottom:1.2rem; color:var(--tiktok-a); text-shadow:0 0 8px rgba(0,242,234,0.35); }
+    .blob {
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+    .blob.visible {
+      opacity: 0.7;
+    }
 
-    .upload-container {
-      border: 2px dashed #333;
-      border-radius: 16px;
-      padding: 26px;
-      margin: 18px auto;
-      width: 80%;
-      max-width: 640px;
-      background: rgba(20,20,20,0.9);
-      transition: .25s;
+    /* --- Platform Themes --- */
+    body[data-platform="tiktok"] .blob { fill: #ff0050; }
+    body[data-platform="youtube"] .blob { fill: #ff0000; }
+    body[data-platform="instagram"] .blob { fill: #e1306c; }
+    body[data-platform="facebook"] .blob { fill: #1877f2; }
+    body[data-platform="linkedin"] .blob { fill: #0a66c2; }
+
+    /* --- UI Layout --- */
+    .container {
       position: relative;
-      z-index: 3;
-    }
-    .upload-hint { margin:0; color:var(--muted); }
-    input[type=file] { display:none; }
-    label { cursor:pointer; color:var(--tiktok-a); font-weight:700; display:inline-block; margin-top:10px; }
-    button {
-      background:var(--tiktok-a);
-      border:none;
-      color:#000;
-      padding:12px 26px;
-      border-radius:12px;
-      cursor:pointer;
-      font-size:1rem;
-      transition:transform .14s,box-shadow .14s;
-      margin-top:20px;
-      font-weight:800;
-      box-shadow:0 6px 20px rgba(0,242,234,0.12);
-      position:relative;
-      z-index:3;
-    }
-    button:hover { transform:translateY(-2px); }
-
-    #results {
-      margin-top:26px;
-      white-space:pre-wrap;
-      background:rgba(20,20,20,0.96);
-      border-radius:14px;
-      padding:22px;
-      width:85%;
-      max-width:860px;
-      margin-left:auto;
-      margin-right:auto;
-      text-align:left;
-      line-height:1.6;
-      box-shadow:0 6px 40px rgba(0,0,0,0.6);
-      z-index:3;
-      position:relative;
+      z-index: 5;
+      padding: 40px;
+      text-align: center;
     }
 
-    .loader {
-      display:none;
-      margin:18px auto 6px;
-      text-align:center;
-      width:90%;
-      max-width:700px;
-      position:relative;
-      z-index:3;
+    .upload-section {
+      border: 2px dashed #fff;
+      border-radius: 12px;
+      padding: 40px;
+      margin-top: 40px;
+      transition: border-color 0.3s ease;
     }
-    .progress-wrap {
-      width:70%;
-      max-width:560px;
-      height:12px;
-      background:rgba(255,255,255,0.06);
-      border-radius:999px;
-      margin:16px auto 0;
-      overflow:hidden;
-      position:relative;
+
+    .upload-section:hover {
+      border-color: #00ffff;
     }
-    .progress { height:100%; width:0%; background:linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.08)); border-radius:999px; transition:width 300ms linear; }
 
-    #reset-btn { display:none; margin-top:14px; background:#333; color:#fff; padding:8px 14px; border-radius:8px; border:none; cursor:pointer; }
+    input[type="file"] {
+      display: none;
+    }
 
-    /* PLATFORM COLOR THEMES */
-    body.youtube-mode h1 { color: var(--yt-a); text-shadow: 0 0 10px rgba(255,0,0,0.25); }
-    body.instagram-mode h1 { color: var(--ig-b); text-shadow: 0 0 10px rgba(214,41,118,0.25); }
+    label.upload-label {
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      padding: 12px 24px;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+    }
+
+    label.upload-label:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .progress-bar {
+      margin-top: 20px;
+      width: 80%;
+      height: 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      overflow: hidden;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .progress-bar-inner {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff0050, #00ffff);
+      transition: width 0.3s ease;
+    }
   </style>
 </head>
-<body class="tiktok-mode">
 
-  <!-- ========= FULLSCREEN GOOEY METABALLS BACKGROUND ========= -->
-  <svg class="metaball-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <defs>
-      <filter id="metablur" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="blur"/>
-        <feColorMatrix in="blur" mode="matrix" result="cm"
-          values="1 0 0 0 0
-                  0 1 0 0 0
-                  0 0 1 0 0
-                  0 0 0 20 -8"/>
-        <feComposite in="SourceGraphic" in2="cm" operator="atop"/>
-      </filter>
+<body data-platform="tiktok">
 
-      <radialGradient id="g_tiktok_1" cx="30%" cy="30%"><stop offset="0%" stop-color="#00f2ea"/><stop offset="100%" stop-color="#ff0066"/></radialGradient>
-      <radialGradient id="g_tiktok_2" cx="60%" cy="60%"><stop offset="0%" stop-color="#ff0066"/><stop offset="100%" stop-color="#00f2ea"/></radialGradient>
+  <!-- Gooey Background -->
+  <div id="gooey-bg">
+    <svg id="metaball-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur"/>
+          <feColorMatrix in="blur" mode="matrix"
+            values="1 0 0 0 0  
+                    0 1 0 0 0  
+                    0 0 1 0 0  
+                    0 0 0 25 -10" result="goo"/>
+          <feBlend in="SourceGraphic" in2="goo"/>
+        </filter>
+      </defs>
+      <g filter="url(#goo)" id="blob-group"></g>
+    </svg>
+  </div>
 
-      <radialGradient id="g_yt_1" cx="30%" cy="30%"><stop offset="0%" stop-color="#ff3b3b"/><stop offset="100%" stop-color="#ff0000"/></radialGradient>
-      <radialGradient id="g_yt_2" cx="60%" cy="60%"><stop offset="0%" stop-color="#ff8a4d"/><stop offset="100%" stop-color="#ff0000"/></radialGradient>
-
-      <radialGradient id="g_ig_1" cx="20%" cy="40%"><stop offset="0%" stop-color="#feda75"/><stop offset="100%" stop-color="#d62976"/></radialGradient>
-      <radialGradient id="g_ig_2" cx="70%" cy="60%"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#d62976"/></radialGradient>
-    </defs>
-
-    <g id="metaGroup" class="metagroup" filter="url(#metablur)">
-      <circle class="metaball" id="mb0" r="220" cx="200" cy="140"/>
-      <circle class="metaball" id="mb1" r="260" cx="420" cy="160"/>
-      <circle class="metaball" id="mb2" r="210" cx="700" cy="120"/>
-      <circle class="metaball" id="mb3" r="300" cx="960" cy="180"/>
-      <circle class="metaball" id="mb4" r="240" cx="1220" cy="120"/>
-      <circle class="metaball" id="mb5" r="280" cx="1500" cy="160"/>
-      <circle class="metaball" id="mb6" r="320" cx="180" cy="420"/>
-      <circle class="metaball" id="mb7" r="300" cx="420" cy="420"/>
-      <circle class="metaball" id="mb8" r="260" cx="680" cy="420"/>
-      <circle class="metaball" id="mb9" r="300" cx="960" cy="460"/>
-      <circle class="metaball" id="mb10" r="280" cx="1220" cy="420"/>
-      <circle class="metaball" id="mb11" r="260" cx="1500" cy="420"/>
-      <circle class="metaball" id="mb12" r="320" cx="400" cy="760"/>
-      <circle class="metaball" id="mb13" r="300" cx="960" cy="820"/>
-      <circle class="metaball" id="mb14" r="340" cx="1520" cy="760"/>
-    </g>
-  </svg>
-
-  <img src="/static/Longlinemedialogotransparent.png" alt="LongLine Media Logo" id="logo">
-  <h1>🎬 TikTok & YouTube Viral Optimizer</h1>
-
-  <div>
-    <label for="platform">Select Platform:</label><br />
+  <!-- App Container -->
+  <div class="container">
+    <h1>AI Caption Generator</h1>
     <select id="platform">
-      <option value="TikTok">TikTok</option>
-      <option value="YouTube">YouTube</option>
-      <option value="Instagram">Instagram</option>
+      <option value="tiktok">TikTok</option>
+      <option value="youtube">YouTube</option>
+      <option value="instagram">Instagram</option>
+      <option value="facebook">Facebook</option>
+      <option value="linkedin">LinkedIn</option>
     </select>
-  </div>
 
-  <div class="upload-container" id="video-dropzone">
-    <p class="upload-hint">🎬 Drag & drop your video or click to upload</p>
-    <input type="file" id="video" accept="video/*" />
-    <label for="video">Choose a video</label>
-    <p id="video-filename"></p>
-    <p id="video-uploaded-time" style="font-size:.85rem;color:var(--muted)"></p>
-  </div>
+    <div class="upload-section" id="upload-area">
+      <h3>Upload Video or CSV</h3>
+      <input type="file" id="fileInput" accept=".mp4,.csv" />
+      <label for="fileInput" class="upload-label">Drag or Click to Upload</label>
 
-  <div class="upload-container" id="csv-dropzone">
-    <p class="upload-hint">📄 Upload CSV data (optional)</p>
-    <input type="file" id="csv" accept=".csv" />
-    <label for="csv">Choose a CSV</label>
-    <p id="csv-filename"></p>
-    <p id="csv-uploaded-time" style="font-size:.85rem;color:var(--muted)"></p>
-  </div>
+      <div class="progress-bar">
+        <div class="progress-bar-inner" id="progress-inner"></div>
+      </div>
+    </div>
 
-  <button id="analyze-btn">Analyze</button>
-  <div class="loader" id="loader">
-    <div id="statusFeed">Ready</div>
-    <div class="progress-wrap"><div class="progress" id="progressBar"></div></div>
+    <div id="results">
+      <h2>Results</h2>
+      <p><strong>Caption:</strong> <span id="caption-output">Waiting...</span></p>
+      <p><strong>Hashtags:</strong> <span id="hashtags-output">Waiting...</span></p>
+      <p><strong>Tags:</strong> <span id="tags-output">Waiting...</span></p>
+      <p><strong>Score:</strong> <span id="score-output">Waiting...</span></p>
+    </div>
   </div>
-  <div id="results"></div>
-  <button id="reset-btn">🔄 New Analysis</button>
 
   <script>
-    /* === GOOEY METABALLS ANIMATION === */
-    const metaGroup=document.getElementById('metaGroup');
-    const circles=[...Array(15)].map((_,i)=>document.getElementById('mb'+i));
-    const baseLayout=[{x:10,y:6,r:220},{x:22,y:8,r:260},{x:36,y:6,r:210},{x:50,y:8,r:300},{x:64,y:7,r:240},{x:78,y:8,r:280},{x:12,y:36,r:320},{x:28,y:38,r:300},{x:44,y:36,r:260},{x:56,y:42,r:300},{x:70,y:38,r:280},{x:84,y:38,r:260},{x:20,y:72,r:320},{x:50,y:82,r:300},{x:80,y:72,r:340}];
-    const state=baseLayout.map(b=>({x:innerWidth*b.x/100,y:innerHeight*b.y/100,r:b.r,phase:Math.random()*Math.PI*2,speed:0.0009+Math.random()*0.0012,amp:18+Math.random()*120}));
-    function animate(now){state.forEach((s,i)=>{s.phase+=s.speed*16;const dx=Math.cos(s.phase*(0.8+i*0.01))*s.amp;const dy=Math.sin(s.phase*(0.9+i*0.012))*(s.amp*0.7);const base=baseLayout[i];s.x=innerWidth*base.x/100+dx;s.y=innerHeight*base.y/100+dy;circles[i].setAttribute('cx',s.x);circles[i].setAttribute('cy',s.y);});requestAnimationFrame(animate);}
-    function applyTheme(p){const low=p.toLowerCase();const g=(a,b)=>`url(#g_${low}_${a})`;for(let i=0;i<15;i++)circles[i].setAttribute('fill',(i%2)?g(2):g(1));}
-    applyTheme('tiktok');requestAnimationFrame(animate);setTimeout(()=>metaGroup.classList.add('visible'),300);
+    // Platform color theme switch
+    const platformSelect = document.getElementById("platform");
+    if (platformSelect) {
+      platformSelect.addEventListener("change", () => {
+        document.body.setAttribute("data-platform", platformSelect.value.toLowerCase());
+      });
+    }
+
+    // Generate blobs
+    const svg = document.getElementById("metaball-svg");
+    const group = document.getElementById("blob-group");
+    const blobCount = 15;
+    const width = window.innerWidth;
+    const height = Math.max(window.innerHeight, document.body.scrollHeight);
+
+    function random(min, max) { return Math.random() * (max - min) + min; }
+
+    for (let i = 0; i < blobCount; i++) {
+      const blob = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      blob.setAttribute("cx", random(0, width));
+      blob.setAttribute("cy", random(0, height));
+      blob.setAttribute("r", random(150, 300));
+      blob.classList.add("blob");
+      group.appendChild(blob);
+
+      const dx = random(30, 100);
+      const dy = random(30, 100);
+
+      // Auto-floating + gentle drift
+      blob.animate(
+        [
+          { transform: "translate(0, 0)" },
+          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: "translate(0, 0)" }
+        ],
+        {
+          duration: random(10000, 20000),
+          iterations: Infinity,
+          direction: "alternate",
+          easing: "ease-in-out"
+        }
+      );
+
+      // slight parallax on mouse
+      document.addEventListener("mousemove", (e) => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 20;
+        const y = (e.clientY / window.innerHeight - 0.5) * 20;
+        blob.style.transform = `translate(${x}px, ${y}px)`;
+      });
+
+      // fade in
+      setTimeout(() => blob.classList.add("visible"), 300 * i);
+    }
+
+    // Example progress bar logic (dummy)
+    const progressInner = document.getElementById("progress-inner");
+    let progress = 0;
+    const simulateProgress = setInterval(() => {
+      progress = Math.min(progress + 5, 100);
+      progressInner.style.width = progress + "%";
+      if (progress >= 100) clearInterval(simulateProgress);
+    }, 300);
   </script>
 </body>
 </html>
