@@ -4,44 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TikTok & YouTube Viral Optimizer</title>
-  <style>
-    /* -------------------------
-       Your original page styles
-       (kept intact and unchanged)
-       ------------------------- */
 
+  <style>
+    /* ---------- Base Page Styles (unchanged) ---------- */
     body {
       font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(-45deg, #0b0b0b, #141414, #1a1a1a, #0b0b0b);
-      background-size: 400% 400%;
-      animation: gradientFlow 15s ease infinite;
+      background: #0b0b0b;
       color: #f5f5f5;
       text-align: center;
       padding: 40px;
       margin: 0;
-      transition: background 1.2s ease-in-out, color 0.6s;
-      overflow-y: auto; /* ensure page scroll works */
-    }
-
-    @keyframes gradientFlow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      overflow-y: auto;
+      transition: background 1s ease-in-out, color 0.6s;
     }
 
     #logo {
       width: 110px;
       margin-bottom: 20px;
-      filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
-      transition: filter 0.5s ease-in-out;
+      filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
     }
 
     h1 {
       font-size: 2.2rem;
       margin-bottom: 1.5rem;
-      color: #00f2ea; /* TikTok cyan default */
-      text-shadow: 0 0 8px rgba(0, 242, 234, 0.6);
-      transition: color 0.6s, text-shadow 0.6s;
+      color: #00f2ea;
+      text-shadow: 0 0 8px rgba(0,242,234,0.6);
     }
 
     .upload-container {
@@ -51,319 +38,127 @@
       margin: 20px auto;
       width: 80%;
       max-width: 600px;
-      background-color: rgba(20, 20, 20, 0.9);
+      background-color: rgba(20,20,20,0.9);
       transition: all 0.3s ease-in-out;
     }
 
-    .upload-container:hover {
-      border-color: #00f2ea;
-      background-color: #1c1c1c;
-    }
-
-    input[type="file"] {
-      display: none;
-    }
-
-    label {
-      cursor: pointer;
-      color: #00f2ea;
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-      transition: 0.3s;
-    }
-
-    label:hover {
-      color: #26d9ff;
-    }
-
+    .upload-container:hover { border-color:#00f2ea; background-color:#1c1c1c; }
+    input[type="file"] { display:none; }
+    label { cursor:pointer; color:#00f2ea; font-weight:bold; }
     button {
-      background-color: #00f2ea;
-      border: none;
-      color: #fff;
-      padding: 14px 28px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: 0.3s;
-      margin-top: 25px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(0, 242, 234, 0.4);
-    }
-
-    button:hover {
-      background-color: #0097a7;
-      box-shadow: 0 0 15px rgba(0, 242, 234, 0.6);
+      background-color:#00f2ea;
+      border:none;
+      color:#fff;
+      padding:14px 28px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:bold;
+      margin-top:25px;
+      box-shadow:0 0 10px rgba(0,242,234,0.4);
     }
 
     select {
-      background-color: #141414;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      outline: none;
-    }
-
-    select:hover {
-      border-color: #00f2ea;
+      background-color:#141414;
+      color:#fff;
+      border:1px solid #333;
+      border-radius:8px;
+      padding:8px 12px;
     }
 
     #results {
-      margin-top: 30px;
-      white-space: pre-wrap;
-      background-color: #141414;
-      border-radius: 14px;
-      padding: 25px;
-      width: 85%;
-      max-width: 780px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-      line-height: 1.7;
-      box-shadow: 0 0 20px rgba(0, 242, 234, 0.15);
+      margin-top:30px;
+      white-space:pre-wrap;
+      background-color:#141414;
+      border-radius:14px;
+      padding:25px;
+      width:85%;
+      max-width:780px;
+      margin-left:auto;
+      margin-right:auto;
+      text-align:left;
+      line-height:1.7;
+      box-shadow:0 0 20px rgba(0,242,234,0.15);
     }
 
-    .detected-section {
-      margin-top: 20px;
-      text-align: left;
-      width: 85%;
-      max-width: 750px;
-      margin-left: auto;
-      margin-right: auto;
-      background-color: #1a1a1a;
-      border-radius: 12px;
-      padding: 20px;
-      opacity: 0;
-      transition: opacity 0.8s ease-in-out;
-      box-shadow: 0 0 15px rgba(0, 242, 234, 0.15);
-    }
-
-    .detected-section.visible {
-      opacity: 1;
-    }
-
-    .detected-section h3 {
-      color: #00f2ea;
-      margin-bottom: 10px;
-    }
-
-    .loader {
-      display: none;
-      margin: 30px auto;
-      text-align: center;
-    }
-
-    .dots {
-      margin: 10px auto;
-    }
-
-    .dot {
-      height: 12px;
-      width: 12px;
-      margin: 0 4px;
-      background-color: #00f2ea;
-      border-radius: 50%;
-      display: inline-block;
-      animation: pulse 1.4s infinite ease-in-out both;
-    }
-
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes pulse {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
-    }
-
-    #loader-text {
-      color: #aaa;
-      font-style: italic;
-      margin-top: 10px;
-      font-size: 0.95rem;
-      min-height: 20px;
-    }
-
-    #reset-btn {
-      display: none;
-      margin-top: 25px;
-      background-color: #333;
-    }
-
-    #reset-btn:hover {
-      background-color: #444;
-    }
-
-    /* YouTube mode overrides kept intact */
-    body.youtube-mode h1 {
-      color: #ff0000;
-      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
-    }
-
-    body.youtube-mode .upload-container:hover {
-      border-color: #ff0000;
-    }
-
-    body.youtube-mode label {
-      color: #ff0000;
-    }
-
-    body.youtube-mode label:hover {
-      color: #ff4d4d;
-    }
-
-    body.youtube-mode button {
-      background-color: #ff0000;
-      box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
-    }
-
-    body.youtube-mode button:hover {
-      background-color: #c40000;
-      box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
-    }
-
-    body.youtube-mode #results,
-    body.youtube-mode .detected-section {
-      box-shadow: 0 0 20px rgba(255, 0, 0, 0.15);
-    }
-
-    body.youtube-mode .detected-section h3 {
-      color: #ff0000;
-    }
-
-    body.youtube-mode .dot {
-      background-color: #ff0000;
-    }
-
-    /* Instagram overrides kept simple */
-    body.instagram-mode h1 {
-      color: #feda75; /* warm-ish for header */
-      text-shadow: 0 0 8px rgba(246, 128, 56, 0.45);
-    }
-
-    /* -------------------------
-       NEW: Gooey/liquid background
-       (only background code — doesn't change your layout)
-       ------------------------- */
-
-    .gooey-bg {
+    /* ---------- Gooey Background ---------- */
+    #gooey-bg {
       position: fixed;
       inset: 0;
-      z-index: -1; /* behind everything */
+      z-index: -1;
       pointer-events: none;
       overflow: hidden;
-      display: block;
     }
 
-    /* each blob is a big circle, size variety, blend mode screen */
-    .gooey-blob {
-      position: absolute;
-      border-radius: 50%;
-      mix-blend-mode: screen;
-      opacity: 0.95;
-      transform-origin: center;
-      /* we will set width/height inline via JS for variance */
-      will-change: transform, left, top;
-      filter: none; /* NO blur requested */
+    svg {
+      width: 100%;
+      height: 100%;
+      filter: url(#goo);
     }
 
-    /* more blobs and slightly staggered motion — tuned for denser look */
-    @keyframes blobMove1 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(110px,-70px,0) scale(1.15); }
-      50% { transform: translate3d(-120px,120px,0) scale(0.95); }
-      75% { transform: translate3d(80px,70px,0) scale(1.05); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
-    @keyframes blobMove2 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(-140px,60px,0) scale(1.05); }
-      50% { transform: translate3d(100px,-140px,0) scale(1.15); }
-      75% { transform: translate3d(-40px,90px,0) scale(0.9); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
-    @keyframes blobMove3 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(90px,120px,0) scale(1.08); }
-      50% { transform: translate3d(-80px,-90px,0) scale(0.92); }
-      75% { transform: translate3d(140px,-10px,0) scale(1.12); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
-    @keyframes blobMove4 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(-70px,-130px,0) scale(1.12); }
-      50% { transform: translate3d(120px,100px,0) scale(0.96); }
-      75% { transform: translate3d(-100px,40px,0) scale(1.03); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
-    @keyframes blobMove5 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(160px,40px,0) scale(0.9); }
-      50% { transform: translate3d(-140px,-40px,0) scale(1.12); }
-      75% { transform: translate3d(30px,140px,0) scale(0.98); }
-      100% { transform: translate3d(0,0,0) scale(1); }
-    }
-    @keyframes blobMove6 {
-      0% { transform: translate3d(0,0,0) scale(1); }
-      25% { transform: translate3d(-60px,60px,0) scale(1.1); }
-      50% { transform: translate3d(80px,-60px,0) scale(0.9); }
-      75% { transform: translate3d(-120px,20px,0) scale(1.08); }
-      100% { transform: translate3d(0,0,0) scale(1); }
+    .blob {
+      fill: url(#grad1);
+      opacity: 0.8;
+      animation: blobFloat 60s ease-in-out infinite alternate;
     }
 
-    /* Apply animations (different durations / delays for natural motion) */
-    .g1 { animation: blobMove1 18s ease-in-out infinite; }
-    .g2 { animation: blobMove2 20s ease-in-out infinite; }
-    .g3 { animation: blobMove3 16s ease-in-out infinite; }
-    .g4 { animation: blobMove4 22s ease-in-out infinite; }
-    .g5 { animation: blobMove5 19s ease-in-out infinite; }
-    .g6 { animation: blobMove6 21s ease-in-out infinite; }
-
-    /* ensure blobs don't cover interactive elements (z-index behind) */
-    .gooey-svg {
-      position: absolute;
-      width: 0; height: 0; overflow: hidden;
+    @keyframes blobFloat {
+      0%   { transform: translate(0px, 0px) scale(1); }
+      25%  { transform: translate(30px, -20px) scale(1.05); }
+      50%  { transform: translate(-40px, 25px) scale(0.95); }
+      75%  { transform: translate(20px, 40px) scale(1.08); }
+      100% { transform: translate(0px, 0px) scale(1); }
     }
 
-    /* small responsiveness */
-    @media (max-width: 800px) {
-      .gooey-blob { opacity: 0.92; }
-    }
+    /* ---------- YouTube / Instagram Theme Colors ---------- */
+    body.youtube-mode h1 { color:#ff0000; text-shadow:0 0 8px rgba(255,0,0,0.6); }
+    body.instagram-mode h1 { color:#feda75; text-shadow:0 0 8px rgba(246,128,56,0.45); }
   </style>
 </head>
-<body class="tiktok-mode">
-  <!-- =====================
-       Gooey / liquid background (many blobs)
-       ===================== -->
-  <div class="gooey-bg" id="gooeyBg">
-    <!-- 6 blobs; JS will set size/position and colors per theme -->
-    <div class="gooey-blob g1" id="blob-1" aria-hidden="true"></div>
-    <div class="gooey-blob g2" id="blob-2" aria-hidden="true"></div>
-    <div class="gooey-blob g3" id="blob-3" aria-hidden="true"></div>
-    <div class="gooey-blob g4" id="blob-4" aria-hidden="true"></div>
-    <div class="gooey-blob g5" id="blob-5" aria-hidden="true"></div>
-    <div class="gooey-blob g6" id="blob-6" aria-hidden="true"></div>
 
-    <!-- SVG filter (keeps shapes merging; not blurring) -->
-    <svg class="gooey-svg" xmlns="http://www.w3.org/2000/svg">
-      <filter id="goo-filter">
-        <!-- smaller stdDeviation keeps edges sharper but still merges -->
-        <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur" />
-        <feColorMatrix in="blur" type="matrix"
-          values="1 0 0 0 0
-                  0 1 0 0 0
-                  0 0 1 0 0
-                  0 0 0 25 -7" result="goo" />
-        <feBlend in="SourceGraphic" in2="goo" />
-      </filter>
+<body class="tiktok-mode">
+  <!-- Gooey SVG Background -->
+  <div id="gooey-bg">
+    <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur" />
+          <feColorMatrix in="blur" mode="matrix"
+            values="1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 25 -10" result="goo" />
+          <feBlend in="SourceGraphic" in2="goo" />
+        </filter>
+
+        <!-- Gradient (TikTok default colors) -->
+        <radialGradient id="grad1" cx="50%" cy="50%" r="75%">
+          <stop offset="0%" stop-color="#ff0050" />
+          <stop offset="100%" stop-color="#00f2ea" />
+        </radialGradient>
+      </defs>
+
+      <g filter="url(#goo)">
+        <!-- 15 dense blobs -->
+        <circle class="blob" cx="150" cy="300" r="100"></circle>
+        <circle class="blob" cx="300" cy="250" r="130"></circle>
+        <circle class="blob" cx="500" cy="350" r="110"></circle>
+        <circle class="blob" cx="700" cy="400" r="90"></circle>
+        <circle class="blob" cx="400" cy="500" r="120"></circle>
+        <circle class="blob" cx="600" cy="200" r="140"></circle>
+        <circle class="blob" cx="250" cy="450" r="100"></circle>
+        <circle class="blob" cx="550" cy="100" r="110"></circle>
+        <circle class="blob" cx="350" cy="150" r="120"></circle>
+        <circle class="blob" cx="750" cy="250" r="130"></circle>
+        <circle class="blob" cx="450" cy="550" r="100"></circle>
+        <circle class="blob" cx="150" cy="150" r="80"></circle>
+        <circle class="blob" cx="650" cy="500" r="90"></circle>
+        <circle class="blob" cx="550" cy="300" r="110"></circle>
+        <circle class="blob" cx="250" cy="350" r="100"></circle>
+      </g>
     </svg>
   </div>
 
-  <!-- =====================
-       Your original page content — unchanged
-       ===================== -->
+  <!-- Main Content -->
   <img src="/static/Longlinemedialogotransparent.png" alt="LongLine Media Logo" id="logo">
   <h1>🎬 TikTok & YouTube Viral Optimizer</h1>
 
@@ -376,14 +171,14 @@
     </select>
   </div>
 
-  <div class="upload-container" id="video-dropzone">
+  <div class="upload-container">
     <p>🎬 Drag and drop your video here or click to upload</p>
     <input type="file" id="video" accept="video/*" />
     <label for="video">Choose a video</label>
     <p id="video-filename"></p>
   </div>
 
-  <div class="upload-container" id="csv-dropzone">
+  <div class="upload-container">
     <p>📄 Upload your CSV data (optional)</p>
     <input type="file" id="csv" accept=".csv" />
     <label for="csv">Choose a CSV</label>
@@ -391,304 +186,42 @@
   </div>
 
   <button id="analyze-btn">Analyze</button>
-
-  <div class="loader" id="loader">
-    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    <p id="loader-text">Initializing AI analysis...</p>
-  </div>
-
-  <div id="detected" class="detected-section">
-    <h3>🤖 Auto-Detected Video Attributes</h3>
-    <p><strong>Niche:</strong> <span id="niche"></span></p>
-    <p><strong>Tone:</strong> <span id="tone"></span></p>
-    <p><strong>Keywords:</strong> <span id="keywords"></span></p>
-  </div>
-
   <div id="results"></div>
-  <button id="reset-btn">🔄 New Analysis</button>
+  <button id="reset-btn" style="display:none;">🔄 New Analysis</button>
 
   <script>
-    /************************************************************************
-     * Background / Blobs handling
-     * - preserves layout completely
-     * - sets many blobs, sizes and starting positions
-     * - changes colors per platform but DOES NOT touch your layout
-     ************************************************************************/
-
-    const platformSelect = document.getElementById('platform');
+    /* ---------- Theme & Blob Parallax ---------- */
+    const platformSelect = document.getElementById("platform");
     const body = document.body;
-    const blobs = [
-      document.getElementById('blob-1'),
-      document.getElementById('blob-2'),
-      document.getElementById('blob-3'),
-      document.getElementById('blob-4'),
-      document.getElementById('blob-5'),
-      document.getElementById('blob-6'),
-    ];
+    const blobs = document.querySelectorAll(".blob");
 
-    // initial sizes & positions (keeps background full-screen and varied)
-    const blobSpecs = [
-      { w: 620, h: 620, left: '-10%', top: '5%' },
-      { w: 480, h: 480, left: '60%', top: '10%' },
-      { w: 520, h: 520, left: '15%', top: '40%' },
-      { w: 360, h: 360, left: '75%', top: '50%' },
-      { w: 700, h: 700, left: '-20%', top: '55%' },
-      { w: 420, h: 420, left: '45%', top: '-12%' }
-    ];
-
-    function placeBlobs() {
-      blobs.forEach((b, i) => {
-        const s = blobSpecs[i];
-        b.style.width = s.w + 'px';
-        b.style.height = s.h + 'px';
-        b.style.left = s.left;
-        b.style.top = s.top;
-        b.style.background = defaultGradient(); // set default until theme applied
+    // Mouse movement parallax
+    document.addEventListener("mousemove", (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 40;
+      const y = (e.clientY / window.innerHeight - 0.5) * 40;
+      blobs.forEach((blob, i) => {
+        const speed = (i + 1) / 20;
+        blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
       });
-      // apply the goo filter to the container (so blobs visually merge)
-      document.getElementById('gooeyBg').style.filter = 'url(#goo-filter)';
-    }
+    });
 
-    // default gradient placeholder
-    function defaultGradient() {
-      return 'radial-gradient(circle at 30% 30%, rgba(255,0,80,0.95), rgba(0,242,234,0.85))';
-    }
-
-    // theme color sets for the blobs (TikTok / YouTube / Instagram)
-    function applyThemeColors(platform) {
-      const p = platform.toLowerCase();
-      if (p === 'tiktok') {
-        // TikTok: blue-cyan and hot pink combos
-        blobs[0].style.background = 'radial-gradient(circle at 30% 30%, rgba(255,0,80,0.95), rgba(0,242,234,0.85))';
-        blobs[1].style.background = 'radial-gradient(circle at 70% 70%, rgba(0,242,234,0.95), rgba(0,0,0,0.55))';
-        blobs[2].style.background = 'radial-gradient(circle at 50% 45%, rgba(255,0,80,0.85), rgba(0,242,234,0.6))';
-        blobs[3].style.background = 'radial-gradient(circle at 40% 60%, rgba(0,242,234,0.9), rgba(20,20,20,0.55))';
-        blobs[4].style.background = 'radial-gradient(circle at 20% 30%, rgba(255,0,80,0.8), rgba(0,0,0,0.45))';
-        blobs[5].style.background = 'radial-gradient(circle at 60% 40%, rgba(255,0,80,0.6), rgba(0,242,234,0.4))';
-      } else if (p === 'youtube') {
-        // YouTube: reds / warm tones
-        blobs[0].style.background = 'radial-gradient(circle at 30% 30%, rgba(255,0,0,0.95), rgba(255,80,80,0.7))';
-        blobs[1].style.background = 'radial-gradient(circle at 70% 70%, rgba(255,80,80,0.9), rgba(40,40,40,0.5))';
-        blobs[2].style.background = 'radial-gradient(circle at 50% 45%, rgba(255,100,60,0.85), rgba(220,20,60,0.6))';
-        blobs[3].style.background = 'radial-gradient(circle at 40% 60%, rgba(255,0,0,0.9), rgba(0,0,0,0.5))';
-        blobs[4].style.background = 'radial-gradient(circle at 20% 30%, rgba(255,180,140,0.7), rgba(255,0,0,0.45))';
-        blobs[5].style.background = 'radial-gradient(circle at 60% 40%, rgba(255,60,60,0.6), rgba(200,20,20,0.4))';
-      } else if (p === 'instagram') {
-        // Instagram: pink / purple / orange gradient family
-        blobs[0].style.background = 'radial-gradient(circle at 20% 30%, rgba(254,218,117,0.95), rgba(214,41,118,0.85))';
-        blobs[1].style.background = 'radial-gradient(circle at 75% 65%, rgba(150,47,191,0.95), rgba(79,91,213,0.8))';
-        blobs[2].style.background = 'radial-gradient(circle at 45% 50%, rgba(250,126,30,0.9), rgba(214,41,118,0.6))';
-        blobs[3].style.background = 'radial-gradient(circle at 60% 40%, rgba(79,91,213,0.9), rgba(214,41,118,0.6))';
-        blobs[4].style.background = 'radial-gradient(circle at 10% 60%, rgba(254,218,117,0.8), rgba(150,47,191,0.4))';
-        blobs[5].style.background = 'radial-gradient(circle at 85% 20%, rgba(255,120,90,0.7), rgba(79,91,213,0.45))';
+    // Platform color switching
+    platformSelect.addEventListener("change", () => {
+      const val = platformSelect.value.toLowerCase();
+      body.classList.remove("tiktok-mode","youtube-mode","instagram-mode");
+      body.classList.add(val + "-mode");
+      const grad = document.getElementById("grad1");
+      if (val === "tiktok") {
+        grad.children[0].setAttribute("stop-color", "#ff0050");
+        grad.children[1].setAttribute("stop-color", "#00f2ea");
+      } else if (val === "youtube") {
+        grad.children[0].setAttribute("stop-color", "#ff0000");
+        grad.children[1].setAttribute("stop-color", "#ff8080");
+      } else if (val === "instagram") {
+        grad.children[0].setAttribute("stop-color", "#feda75");
+        grad.children[1].setAttribute("stop-color", "#d62976");
       }
-    }
-
-    // when user switches platform, change body class (keeps your old class logic)
-    function setBodyMode(platformValue) {
-      const low = platformValue.toLowerCase();
-      body.classList.remove('tiktok-mode', 'youtube-mode', 'instagram-mode');
-      if (low === 'tiktok') body.classList.add('tiktok-mode');
-      if (low === 'youtube') body.classList.add('youtube-mode');
-      if (low === 'instagram') body.classList.add('instagram-mode');
-      // update blob colors
-      applyThemeColors(low);
-    }
-
-    // initial placement + theme
-    placeBlobs();
-    setBodyMode('TikTok');
-
-    // platform change event
-    const platformEl = document.getElementById('platform');
-    platformEl.addEventListener('change', (e) => {
-      const val = e.target.value;
-      setBodyMode(val);
-    });
-
-    /************************************************************************
-     * Below: small helper code so your page still shows uploaded filenames,
-     * works with analyze button, loader, scroll, reset — preserved from your
-     * original implementation (I kept your logic but added a couple small
-     * safer checks).
-     ************************************************************************/
-
-    const videoInput = document.getElementById("video");
-    const csvInput = document.getElementById("csv");
-    const videoFilename = document.getElementById("video-filename");
-    const csvFilename = document.getElementById("csv-filename");
-    const analyzeBtn = document.getElementById("analyze-btn");
-    const resetBtn = document.getElementById("reset-btn");
-    const resultsDiv = document.getElementById("results");
-    const detectedDiv = document.getElementById("detected");
-    const nicheEl = document.getElementById("niche");
-    const toneEl = document.getElementById("tone");
-    const keywordsEl = document.getElementById("keywords");
-    const loader = document.getElementById("loader");
-    const loaderText = document.getElementById("loader-text");
-
-    let loaderInterval;
-
-    function resetAll() {
-      resultsDiv.textContent = "";
-      videoFilename.textContent = "";
-      csvFilename.textContent = "";
-      detectedDiv.classList.remove("visible");
-      detectedDiv.style.display = "none";
-      loader.style.display = "none";
-      analyzeBtn.style.display = "inline-block";
-      resetBtn.style.display = "none";
-      videoInput.value = "";
-      csvInput.value = "";
-    }
-
-    videoInput.addEventListener("change", () => {
-      if (videoInput.files.length > 0)
-        videoFilename.textContent = `Uploaded: ${videoInput.files[0].name}`;
-    });
-
-    csvInput.addEventListener("change", () => {
-      if (csvInput.files.length > 0)
-        csvFilename.textContent = `Uploaded: ${csvInput.files[0].name}`;
-    });
-
-    // preserve your original analyze behavior — only added a tiny guard
-    analyzeBtn.addEventListener("click", async () => {
-      const videoFile = videoInput.files[0];
-      const csvFile = csvInput.files[0];
-      const platform = platformEl.value;
-
-      if (!videoFile) {
-        alert("Please upload a video file first.");
-        return;
-      }
-
-      resultsDiv.textContent = `🎥 Running ${platform} Viral Optimizer...\n\n🤖 Generating AI-powered analysis...`;
-      detectedDiv.classList.remove("visible");
-      loader.style.display = "block";
-
-      const messages = [
-        "🔍 Extracting video metadata...",
-        "🎨 Detecting tone and visuals...",
-        "🧠 Analyzing engagement potential...",
-        "📊 Comparing with viral examples...",
-        "💡 Generating captions, tags & insights..."
-      ];
-
-      let i = 0;
-      loaderInterval = setInterval(() => {
-        loaderText.textContent = messages[i % messages.length];
-        i++;
-      }, 1600);
-
-      const formData = new FormData();
-      formData.append("video", videoFile);
-      formData.append("platform", platform);
-      if (csvFile) formData.append("csv", csvFile);
-
-      try {
-        // keep calling your /analyze endpoint — unchanged
-        const response = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await response.json();
-        clearInterval(loaderInterval);
-        loader.style.display = "none";
-
-        if (data.error) {
-          resultsDiv.textContent = "❌ Error: " + data.error;
-        } else {
-          const resultText = data.result || data.ai_results || JSON.stringify(data, null, 2);
-
-          // Attempt to extract niche/tone/keywords for the detected UI area
-          const nicheMatch = resultText.match(/Detected Niche:\s*(.+)/i) ||
-                             resultText.match(/- Niche:\s*(.+)/i) ||
-                             resultText.match(/Niche:\s*\*\*(.+?)\*\*/i);
-          const toneMatch = resultText.match(/Tone:\s*(.+)/i);
-          const keywordsMatch = resultText.match(/Keywords?:\s*(.+)/i);
-
-          if (nicheMatch || toneMatch || keywordsMatch) {
-            detectedDiv.style.display = "block";
-            setTimeout(() => detectedDiv.classList.add("visible"), 100);
-            nicheEl.textContent = nicheMatch ? (nicheMatch[1] || nicheMatch[0]).trim() : "N/A";
-            toneEl.textContent = toneMatch ? toneMatch[1].trim() : "N/A";
-            keywordsEl.textContent = keywordsMatch ? keywordsMatch[1].trim() : "N/A";
-          }
-
-          setTimeout(() => {
-            resultsDiv.textContent = resultText;
-            analyzeBtn.style.display = "none";
-            resetBtn.style.display = "inline-block";
-          }, 500);
-        }
-      } catch (err) {
-        clearInterval(loaderInterval);
-        loader.style.display = "none";
-        resultsDiv.textContent = "❌ Error processing your request.";
-        console.error(err);
-      }
-    });
-
-    resetBtn.addEventListener("click", resetAll);
-
-    // make background adapt a little on resize (optional)
-    window.addEventListener('resize', () => {
-      // could tweak blob positions/sizes here if desired
     });
   </script>
-<!-- Gooey Background -->
-<div id="gooey-bg">
-  <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-    <defs>
-      <filter id="goo">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur" />
-        <feColorMatrix in="blur" mode="matrix"
-          values="1 0 0 0 0  
-                  0 1 0 0 0  
-                  0 0 1 0 0  
-                  0 0 0 25 -10" result="goo" />
-        <feBlend in="SourceGraphic" in2="goo" />
-      </filter>
-    </defs>
-
-    <g filter="url(#goo)">
-      <!-- 15 Blobs for dense effect -->
-      <circle class="blob" cx="150" cy="300" r="100"></circle>
-      <circle class="blob" cx="300" cy="250" r="130"></circle>
-      <circle class="blob" cx="500" cy="350" r="110"></circle>
-      <circle class="blob" cx="700" cy="400" r="90"></circle>
-      <circle class="blob" cx="400" cy="500" r="120"></circle>
-      <circle class="blob" cx="600" cy="200" r="140"></circle>
-      <circle class="blob" cx="250" cy="450" r="100"></circle>
-      <circle class="blob" cx="550" cy="100" r="110"></circle>
-      <circle class="blob" cx="350" cy="150" r="120"></circle>
-      <circle class="blob" cx="750" cy="250" r="130"></circle>
-      <circle class="blob" cx="450" cy="550" r="100"></circle>
-      <circle class="blob" cx="150" cy="150" r="80"></circle>
-      <circle class="blob" cx="650" cy="500" r="90"></circle>
-      <circle class="blob" cx="550" cy="300" r="110"></circle>
-      <circle class="blob" cx="250" cy="350" r="100"></circle>
-    </g>
-  </svg>
-</div>
-
-<script>
-  // Platform color change
-  const platformSelect = document.getElementById("platform");
-  if (platformSelect) {
-    platformSelect.addEventListener("change", () => {
-      document.body.setAttribute("data-platform", platformSelect.value.toLowerCase());
-    });
-  }
-
-  // Gentle mouse movement for parallax effect
-  const blobs = document.querySelectorAll(".blob");
-  document.addEventListener("mousemove", (e) => {
-    const x = (e.clientX / window.innerWidth - 0.5) * 30;
-    const y = (e.clientY / window.innerHeight - 0.5) * 30;
-    blobs.forEach((blob, i) => {
-      const speed = (i + 1) / 15;
-      blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
-    });
-  });
-</script>
 </body>
 </html>
