@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok & YouTube Viral Optimizer</title>
+  <title>TikTok, YouTube & Instagram Viral Optimizer</title>
 
   <style>
-    /* ---------- Base Page Styles (unchanged) ---------- */
+    /* ---------- Base Page Styles ---------- */
     body {
       font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background: #0b0b0b;
@@ -42,42 +42,52 @@
       transition: all 0.3s ease-in-out;
     }
 
-    .upload-container:hover { border-color:#00f2ea; background-color:#1c1c1c; }
-    input[type="file"] { display:none; }
-    label { cursor:pointer; color:#00f2ea; font-weight:bold; }
+    .upload-container:hover {
+      border-color: #00f2ea;
+      background-color: #1c1c1c;
+    }
+
+    input[type="file"] { display: none; }
+
+    label {
+      cursor: pointer;
+      color: #00f2ea;
+      font-weight: bold;
+    }
+
     button {
-      background-color:#00f2ea;
-      border:none;
-      color:#fff;
-      padding:14px 28px;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:bold;
-      margin-top:25px;
-      box-shadow:0 0 10px rgba(0,242,234,0.4);
+      background-color: #00f2ea;
+      border: none;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 25px;
+      box-shadow: 0 0 10px rgba(0,242,234,0.4);
     }
 
     select {
-      background-color:#141414;
-      color:#fff;
-      border:1px solid #333;
-      border-radius:8px;
-      padding:8px 12px;
+      background-color: #141414;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 8px 12px;
     }
 
     #results {
-      margin-top:30px;
-      white-space:pre-wrap;
-      background-color:#141414;
-      border-radius:14px;
-      padding:25px;
-      width:85%;
-      max-width:780px;
-      margin-left:auto;
-      margin-right:auto;
-      text-align:left;
-      line-height:1.7;
-      box-shadow:0 0 20px rgba(0,242,234,0.15);
+      margin-top: 30px;
+      white-space: pre-wrap;
+      background-color: #141414;
+      border-radius: 14px;
+      padding: 25px;
+      width: 85%;
+      max-width: 780px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+      line-height: 1.7;
+      box-shadow: 0 0 20px rgba(0,242,234,0.15);
     }
 
     /* ---------- Gooey Background ---------- */
@@ -98,30 +108,31 @@
     .blob {
       fill: url(#grad1);
       opacity: 0.8;
-      animation: blobFloat 60s ease-in-out infinite alternate;
+      animation: drift 60s ease-in-out infinite;
+      transform-origin: center;
     }
 
-    @keyframes blobFloat {
-      0%   { transform: translate(0px, 0px) scale(1); }
-      25%  { transform: translate(30px, -20px) scale(1.05); }
-      50%  { transform: translate(-40px, 25px) scale(0.95); }
-      75%  { transform: translate(20px, 40px) scale(1.08); }
-      100% { transform: translate(0px, 0px) scale(1); }
+    @keyframes drift {
+      0%   { transform: translate(0, 0) scale(1); }
+      25%  { transform: translate(50px, -30px) scale(1.05); }
+      50%  { transform: translate(-60px, 50px) scale(0.95); }
+      75%  { transform: translate(40px, 40px) scale(1.1); }
+      100% { transform: translate(0, 0) scale(1); }
     }
 
-    /* ---------- YouTube / Instagram Theme Colors ---------- */
-    body.youtube-mode h1 { color:#ff0000; text-shadow:0 0 8px rgba(255,0,0,0.6); }
-    body.instagram-mode h1 { color:#feda75; text-shadow:0 0 8px rgba(246,128,56,0.45); }
+    /* ---------- Theme Variants ---------- */
+    body.youtube-mode h1 { color: #ff0000; text-shadow: 0 0 8px rgba(255,0,0,0.6); }
+    body.instagram-mode h1 { color: #feda75; text-shadow: 0 0 8px rgba(246,128,56,0.45); }
   </style>
 </head>
 
 <body class="tiktok-mode">
   <!-- Gooey SVG Background -->
   <div id="gooey-bg">
-    <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
       <defs>
         <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur" />
           <feColorMatrix in="blur" mode="matrix"
             values="1 0 0 0 0
                     0 1 0 0 0
@@ -130,7 +141,6 @@
           <feBlend in="SourceGraphic" in2="goo" />
         </filter>
 
-        <!-- Gradient (TikTok default colors) -->
         <radialGradient id="grad1" cx="50%" cy="50%" r="75%">
           <stop offset="0%" stop-color="#ff0050" />
           <stop offset="100%" stop-color="#00f2ea" />
@@ -138,29 +148,29 @@
       </defs>
 
       <g filter="url(#goo)">
-        <!-- 15 dense blobs -->
-        <circle class="blob" cx="150" cy="300" r="100"></circle>
-        <circle class="blob" cx="300" cy="250" r="130"></circle>
-        <circle class="blob" cx="500" cy="350" r="110"></circle>
-        <circle class="blob" cx="700" cy="400" r="90"></circle>
-        <circle class="blob" cx="400" cy="500" r="120"></circle>
-        <circle class="blob" cx="600" cy="200" r="140"></circle>
-        <circle class="blob" cx="250" cy="450" r="100"></circle>
-        <circle class="blob" cx="550" cy="100" r="110"></circle>
-        <circle class="blob" cx="350" cy="150" r="120"></circle>
-        <circle class="blob" cx="750" cy="250" r="130"></circle>
-        <circle class="blob" cx="450" cy="550" r="100"></circle>
-        <circle class="blob" cx="150" cy="150" r="80"></circle>
-        <circle class="blob" cx="650" cy="500" r="90"></circle>
-        <circle class="blob" cx="550" cy="300" r="110"></circle>
-        <circle class="blob" cx="250" cy="350" r="100"></circle>
+        <!-- 15 Separated Blobs -->
+        <circle class="blob" cx="100" cy="200" r="100"></circle>
+        <circle class="blob" cx="250" cy="100" r="120"></circle>
+        <circle class="blob" cx="400" cy="250" r="110"></circle>
+        <circle class="blob" cx="550" cy="150" r="100"></circle>
+        <circle class="blob" cx="700" cy="300" r="130"></circle>
+        <circle class="blob" cx="850" cy="180" r="90"></circle>
+        <circle class="blob" cx="150" cy="500" r="120"></circle>
+        <circle class="blob" cx="300" cy="650" r="110"></circle>
+        <circle class="blob" cx="500" cy="550" r="100"></circle>
+        <circle class="blob" cx="700" cy="600" r="120"></circle>
+        <circle class="blob" cx="900" cy="450" r="100"></circle>
+        <circle class="blob" cx="200" cy="350" r="90"></circle>
+        <circle class="blob" cx="450" cy="400" r="130"></circle>
+        <circle class="blob" cx="600" cy="500" r="100"></circle>
+        <circle class="blob" cx="850" cy="650" r="120"></circle>
       </g>
     </svg>
   </div>
 
   <!-- Main Content -->
   <img src="/static/Longlinemedialogotransparent.png" alt="LongLine Media Logo" id="logo">
-  <h1>🎬 TikTok & YouTube Viral Optimizer</h1>
+  <h1>🎬 TikTok, YouTube & Instagram Viral Optimizer</h1>
 
   <div>
     <label for="platform">Select Platform:</label><br />
@@ -190,25 +200,31 @@
   <button id="reset-btn" style="display:none;">🔄 New Analysis</button>
 
   <script>
-    /* ---------- Theme & Blob Parallax ---------- */
     const platformSelect = document.getElementById("platform");
     const body = document.body;
     const blobs = document.querySelectorAll(".blob");
 
-    // Mouse movement parallax
+    // Gentle parallax drift
     document.addEventListener("mousemove", (e) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 40;
       const y = (e.clientY / window.innerHeight - 0.5) * 40;
       blobs.forEach((blob, i) => {
-        const speed = (i + 1) / 20;
-        blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+        const offset = (i % 5) * 10;
+        blob.style.transform = `translate(${x * ((i+1)/20)}px, ${y * ((i+1)/20)}px) rotate(${offset}deg)`;
       });
     });
 
-    // Platform color switching
+    // Randomized drift to make each blob move separately
+    blobs.forEach((blob, i) => {
+      const duration = 50 + Math.random() * 40;
+      const delay = Math.random() * 20;
+      blob.style.animation = `drift ${duration}s ease-in-out ${delay}s infinite alternate`;
+    });
+
+    // Platform color gradient switching
     platformSelect.addEventListener("change", () => {
       const val = platformSelect.value.toLowerCase();
-      body.classList.remove("tiktok-mode","youtube-mode","instagram-mode");
+      body.classList.remove("tiktok-mode", "youtube-mode", "instagram-mode");
       body.classList.add(val + "-mode");
       const grad = document.getElementById("grad1");
       if (val === "tiktok") {
