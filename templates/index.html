@@ -1,149 +1,243 @@
-body {
-  font-family: 'Poppins', sans-serif;
-  background: #0f0f0f;
-  color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  margin: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikTok, YouTube & Instagram Viral Optimizer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 
-.container {
-  width: 90%;
-  max-width: 800px;
-  text-align: center;
-}
+<body class="tiktok-theme">
+  <div class="container">
+    <img src="{{ url_for('static', filename='Longlinemedialogotransparent.png') }}" alt="LongLine Media Logo" class="logo">
 
-.logo {
-  width: 140px;
-  margin-bottom: 20px;
-  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
-}
+    <h1>🎬 Viral Video Optimizer</h1>
 
-h1 {
-  font-size: 1.8rem;
-  margin-bottom: 10px;
-}
+    <!-- Platform Selector -->
+    <div class="platform-switch">
+      <label for="platform">Select Platform:</label><br />
+      <select id="platform">
+        <option value="TikTok">TikTok</option>
+        <option value="YouTube">YouTube</option>
+        <option value="Instagram">Instagram</option>
+      </select>
+    </div>
 
-.platform-switch {
-  margin: 20px 0;
-}
+    <!-- Upload Section -->
+    <div id="upload-form">
+      <p>🎥 Drag and drop your video here or click below:</p>
+      <input type="file" id="video" accept="video/*" hidden />
+      <label for="video">
+        <button id="upload-btn">Choose Video</button>
+      </label>
+      <p id="upload-status"></p>
+    </div>
 
-select {
-  padding: 10px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: none;
-  background: #1a1a1a;
-  color: #fff;
-}
+    <!-- Glow Bar -->
+    <div id="glow-bar"></div>
 
-#upload-form {
-  margin: 20px 0;
-}
+    <!-- Analyze Button -->
+    <button id="analyze-btn">Analyze</button>
 
-button {
-  padding: 12px 25px;
-  border: none;
-  border-radius: 25px;
-  background: linear-gradient(90deg, #25F4EE, #FE2C55);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-}
+    <!-- Loading Section -->
+    <div class="loading-section hidden" id="loading-section">
+      <div class="loading-bar"></div>
+      <p id="loading-text">Initializing AI analysis...</p>
+    </div>
 
-button:hover {
-  transform: scale(1.05);
-}
+    <!-- Results -->
+    <div id="result-card" class="hidden">
+      <pre id="results"></pre>
+    </div>
+  </div>
 
-#upload-status {
-  margin-top: 10px;
-  color: #00ffa6;
-  font-weight: 500;
-}
+  <script>
+    const platformSelect = document.getElementById("platform");
+    const glowBar = document.getElementById("glow-bar");
+    const loadingSection = document.getElementById("loading-section");
+    const loadingText = document.getElementById("loading-text");
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const resultCard = document.getElementById("result-card");
+    const resultsPre = document.getElementById("results");
+    const uploadStatus = document.getElementById("upload-status");
+    const videoInput = document.getElementById("video");
 
-#glow-bar {
-  width: 100%;
-  height: 6px;
-  border-radius: 50px;
-  margin: 30px auto;
-  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
-  filter: blur(6px);
-  opacity: 0.8;
-  transition: all 1s ease;
-}
+    let currentPlatform = "TikTok";
+    let loadingInterval;
 
-#glow-bar.active {
-  animation: pulse 2s infinite alternate ease-in-out;
-}
+    // Platform Theme Switch
+    platformSelect.addEventListener("change", () => {
+      document.body.classList.remove("tiktok-theme", "youtube-theme", "instagram-theme");
+      currentPlatform = platformSelect.value;
+      if (currentPlatform === "TikTok") document.body.classList.add("tiktok-theme");
+      if (currentPlatform === "YouTube") document.body.classList.add("youtube-theme");
+      if (currentPlatform === "Instagram") document.body.classList.add("instagram-theme");
+    });
 
-@keyframes pulse {
-  from {
-    filter: blur(10px) brightness(1);
-  }
-  to {
-    filter: blur(15px) brightness(1.6);
-  }
-}
+    // File Upload Display
+    videoInput.addEventListener("change", () => {
+      const file = videoInput.files[0];
+      if (file) {
+        uploadStatus.textContent = `🎬 Uploaded: ${file.name}`;
+      }
+    });
 
-#loading-section {
-  margin-top: 30px;
-}
+    // Analyze Button Click
+    analyzeBtn.addEventListener("click", async () => {
+      const file = videoInput.files[0];
+      if (!file) {
+        uploadStatus.textContent = "⚠️ Please upload a video first.";
+        return;
+      }
 
-.loading-bar {
-  width: 80%;
-  height: 8px;
-  border-radius: 10px;
-  background: #222;
-  overflow: hidden;
-  margin: 10px auto;
-  position: relative;
-}
+      // Start loading visuals
+      glowBar.classList.add("active");
+      loadingSection.classList.remove("hidden");
+      analyzeBtn.disabled = true;
+      uploadStatus.textContent = "";
+      resultCard.classList.add("hidden");
 
-.loading-bar::before {
-  content: "";
-  position: absolute;
-  left: -50%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
-  animation: loadSlide 1.5s infinite linear;
-}
+      // Animate loading text
+      const loadingPhrases = {
+        TikTok: [
+          "Analyzing TikTok engagement metrics...",
+          "Detecting trending sounds and formats...",
+          "Evaluating hook strength...",
+          "Generating viral caption ideas..."
+        ],
+        YouTube: [
+          "Scanning YouTube retention patterns...",
+          "Evaluating thumbnail contrast...",
+          "Detecting keyword alignment...",
+          "Generating SEO-friendly title suggestions..."
+        ],
+        Instagram: [
+          "Analyzing Instagram Reels performance...",
+          "Evaluating visual storytelling style...",
+          "Checking niche consistency and aesthetics...",
+          "Generating caption and hashtag strategy..."
+        ]
+      };
 
-@keyframes loadSlide {
-  from {
-    left: -50%;
-  }
-  to {
-    left: 100%;
-  }
-}
+      let idx = 0;
+      clearInterval(loadingInterval);
+      loadingInterval = setInterval(() => {
+        loadingText.textContent = loadingPhrases[currentPlatform][idx];
+        idx = (idx + 1) % loadingPhrases[currentPlatform].length;
+      }, 2500);
 
-#loading-text {
-  font-size: 1rem;
-  color: #ccc;
-  margin-top: 10px;
-}
+      // Simulate AI API request delay (replace with actual fetch call)
+      await new Promise(res => setTimeout(res, 7000));
 
-#result-card {
-  background: rgba(20, 20, 20, 0.8);
-  border-radius: 15px;
-  padding: 20px;
-  margin-top: 25px;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(5px);
-  text-align: left;
-}
+      // Stop loading visuals
+      clearInterval(loadingInterval);
+      glowBar.classList.remove("active");
+      loadingSection.classList.add("hidden");
+      analyzeBtn.disabled = false;
+      resultCard.classList.remove("hidden");
 
-pre {
-  white-space: pre-wrap;
-  color: #e8e8e8;
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
+      // Generate mock output with your structure
+      const videoName = file.name;
+      const mockData = {
+        duration: 42,
+        resolution: "1080x1920",
+        aspect_ratio: "9:16",
+        brightness: "High",
+        tone: "Energetic",
+        niche: "Personal Branding",
+        keywords: "Motivation, Growth, CreatorMindset"
+      };
 
-.hidden {
-  display: none;
-}
+      const insightsLabel =
+        currentPlatform === "YouTube" ? "YouTube Insights"
+        : currentPlatform === "Instagram" ? "Instagram Insights"
+        : "TikTok Insights";
+
+      const tagLabel =
+        currentPlatform === "YouTube" ? "tags"
+        : currentPlatform === "Instagram" ? "hashtags"
+        : "hashtags";
+
+      const platformOutput = `
+Create a viral video analysis for ${currentPlatform} with this structure EXACTLY:
+
+🎬 Drag and drop your ${currentPlatform} video file here: "${videoName}"
+🎥 Running ${currentPlatform} Viral Optimizer...
+
+🤖 Generating AI-powered analysis, captions, and viral tips...
+
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ ${currentPlatform} Video Analysis Complete!
+
+🎬 Video: ${videoName}
+📏 Duration: ${mockData.duration}s
+🖼 Resolution: ${mockData.resolution}
+📱 Aspect Ratio: ${mockData.aspect_ratio}
+💡 Brightness: ${mockData.brightness}
+🎨 Tone: ${mockData.tone}
+⭐ Heuristic Score: 8/10 (High brightness and clear resolution contribute to visual appeal.)
+
+🎯 Detected Attributes:
+- Niche: ${mockData.niche}
+- Tone: ${mockData.tone}
+- Keywords: ${mockData.keywords}
+
+💬 ${insightsLabel}:
+### 1. Scroll-Stopping Caption
+(One creative, high-performing caption idea — ${
+        currentPlatform === "Instagram"
+          ? "emotional, story-driven, and includes a subtle CTA to save/share."
+          : "platform-optimized for engagement."
+      })
+
+### 2. 5 Viral ${tagLabel}
+(Provide 5 ${currentPlatform}-relevant ${tagLabel} that match the ${currentPlatform} algorithm.)
+
+### 3. Actionable Improvement Tip for Engagement
+(Platform-specific engagement improvement advice.)
+
+### 4. Viral Optimization Score (1–100)
+(Score with explanation tailored to ${currentPlatform}'s algorithm.)
+
+### 5. Motivation to Increase Virality
+(Encouraging, ${currentPlatform}-specific creator tip.)
+
+🔥 Viral Comparison Results:
+### Comparison with Viral ${currentPlatform} Videos in the Same Niche
+#### Viral Example 1
+- **Video Concept Summary:** ...
+- **What Made It Go Viral:** ...
+- **How to Replicate Success:** ...
+
+#### Viral Example 2
+- **Video Concept Summary:** ...
+- **What Made It Go Viral:** ...
+- **How to Replicate Success:** ...
+
+#### Viral Example 3
+- **Video Concept Summary:** ...
+- **What Made It Go Viral:** ...
+- **How to Replicate Success:** ...
+
+### Takeaway Strategy
+(Summarize actionable insights for ${currentPlatform} creators.)
+
+📋 Actionable Checklist:
+- Hook viewers in the first 2 seconds.
+- Use trending audio and relevant captions.
+- Encourage saves and shares with call-to-actions.
+- Post during peak activity windows (Fri–Sun, 6–10pm).
+- Maintain visual consistency across Reels.
+
+🎯 **Detected Niche:** ${mockData.niche}
+🕓 **Best Time to Post for ${mockData.niche} (${currentPlatform})**:
+⏰ 4–7 PM EST
+💡 Peak engagement around 8:43 PM EST.
+`;
+
+      resultsPre.textContent = platformOutput;
+    });
+  </script>
+</body>
+</html>
