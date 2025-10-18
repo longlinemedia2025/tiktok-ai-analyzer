@@ -10,7 +10,7 @@
       --youtube-color: #ff0000;
       --instagram-color: #e1306c;
       --x-color: #1da1f2;
-      --base-bg: #0a0a0a;
+      --base-bg: #080808;
     }
 
     body {
@@ -19,6 +19,7 @@
       background: var(--base-bg);
       color: #fff;
       overflow-x: hidden;
+      min-height: 100vh;
     }
 
     /* ================= Gooey Background ================= */
@@ -28,8 +29,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
       z-index: -1;
+      overflow: hidden;
     }
 
     #gooey-bg svg {
@@ -44,115 +45,92 @@
     }
 
     @keyframes fadeIn {
-      to {
-        opacity: 1;
-      }
+      to { opacity: 1; }
     }
 
-    /* ================= Container ================= */
+    /* ================= Layout Container ================= */
     .container {
       max-width: 800px;
       margin: 100px auto;
       padding: 40px;
       background: rgba(20, 20, 20, 0.8);
       border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 30px rgba(255,255,255,0.05);
       text-align: center;
       backdrop-filter: blur(10px);
     }
 
-    h1 {
-      font-size: 2.2rem;
-      margin-bottom: 20px;
-    }
+    h1 { font-size: 2.2rem; margin-bottom: 20px; }
 
-    select,
-    input[type="file"],
-    button {
+    select, input[type="file"], button {
       margin: 10px 0;
       padding: 10px;
       border-radius: 10px;
       border: none;
       font-size: 1rem;
-    }
-
-    select {
-      background: #fff;
-      color: #000;
       width: 100%;
     }
 
-    input[type="file"] {
-      width: 100%;
-      background: #fff;
-      color: #000;
-    }
-
+    select, input[type="file"] { background: #fff; color: #000; }
     button {
       background: var(--tiktok-color);
       color: #fff;
       cursor: pointer;
-      width: 100%;
       transition: 0.3s;
     }
+    button:hover { opacity: 0.8; }
 
-    button:hover {
-      opacity: 0.8;
-    }
-
-    /* Loading bar */
+    /* Loading Bar */
     #loading-bar {
       height: 8px;
       width: 0%;
       background: var(--tiktok-color);
       border-radius: 5px;
       margin-top: 15px;
-      transition: width 0.4s ease, background 0.4s ease;
+      transition: width 0.3s ease, background 0.3s ease;
     }
 
-    /* AI Result section */
+    /* AI Results */
     #ai-results {
       margin-top: 30px;
       text-align: left;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255,255,255,0.05);
       padding: 20px;
       border-radius: 10px;
+      display: none;
     }
 
-    #ai-results h3 {
-      margin-top: 0;
-    }
+    #ai-results h3 { margin-top: 0; }
   </style>
 </head>
 
 <body data-platform="tiktok">
   <!-- Gooey Background -->
   <div id="gooey-bg">
-    <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
       <defs>
         <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur"/>
           <feColorMatrix in="blur" mode="matrix"
             values="1 0 0 0 0  
                     0 1 0 0 0  
                     0 0 1 0 0  
-                    0 0 0 25 -10" result="goo" />
-          <feBlend in="SourceGraphic" in2="goo" />
+                    0 0 0 25 -10" result="goo"/>
+          <feBlend in="SourceGraphic" in2="goo"/>
         </filter>
       </defs>
-
       <g id="blobs-group">
-        <circle class="blob" cx="150" cy="300" r="130"></circle>
-        <circle class="blob" cx="350" cy="200" r="150"></circle>
-        <circle class="blob" cx="550" cy="400" r="120"></circle>
-        <circle class="blob" cx="700" cy="300" r="140"></circle>
-        <circle class="blob" cx="400" cy="500" r="130"></circle>
-        <circle class="blob" cx="250" cy="100" r="110"></circle>
+        <circle class="blob" cx="200" cy="300" r="150"></circle>
+        <circle class="blob" cx="400" cy="150" r="180"></circle>
+        <circle class="blob" cx="600" cy="400" r="160"></circle>
+        <circle class="blob" cx="800" cy="300" r="170"></circle>
+        <circle class="blob" cx="500" cy="550" r="150"></circle>
+        <circle class="blob" cx="300" cy="500" r="130"></circle>
       </g>
     </svg>
   </div>
 
-  <!-- Content -->
+  <!-- Main UI -->
   <div class="container">
     <h1>AI Social Analyzer</h1>
 
@@ -164,20 +142,20 @@
     </select>
 
     <h3>Upload a Video</h3>
-    <input type="file" id="videoUpload" accept="video/*" />
+    <input type="file" id="videoUpload" accept="video/*"/>
 
     <h3>Upload CSV for Analysis</h3>
-    <input type="file" id="csvUpload" accept=".csv" />
+    <input type="file" id="csvUpload" accept=".csv"/>
 
     <button id="analyzeBtn">Analyze</button>
     <div id="loading-bar"></div>
 
-    <div id="ai-results" style="display:none;">
+    <div id="ai-results">
       <h3>AI Results</h3>
-      <p><strong>Caption:</strong> <span id="caption"></span></p>
-      <p><strong>Hashtags:</strong> <span id="hashtags"></span></p>
-      <p><strong>Tags:</strong> <span id="tags"></span></p>
-      <p><strong>Score:</strong> <span id="score"></span></p>
+      <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
+      <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
+      <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
+      <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
     </div>
   </div>
 
@@ -194,39 +172,45 @@
     const platformSelect = document.getElementById('platform');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const aiResults = document.getElementById('ai-results');
-
     let progress = 0;
 
-    // ================== Blob Animation ==================
-    blobs.forEach((blob, i) => {
-      const rand = Math.random() * 2 + 1;
-      const angle = Math.random() * Math.PI * 2;
-      blob.dataset = { angle, rand, speed: 0.5 + Math.random() };
-    });
+    // Initial random blob positions & motion vectors
+    const blobData = Array.from(blobs).map(() => ({
+      x: Math.random() * 1000,
+      y: Math.random() * 700,
+      r: 120 + Math.random() * 60,
+      dx: (Math.random() - 0.5) * 0.5,
+      dy: (Math.random() - 0.5) * 0.5,
+      pulse: Math.random() * Math.PI * 2
+    }));
 
-    function animateBlobs() {
-      blobs.forEach((blob, i) => {
-        const angle = (performance.now() / 2000) * blob.dataset.rand + i;
-        const radius = 25 + 10 * Math.sin(angle / 2);
-        const cx = 400 + Math.sin(angle) * 250;
-        const cy = 300 + Math.cos(angle * 0.8) * 200;
-        blob.setAttribute('cx', cx);
-        blob.setAttribute('cy', cy);
+    // Animate continuous floating
+    function animateBlobs(time) {
+      blobData.forEach((b, i) => {
+        b.x += b.dx;
+        b.y += b.dy;
+        if (b.x < 0 || b.x > 1000) b.dx *= -1;
+        if (b.y < 0 || b.y > 700) b.dy *= -1;
+
+        const pulse = 1 + Math.sin(time / 1000 + b.pulse) * 0.08;
+        blobs[i].setAttribute('cx', b.x);
+        blobs[i].setAttribute('cy', b.y);
+        blobs[i].setAttribute('r', b.r * pulse);
       });
       requestAnimationFrame(animateBlobs);
     }
-    animateBlobs();
+    requestAnimationFrame(animateBlobs);
 
-    // Mouse gentle response
+    // Slight parallax to mouse
     document.addEventListener('mousemove', (e) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 30;
-      const y = (e.clientY / window.innerHeight - 0.5) * 30;
+      const moveX = (e.clientX / window.innerWidth - 0.5) * 20;
+      const moveY = (e.clientY / window.innerHeight - 0.5) * 20;
       blobs.forEach((blob, i) => {
-        blob.style.transform = `translate(${x * (i / 6)}px, ${y * (i / 6)}px)`;
+        blob.style.transform = `translate(${moveX * (i / 4)}px, ${moveY * (i / 4)}px)`;
       });
     });
 
-    // ================== Platform Theme Sync ==================
+    // Update colors per platform
     function updateColors() {
       const color = platformColors[platformSelect.value];
       document.body.setAttribute('data-platform', platformSelect.value);
@@ -234,25 +218,31 @@
       loadingBar.style.background = color;
       blobs.forEach((b, i) => {
         b.setAttribute('fill', color);
-        b.style.filter = `drop-shadow(0 0 ${Math.max(20, progress / 2)}px ${color})`;
+        const glowIntensity = Math.min(40, 10 + progress / 2);
+        b.style.filter = `drop-shadow(0 0 ${glowIntensity}px ${color})`;
       });
     }
+
     platformSelect.addEventListener('change', updateColors);
 
-    // ================== Loading Bar / Glow Sync ==================
+    // Loading / pulse sync with progress
     analyzeBtn.addEventListener('click', () => {
       progress = 0;
       aiResults.style.display = "none";
       const interval = setInterval(() => {
-        progress += Math.random() * 5;
-        if (progress > 100) {
+        progress += Math.random() * 6;
+        if (progress >= 100) {
           progress = 100;
           clearInterval(interval);
           aiResults.style.display = "block";
         }
         loadingBar.style.width = progress + "%";
+        const pulseSpeed = 1 + progress / 50;
+        blobs.forEach((b, i) => {
+          b.style.animation = `pulse ${1 / pulseSpeed}s infinite alternate`;
+        });
         updateColors();
-      }, 200);
+      }, 180);
     });
 
     updateColors();
