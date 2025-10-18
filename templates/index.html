@@ -3,152 +3,76 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LongLine Media Viral Optimizer</title>
+  <title>Viral Video Optimizer</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+<body class="tiktok-mode">
+  <!-- Liquid Animated Background -->
+  <div class="liquid-bg">
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+  </div>
 
-<body class="neutral-theme">
   <div class="container">
-    <img src="{{ url_for('static', filename='Longlinemedialogotransparent.png') }}" alt="LongLine Media Logo" class="logo" />
+    <img src="/static/Longlinemedialogotransparent.png" alt="LongLine Media Logo" class="logo" />
 
-    <h1>🎥 Viral Video Analyzer</h1>
+    <h1>🎬 Viral Video Optimizer</h1>
 
-    <!-- Platform Selector -->
-    <div>
-      <label for="platform">Select Platform:</label>
+    <div class="platform-switch">
+      <label for="platform">Select Platform:</label><br>
       <select id="platform">
-        <option value="TikTok" selected>TikTok</option>
+        <option value="TikTok">TikTok</option>
         <option value="YouTube">YouTube</option>
         <option value="Instagram">Instagram</option>
       </select>
     </div>
 
-    <!-- Upload Video -->
-    <div class="upload-container" id="video-upload">
-      <h3>🎬 Upload your video file</h3>
-      <input type="file" id="video" accept="video/*">
-      <label for="video">Click to upload a video or drag it here</label>
-      <p id="video-status" class="upload-status"></p>
+    <div class="upload-container" id="video-dropzone">
+      <p>🎥 Drag and drop your video here or click below:</p>
+      <input type="file" id="video" accept="video/*" />
+      <label for="video">Choose Video</label>
+      <p id="video-filename"></p>
     </div>
 
-    <!-- Upload CSV -->
-    <div class="upload-container" id="csv-upload">
-      <h3>📊 Upload your CSV data (optional)</h3>
-      <input type="file" id="csv" accept=".csv">
-      <label for="csv">Click to upload CSV (optional)</label>
-      <p id="csv-status" class="upload-status"></p>
+    <div class="upload-container" id="csv-dropzone">
+      <p>📄 Upload your CSV data (optional)</p>
+      <input type="file" id="csv" accept=".csv" />
+      <label for="csv">Choose CSV</label>
+      <p id="csv-filename"></p>
     </div>
 
-    <!-- Analyze Button -->
     <button id="analyze-btn">Analyze</button>
 
-    <!-- Loading Bar -->
-    <div id="loading-bar-container" class="hidden">
-      <div id="loading-bar"></div>
-      <p id="loading-status">Analyzing video...</p>
+    <div class="loader" id="loader">
+      <div class="loading-bar"></div>
+      <p id="loader-text">Initializing AI analysis...</p>
     </div>
 
-    <!-- Results Sections -->
-    <div id="detected" class="hidden"></div>
-    <div id="results" class="hidden"></div>
+    <div id="results"></div>
   </div>
 
   <script>
     const platformSelect = document.getElementById("platform");
     const body = document.body;
-    const analyzeBtn = document.getElementById("analyze-btn");
-    const videoInput = document.getElementById("video");
-    const csvInput = document.getElementById("csv");
-    const videoStatus = document.getElementById("video-status");
-    const csvStatus = document.getElementById("csv-status");
-    const loadingBarContainer = document.getElementById("loading-bar-container");
-    const loadingBar = document.getElementById("loading-bar");
-    const loadingStatus = document.getElementById("loading-status");
-    const resultsDiv = document.getElementById("results");
-    const detectedDiv = document.getElementById("detected");
 
-    /* === PLATFORM SWITCH LOGIC === */
     platformSelect.addEventListener("change", () => {
-      const platform = platformSelect.value;
-      body.classList.remove("tiktok-theme", "youtube-theme", "instagram-theme", "neutral-theme");
-      if (platform === "TikTok") body.classList.add("tiktok-theme");
-      else if (platform === "YouTube") body.classList.add("youtube-theme");
-      else if (platform === "Instagram") body.classList.add("instagram-theme");
+      body.classList.remove("tiktok-mode", "youtube-mode", "instagram-mode");
+      const mode = platformSelect.value.toLowerCase();
+      body.classList.add(`${mode}-mode`);
     });
 
-    /* === FILE UPLOAD VISUAL FEEDBACK === */
+    const videoInput = document.getElementById("video");
+    const csvInput = document.getElementById("csv");
+    const videoFilename = document.getElementById("video-filename");
+    const csvFilename = document.getElementById("csv-filename");
+
     videoInput.addEventListener("change", () => {
-      if (videoInput.files.length > 0) {
-        videoStatus.textContent = `✅ Video uploaded: ${videoInput.files[0].name}`;
-        videoStatus.style.color = "#00f2ea";
-      } else videoStatus.textContent = "";
+      videoFilename.textContent = videoInput.files[0] ? `Uploaded: ${videoInput.files[0].name}` : "";
     });
 
     csvInput.addEventListener("change", () => {
-      if (csvInput.files.length > 0) {
-        csvStatus.textContent = `✅ CSV uploaded: ${csvInput.files[0].name}`;
-        csvStatus.style.color = "#00f2ea";
-      } else csvStatus.textContent = "";
-    });
-
-    /* === ANALYZE BUTTON === */
-    analyzeBtn.addEventListener("click", async () => {
-      const platform = platformSelect.value;
-      const videoFile = videoInput.files[0];
-      const csvFile = csvInput.files[0];
-
-      if (!videoFile) {
-        alert("Please upload a video first!");
-        return;
-      }
-
-      // Show loading
-      loadingBarContainer.classList.remove("hidden");
-      resultsDiv.classList.add("hidden");
-      detectedDiv.classList.add("hidden");
-      body.classList.add("analyzing");
-
-      // Animate background intensity with progress
-      let progress = 0;
-      const updateProgress = () => {
-        progress += 1;
-        loadingBar.style.width = `${progress}%`;
-        if (progress <= 100) {
-          loadingStatus.textContent = `Analyzing (${progress}%)...`;
-          requestAnimationFrame(updateProgress);
-        }
-      };
-      updateProgress();
-
-      const formData = new FormData();
-      formData.append("platform", platform);
-      formData.append("video", videoFile);
-      if (csvFile) formData.append("csv", csvFile);
-
-      try {
-        const response = await fetch("/analyze", {
-          method: "POST",
-          body: formData
-        });
-        const data = await response.json();
-
-        // Hide loading
-        body.classList.remove("analyzing");
-        loadingBarContainer.classList.add("hidden");
-        loadingBar.style.width = "0%";
-
-        if (data.error) {
-          alert(data.error);
-        } else {
-          resultsDiv.textContent = data.result;
-          resultsDiv.classList.remove("hidden");
-        }
-      } catch (err) {
-        console.error(err);
-        body.classList.remove("analyzing");
-        loadingBarContainer.classList.add("hidden");
-        alert("Error analyzing video.");
-      }
+      csvFilename.textContent = csvInput.files[0] ? `Uploaded: ${csvInput.files[0].name}` : "";
     });
   </script>
 </body>
