@@ -1,0 +1,237 @@
+/* === GLOBAL STYLING === */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #0f0f0f;
+  color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.container {
+  width: 90%;
+  max-width: 850px;
+  text-align: center;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
+  background: rgba(25, 25, 25, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* === LOGO === */
+.logo {
+  width: 130px;
+  margin-bottom: 25px;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+}
+
+/* === HEADER === */
+h1 {
+  font-size: 1.9rem;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+/* === PLATFORM SWITCH === */
+.platform-switch {
+  margin: 25px 0;
+}
+
+select {
+  padding: 10px 18px;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 1px solid #222;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  outline: none;
+  transition: 0.3s ease;
+}
+
+select:hover {
+  transform: scale(1.05);
+  background: #222;
+}
+
+/* === UPLOAD FORM === */
+#upload-form {
+  margin: 20px 0;
+}
+
+button {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #fff;
+  background: linear-gradient(90deg, #25F4EE, #FE2C55);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+}
+
+button:hover {
+  transform: scale(1.07);
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.25);
+}
+
+/* === STATUS TEXT === */
+#upload-status {
+  margin-top: 15px;
+  color: #00ffa6;
+  font-weight: 500;
+}
+
+/* === GLOW BAR (UNDER ANALYZE BUTTON) === */
+#glow-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 50px;
+  margin: 30px auto;
+  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
+  opacity: 0.8;
+  filter: blur(5px);
+  position: relative;
+  overflow: hidden;
+  transition: 1s ease;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+}
+
+#glow-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: inherit;
+  filter: blur(10px);
+  opacity: 0.9;
+  animation: glowSlide 3s infinite linear;
+}
+
+#glow-bar.active {
+  animation: pulse 2s infinite alternate ease-in-out;
+}
+
+/* === Glow and Pulse Animations === */
+@keyframes glowSlide {
+  from { left: -50%; }
+  to { left: 100%; }
+}
+
+@keyframes pulse {
+  0% { filter: blur(10px) brightness(1); opacity: 0.8; }
+  50% { filter: blur(15px) brightness(1.3); opacity: 1; }
+  100% { filter: blur(10px) brightness(1); opacity: 0.8; }
+}
+
+/* === LOADING BAR === */
+.loading-section {
+  margin-top: 30px;
+}
+
+.loading-bar {
+  width: 80%;
+  height: 8px;
+  margin: 0 auto;
+  border-radius: 10px;
+  background: #222;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
+  animation: loadSlide 1.4s infinite linear;
+  filter: blur(4px);
+  opacity: 0.8;
+}
+
+@keyframes loadSlide {
+  from { left: -50%; }
+  to { left: 100%; }
+}
+
+#loading-text {
+  font-size: 1rem;
+  color: #ccc;
+  margin-top: 12px;
+}
+
+/* === RESULT CARD === */
+#result-card {
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 20px;
+  padding: 25px;
+  margin-top: 30px;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+pre {
+  white-space: pre-wrap;
+  color: #e8e8e8;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* === HIDDEN ELEMENTS === */
+.hidden {
+  display: none;
+}
+
+/* === PLATFORM THEMES === */
+
+/* TikTok */
+body.tiktok-theme #glow-bar,
+body.tiktok-theme .loading-bar::before {
+  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
+  box-shadow: 0 0 30px rgba(254, 44, 85, 0.4);
+}
+
+/* YouTube */
+body.youtube-theme #glow-bar,
+body.youtube-theme .loading-bar::before {
+  background: linear-gradient(90deg, #FF0000, #FF5555, #FFFFFF);
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.4);
+}
+
+/* Instagram */
+body.instagram-theme #glow-bar,
+body.instagram-theme .loading-bar::before {
+  background: linear-gradient(90deg, #f58529, #dd2a7b, #8134af, #515bd4);
+  box-shadow: 0 0 40px rgba(221, 42, 123, 0.5);
+  animation: instaGlow 6s ease-in-out infinite;
+}
+
+@keyframes instaGlow {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.4) blur(3px); }
+  100% { filter: brightness(1); }
+}
+
+/* === REFLECTION EFFECT === */
+#glow-bar::after {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  background: inherit;
+  filter: blur(20px) opacity(0.4);
+  transform: scaleY(-1);
+}
