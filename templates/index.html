@@ -223,21 +223,65 @@
 
     platformSelect.addEventListener('change', updateColors);
 
-    // Simulate loading
-    analyzeBtn.addEventListener('click', () => {
-      progress = 0;
-      aiResults.style.display = "none";
-      const interval = setInterval(() => {
-        progress += Math.random() * 6;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
-          aiResults.style.display = "block";
-        }
-        loadingBar.style.width = progress + "%";
-        updateColors();
-      }, 150);
+// Handle Analyze button click
+analyzeBtn.addEventListener('click', async () => {
+  const videoFile = document.getElementById('videoUpload').files[0];
+  const csvFile = document.getElementById('csvUpload').files[0];
+  const platform = platformSelect.value;
+
+  if (!videoFile) {
+    alert("Please upload a video first!");
+    return;
+  }
+
+  // Reset progress and UI
+  progress = 0;
+  aiResults.style.display = "none";
+  loadingBar.style.width = "0%";
+  updateColors();
+
+  // Animate progress bar
+  const progressInterval = setInterval(() => {
+    progress += Math.random() * 5;
+    if (progress >= 90) clearInterval(progressInterval); // stop near 90% until server responds
+    loadingBar.style.width = progress + "%";
+  }, 200);
+
+  // Send to Flask backend
+  const formData = new FormData();
+  formData.append("platform", platform);
+  formData.append("video", videoFile);
+  if (csvFile) formData.append("csv", csvFile);
+
+  try {
+    const response = await fetch("/analyze", {
+      method: "POST",
+      body: formData
     });
+
+    const data = await response.json();
+    clearInterval(progressInterval);
+    loadingBar.style.width = "100%";
+
+    if (data.error) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    // Show the AI results text
+    aiResults.style.display = "block";
+    document.getElementById("caption").innerText = data.result.split("###")[1]?.trim() || "See full text below";
+    document.getElementById("hashtags").innerText = data.result.match(/#[\w]+/g)?.join(" ") || "Not detected";
+    document.getElementById("tags").innerText = data.result.match(/#[\w]+/g)?.slice(0,5)?.join(" ") || "N/A";
+    document.getElementById("score").innerText = data.result.match(/(\d{1,3})\/100/)?.[1] || "N/A";
+
+    console.log("Full AI Output:\n", data.result);
+  } catch (err) {
+    clearInterval(progressInterval);
+    alert("Server error: " + err.message);
+  }
+});
+
 
     updateColors();
   </script>
