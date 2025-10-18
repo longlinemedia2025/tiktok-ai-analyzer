@@ -1,163 +1,187 @@
-/* === Global Styles === */
+/* === General Styles === */
 body {
   font-family: 'Poppins', sans-serif;
-  background: radial-gradient(circle at top, #0d0d0d, #000);
   color: #fff;
-  text-align: center;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  flex-direction: column;
-  overflow-x: hidden;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  transition: background 2s ease, filter 0.5s ease;
 }
 
+/* Container */
 .container {
   width: 90%;
-  max-width: 600px;
-  background: rgba(20, 20, 20, 0.8);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+  max-width: 800px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
   backdrop-filter: blur(10px);
 }
 
 .logo {
   width: 120px;
   margin-bottom: 10px;
+  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
 }
 
-/* === Headings === */
 h1 {
-  font-size: 1.8em;
+  font-size: 2rem;
+  font-weight: 600;
   margin-bottom: 20px;
-  color: #fff;
-  letter-spacing: 1px;
 }
 
-/* === Buttons === */
-button {
-  background: linear-gradient(90deg, #ff0050, #00f2ea);
+/* === Button and Input === */
+button, select, input[type=file] {
+  font-family: 'Poppins', sans-serif;
   border: none;
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 12px;
+  outline: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 1rem;
   cursor: pointer;
-  font-size: 1em;
-  font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
+  margin: 8px;
 }
 
 button:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(255, 0, 80, 0.6);
 }
 
-/* === Platform Selector === */
-.platform-switch select {
-  background: #1a1a1a;
-  color: white;
-  border: 1px solid #444;
-  border-radius: 8px;
-  padding: 8px;
-  margin-top: 8px;
+#analyze-btn {
+  background: linear-gradient(90deg, #25F4EE, #FE2C55);
+  color: #fff;
+  font-weight: 600;
 }
 
 /* === Glow Bar === */
 #glow-bar {
-  width: 80%;
+  width: 100%;
   height: 6px;
-  margin: 20px auto;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  margin: 30px 0;
+  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
+  opacity: 0.7;
+  filter: blur(6px);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
 }
 
-#glow-bar::before {
+#glow-bar.active::before {
   content: "";
   position: absolute;
   top: 0;
   left: -50%;
   width: 50%;
   height: 100%;
-  background: linear-gradient(120deg, transparent, #fff, transparent);
-  animation: glow-move 3s linear infinite;
-  opacity: 0;
-}
-
-#glow-bar.active::before {
-  opacity: 1;
-}
-
-/* Blurred neon reflection */
-#glow-bar::after {
-  content: "";
-  position: absolute;
-  bottom: -12px;
-  left: 0;
-  width: 100%;
-  height: 10px;
   background: inherit;
-  filter: blur(10px);
-  opacity: 0.5;
+  filter: brightness(1.6);
+  animation: slideGlow 1.5s infinite linear;
 }
 
-@keyframes glow-move {
-  0% { left: -50%; }
-  100% { left: 100%; }
+@keyframes slideGlow {
+  from { left: -50%; }
+  to { left: 100%; }
 }
 
-/* === Loading Section === */
-.loading-section {
+/* === Result and Loading === */
+.loading-section, #result-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 20px;
   margin-top: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(255,255,255,0.05);
 }
 
 .hidden {
   display: none;
 }
 
-/* === Result Card === */
-#result-card {
-  background: rgba(30, 30, 30, 0.8);
-  border-radius: 12px;
-  margin-top: 20px;
-  padding: 20px;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+pre {
   text-align: left;
   white-space: pre-wrap;
-  font-size: 0.9em;
+  color: #e0e0e0;
+}
+
+/* === Liquid Background Animation === */
+body::before, body::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  filter: blur(60px);
+  opacity: 0.7;
+  animation: liquidMove 12s infinite alternate ease-in-out;
+}
+
+body::after {
+  animation-delay: 4s;
+  mix-blend-mode: screen;
+}
+
+@keyframes liquidMove {
+  0% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(-10%, 10%) scale(1.3); }
+  100% { transform: translate(10%, -10%) scale(1.1); }
 }
 
 /* === Platform Color Themes === */
-body.tiktok-theme #glow-bar {
-  background: linear-gradient(90deg, #ff0050, #00f2ea);
+
+/* TikTok Theme */
+body.tiktok-theme {
+  background: radial-gradient(circle at center, #000000 0%, #111111 100%);
+}
+body.tiktok-theme::before {
+  background: radial-gradient(circle at 30% 70%, #25F4EE, transparent 70%);
+}
+body.tiktok-theme::after {
+  background: radial-gradient(circle at 70% 30%, #FE2C55, transparent 70%);
 }
 
-body.youtube-theme #glow-bar {
-  background: linear-gradient(90deg, #ff0000, #ffffff, #888);
+/* YouTube Theme */
+body.youtube-theme {
+  background: radial-gradient(circle at center, #1e1e1e 0%, #000 100%);
+}
+body.youtube-theme::before {
+  background: radial-gradient(circle at 40% 60%, #ff0000, transparent 70%);
+}
+body.youtube-theme::after {
+  background: radial-gradient(circle at 70% 30%, #ffffff, transparent 70%);
 }
 
-body.instagram-theme #glow-bar {
-  background: linear-gradient(90deg, #feda75, #d62976, #962fbf, #4f5bd5);
+/* Instagram Theme */
+body.instagram-theme {
+  background: radial-gradient(circle at center, #2a0845 0%, #6441A5 50%, #E1306C 100%);
+}
+body.instagram-theme::before {
+  background: radial-gradient(circle at 30% 70%, #FEDA75, transparent 70%);
+}
+body.instagram-theme::after {
+  background: radial-gradient(circle at 70% 30%, #C13584, transparent 70%);
 }
 
-body.tiktok-theme button {
-  background: linear-gradient(90deg, #ff0050, #00f2ea);
+/* === While Analyzing: Intensify Colors === */
+body.active-analyzing.tiktok-theme::before {
+  background: radial-gradient(circle at 40% 60%, #25F4EE, #FE2C55 70%);
+  filter: blur(80px) brightness(1.5);
+}
+body.active-analyzing.youtube-theme::before {
+  background: radial-gradient(circle at 40% 60%, #ff0000, #ffffff 70%);
+  filter: blur(80px) brightness(1.5);
+}
+body.active-analyzing.instagram-theme::before {
+  background: radial-gradient(circle at 40% 60%, #FEDA75, #C13584 70%);
+  filter: blur(80px) brightness(1.5);
 }
 
-body.youtube-theme button {
-  background: linear-gradient(90deg, #ff0000, #ffffff, #888);
-}
-
-body.instagram-theme button {
-  background: linear-gradient(90deg, #feda75, #d62976, #962fbf, #4f5bd5);
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* === Mobile Adjustments === */
+@media (max-width: 768px) {
+  h1 { font-size: 1.5rem; }
+  .logo { width: 90px; }
+  button, select, input[type=file] { font-size: 0.9rem; }
 }
