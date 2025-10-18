@@ -13,7 +13,7 @@
       overflow-x: hidden;
       overflow-y: auto;
       font-family: 'Poppins', sans-serif;
-      background: #0a0a0a; /* dark background */
+      background: #050505;
       color: #fff;
     }
 
@@ -36,43 +36,50 @@
 
     .blob {
       opacity: 0;
-      transition: opacity 1.5s ease;
+      filter: drop-shadow(0 0 50px currentColor)
+              drop-shadow(0 0 100px currentColor)
+              blur(2px);
+      transition: opacity 2s ease;
     }
-    .blob.visible {
-      opacity: 0.8;
-    }
-
-    /* --- Platform Themes --- */
-    body[data-platform="tiktok"] .blob { fill: #ff0050; }
-    body[data-platform="youtube"] .blob { fill: #ff0000; }
-    body[data-platform="instagram"] .blob { fill: #e1306c; }
+    .blob.visible { opacity: 0.85; }
 
     /* --- UI Layout --- */
     .container {
       position: relative;
       z-index: 5;
-      max-width: 900px;
+      max-width: 950px;
       margin: 80px auto;
       padding: 40px;
-      background: rgba(0, 0, 0, 0.65);
-      border-radius: 16px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 18px;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.08);
       text-align: center;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
     }
 
     h1 {
-      font-size: 2em;
-      margin-bottom: 20px;
+      font-size: 2.2em;
+      margin-bottom: 25px;
       color: #fff;
-      text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
     }
 
+    select {
+      margin-top: 10px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    /* --- Upload Section --- */
     .upload-section {
-      border: 2px dashed #666;
+      border: 2px dashed #777;
       border-radius: 12px;
-      padding: 30px;
-      margin-top: 30px;
+      padding: 25px;
+      margin-top: 25px;
       background: rgba(255, 255, 255, 0.05);
       transition: border-color 0.3s ease;
     }
@@ -88,24 +95,15 @@
     label.upload-label {
       cursor: pointer;
       background: rgba(255,255,255,0.15);
-      padding: 12px 24px;
-      border-radius: 8px;
+      padding: 12px 26px;
+      border-radius: 10px;
       display: inline-block;
+      margin-top: 10px;
       transition: background 0.3s ease;
     }
 
     label.upload-label:hover {
       background: rgba(255,255,255,0.3);
-    }
-
-    select {
-      margin-top: 15px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
     }
 
     .progress-bar {
@@ -138,6 +136,7 @@
       text-align: center;
       color: #00ffff;
     }
+
   </style>
 </head>
 
@@ -148,7 +147,7 @@
     <svg id="metaball-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
       <defs>
         <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur"/>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
           <feColorMatrix in="blur" mode="matrix"
             values="1 0 0 0 0  
                     0 1 0 0 0  
@@ -171,16 +170,22 @@
       <option value="instagram">Instagram</option>
     </select>
 
+    <!-- Separate Upload Sections -->
     <div class="upload-section">
-      <h3>Upload Video or CSV</h3>
-      <input type="file" id="fileInput" accept=".mp4,.csv" />
-      <label for="fileInput" class="upload-label">Click or Drag to Upload</label>
-
-      <div class="progress-bar">
-        <div class="progress-bar-inner" id="progress-inner"></div>
-      </div>
+      <h3>Upload Video</h3>
+      <input type="file" id="videoInput" accept=".mp4,.mov,.avi" />
+      <label for="videoInput" class="upload-label">Click or Drag Video File</label>
+      <div class="progress-bar"><div class="progress-bar-inner" id="video-progress"></div></div>
     </div>
 
+    <div class="upload-section">
+      <h3>Upload CSV</h3>
+      <input type="file" id="csvInput" accept=".csv" />
+      <label for="csvInput" class="upload-label">Click or Drag CSV File</label>
+      <div class="progress-bar"><div class="progress-bar-inner" id="csv-progress"></div></div>
+    </div>
+
+    <!-- AI Results -->
     <div id="results">
       <h2>AI Results</h2>
       <p><strong>Caption:</strong> <span id="caption-output">Waiting...</span></p>
@@ -191,47 +196,63 @@
   </div>
 
   <script>
-    // Handle platform switch
-    const platformSelect = document.getElementById("platform");
-    platformSelect.addEventListener("change", () => {
-      document.body.setAttribute("data-platform", platformSelect.value.toLowerCase());
-    });
+    // --- Platform Colors ---
+    const platformColors = {
+      tiktok: ['#ff0050', '#00f2ea', '#ff77aa', '#01f1e3', '#f14668', '#29f2e3'],
+      youtube: ['#ff0000', '#ff4c4c', '#ff6666', '#ff1a1a', '#ff3333', '#ff8080'],
+      instagram: ['#e1306c', '#fd1d1d', '#f56040', '#fcaf45', '#833ab4', '#c13584']
+    };
 
-    // Generate 6 large gooey blobs
+    const platformSelect = document.getElementById("platform");
     const group = document.getElementById("blob-group");
-    const blobCount = 6;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    let currentPlatform = 'tiktok';
 
     function random(min, max) { return Math.random() * (max - min) + min; }
 
-    for (let i = 0; i < blobCount; i++) {
-      const blob = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      blob.setAttribute("cx", random(0, width));
-      blob.setAttribute("cy", random(0, height));
-      blob.setAttribute("r", random(250, 350));
-      blob.classList.add("blob");
-      group.appendChild(blob);
+    function generateBlobs(platform) {
+      group.innerHTML = '';
+      const colors = platformColors[platform];
+      const blobCount = 6;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
-      const dx = random(-150, 150);
-      const dy = random(-150, 150);
+      for (let i = 0; i < blobCount; i++) {
+        const blob = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        blob.setAttribute("cx", random(0, width));
+        blob.setAttribute("cy", random(0, height));
+        blob.setAttribute("r", random(250, 350));
+        blob.setAttribute("fill", colors[i % colors.length]);
+        blob.classList.add("blob");
+        group.appendChild(blob);
 
-      blob.animate(
-        [
-          { transform: "translate(0,0)" },
-          { transform: `translate(${dx}px, ${dy}px)` },
-          { transform: "translate(0,0)" }
-        ],
-        {
-          duration: random(20000, 30000),
-          iterations: Infinity,
-          direction: "alternate",
-          easing: "ease-in-out"
-        }
-      );
+        const dx = random(-200, 200);
+        const dy = random(-200, 200);
 
-      setTimeout(() => blob.classList.add("visible"), 200 * i);
+        blob.animate(
+          [
+            { transform: "translate(0,0)" },
+            { transform: `translate(${dx}px, ${dy}px)` },
+            { transform: "translate(0,0)" }
+          ],
+          {
+            duration: random(20000, 30000),
+            iterations: Infinity,
+            direction: "alternate",
+            easing: "ease-in-out"
+          }
+        );
+
+        setTimeout(() => blob.classList.add("visible"), 200 * i);
+      }
     }
+
+    // Initialize blobs
+    generateBlobs(currentPlatform);
+
+    platformSelect.addEventListener("change", () => {
+      currentPlatform = platformSelect.value;
+      generateBlobs(currentPlatform);
+    });
 
     // Mouse parallax effect
     document.addEventListener("mousemove", (e) => {
