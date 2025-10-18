@@ -1,187 +1,265 @@
-/* === General Styles === */
+/* === GLOBAL STYLING === */
 body {
-  font-family: 'Poppins', sans-serif;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  margin: 0;
-  overflow: hidden;
-  transition: background 2s ease, filter 0.5s ease;
-}
-
-/* Container */
-.container {
-  width: 90%;
-  max-width: 800px;
+  font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #f5f5f5;
   text-align: center;
-  position: relative;
-  z-index: 2;
-  backdrop-filter: blur(10px);
+  margin: 0;
+  padding: 40px;
+  overflow-y: auto;
+  transition: background 1.5s ease-in-out, color 0.6s;
+  background: linear-gradient(120deg, #0b0b0b, #111, #1a1a1a);
+  background-size: 300% 300%;
+  animation: neutralLiquid 20s ease infinite;
 }
 
+/* === BACKGROUND ANIMATIONS === */
+@keyframes neutralLiquid {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes tiktokLiquid {
+  0% { background-position: 0% 50%; background-color: #0b0b0b; }
+  25% { background-position: 50% 100%; background-color: #111; }
+  50% { background-position: 100% 50%; background-color: #00f2ea; }
+  75% { background-position: 50% 0%; background-color: #ff0050; }
+  100% { background-position: 0% 50%; background-color: #0b0b0b; }
+}
+
+@keyframes youtubeLiquid {
+  0% { background-position: 0% 50%; background-color: #0b0b0b; }
+  25% { background-position: 50% 100%; background-color: #111; }
+  50% { background-position: 100% 50%; background-color: #ff0000; }
+  75% { background-position: 50% 0%; background-color: #ff4d00; }
+  100% { background-position: 0% 50%; background-color: #0b0b0b; }
+}
+
+@keyframes instagramLiquid {
+  0% { background-position: 0% 50%; background-color: #0b0b0b; }
+  20% { background-position: 50% 100%; background-color: #F58529; }
+  40% { background-position: 100% 50%; background-color: #DD2A7B; }
+  60% { background-position: 50% 0%; background-color: #8134AF; }
+  80% { background-position: 25% 75%; background-color: #515BD4; }
+  100% { background-position: 0% 50%; background-color: #0b0b0b; }
+}
+
+/* === THEME STATES === */
+body.tiktok-theme {
+  background: linear-gradient(-45deg, #0b0b0b, #111, #00f2ea, #ff0050);
+  background-size: 400% 400%;
+  animation: tiktokLiquid 12s ease infinite;
+}
+
+body.youtube-theme {
+  background: linear-gradient(-45deg, #0b0b0b, #111, #ff0000, #ff4d00);
+  background-size: 400% 400%;
+  animation: youtubeLiquid 12s ease infinite;
+}
+
+body.instagram-theme {
+  background: linear-gradient(-45deg, #0b0b0b, #111, #F58529, #DD2A7B, #8134AF, #515BD4);
+  background-size: 400% 400%;
+  animation: instagramLiquid 16s ease infinite;
+}
+
+/* === ANALYZING STATE (ACCELERATED) === */
+body.analyzing.tiktok-theme {
+  animation: tiktokLiquid 4s linear infinite, pulseEnergy 2s ease-in-out infinite;
+}
+body.analyzing.youtube-theme {
+  animation: youtubeLiquid 4s linear infinite, pulseEnergy 2s ease-in-out infinite;
+}
+body.analyzing.instagram-theme {
+  animation: instagramLiquid 6s linear infinite, pulseEnergy 2s ease-in-out infinite;
+}
+
+/* === PULSE GLOW WHILE ANALYZING === */
+@keyframes pulseEnergy {
+  0% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.3) saturate(1.3); }
+  100% { filter: brightness(1) saturate(1); }
+}
+
+/* === LOGO === */
 .logo {
-  width: 120px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
-}
-
-h1 {
-  font-size: 2rem;
-  font-weight: 600;
+  width: 110px;
   margin-bottom: 20px;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+  transition: filter 0.5s ease-in-out;
 }
 
-/* === Button and Input === */
-button, select, input[type=file] {
-  font-family: 'Poppins', sans-serif;
-  border: none;
-  outline: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 8px;
+/* === HEADINGS === */
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1.5rem;
+  color: #00f2ea;
+  text-shadow: 0 0 8px rgba(0, 242, 234, 0.6);
+  transition: color 0.6s, text-shadow 0.6s;
+}
+body.youtube-theme h1 {
+  color: #ff0000;
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+}
+body.instagram-theme h1 {
+  color: #DD2A7B;
+  text-shadow: 0 0 10px rgba(221, 42, 123, 0.7);
 }
 
-button:hover {
-  transform: scale(1.05);
+/* === UPLOAD CONTAINERS === */
+.upload-container {
+  border: 2px dashed #333;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 20px auto;
+  width: 80%;
+  max-width: 600px;
+  background-color: rgba(20, 20, 20, 0.9);
+  transition: all 0.3s ease-in-out;
+}
+.upload-container:hover {
+  border-color: #00f2ea;
+  background-color: #1c1c1c;
+}
+body.youtube-theme .upload-container:hover {
+  border-color: #ff0000;
+}
+body.instagram-theme .upload-container:hover {
+  border-color: #DD2A7B;
 }
 
-#analyze-btn {
-  background: linear-gradient(90deg, #25F4EE, #FE2C55);
-  color: #fff;
-  font-weight: 600;
-}
-
-/* === Glow Bar === */
-#glow-bar {
-  width: 100%;
-  height: 6px;
-  border-radius: 50px;
-  margin: 30px 0;
-  background: linear-gradient(90deg, #25F4EE, #FE2C55, #FFFFFF);
-  opacity: 0.7;
-  filter: blur(6px);
-  position: relative;
-  overflow: hidden;
-}
-
-#glow-bar.active::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 50%;
-  height: 100%;
-  background: inherit;
-  filter: brightness(1.6);
-  animation: slideGlow 1.5s infinite linear;
-}
-
-@keyframes slideGlow {
-  from { left: -50%; }
-  to { left: 100%; }
-}
-
-/* === Result and Loading === */
-.loading-section, #result-card {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  padding: 20px;
-  margin-top: 20px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 20px rgba(255,255,255,0.05);
-}
-
-.hidden {
+/* === FILE INPUT === */
+input[type="file"] {
   display: none;
 }
+label {
+  cursor: pointer;
+  color: #00f2ea;
+  font-weight: bold;
+  display: block;
+  margin-top: 10px;
+  transition: 0.3s;
+}
+label:hover {
+  color: #26d9ff;
+}
+body.youtube-theme label {
+  color: #ff0000;
+}
+body.youtube-theme label:hover {
+  color: #ff4d4d;
+}
+body.instagram-theme label {
+  color: #DD2A7B;
+}
+body.instagram-theme label:hover {
+  color: #F58529;
+}
 
-pre {
-  text-align: left;
+/* === BUTTONS === */
+button {
+  background-color: #00f2ea;
+  border: none;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: 0.3s;
+  margin-top: 25px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(0, 242, 234, 0.4);
+}
+button:hover {
+  background-color: #0097a7;
+  box-shadow: 0 0 15px rgba(0, 242, 234, 0.6);
+}
+body.youtube-theme button {
+  background-color: #ff0000;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+}
+body.youtube-theme button:hover {
+  background-color: #c40000;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+}
+body.instagram-theme button {
+  background-color: #DD2A7B;
+  box-shadow: 0 0 10px rgba(221, 42, 123, 0.5);
+}
+body.instagram-theme button:hover {
+  background-color: #F58529;
+  box-shadow: 0 0 15px rgba(245, 133, 41, 0.6);
+}
+
+/* === RESULTS & DETECTED SECTIONS === */
+#results {
+  margin-top: 30px;
   white-space: pre-wrap;
-  color: #e0e0e0;
+  background-color: #141414;
+  border-radius: 14px;
+  padding: 25px;
+  width: 85%;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+  line-height: 1.7;
+  box-shadow: 0 0 20px rgba(0, 242, 234, 0.15);
+}
+body.youtube-theme #results {
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.15);
+}
+body.instagram-theme #results {
+  box-shadow: 0 0 20px rgba(221, 42, 123, 0.15);
 }
 
-/* === Liquid Background Animation === */
-body::before, body::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  filter: blur(60px);
-  opacity: 0.7;
-  animation: liquidMove 12s infinite alternate ease-in-out;
+#detected {
+  margin-top: 20px;
+  text-align: left;
+  width: 85%;
+  max-width: 750px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 242, 234, 0.15);
+  transition: all 0.6s ease;
+}
+body.youtube-theme #detected {
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.15);
+}
+body.instagram-theme #detected {
+  box-shadow: 0 0 15px rgba(221, 42, 123, 0.15);
 }
 
-body::after {
-  animation-delay: 4s;
-  mix-blend-mode: screen;
+/* === HIDDEN ELEMENTS === */
+.hidden { display: none; }
+
+/* === CONTAINER === */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-@keyframes liquidMove {
-  0% { transform: translate(0, 0) scale(1.1); }
-  50% { transform: translate(-10%, 10%) scale(1.3); }
-  100% { transform: translate(10%, -10%) scale(1.1); }
+/* === SELECT BOX === */
+select {
+  background-color: #141414;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  margin-bottom: 15px;
+  outline: none;
+  transition: border 0.3s;
 }
-
-/* === Platform Color Themes === */
-
-/* TikTok Theme */
-body.tiktok-theme {
-  background: radial-gradient(circle at center, #000000 0%, #111111 100%);
+select:hover {
+  border-color: #00f2ea;
 }
-body.tiktok-theme::before {
-  background: radial-gradient(circle at 30% 70%, #25F4EE, transparent 70%);
+body.youtube-theme select:hover {
+  border-color: #ff0000;
 }
-body.tiktok-theme::after {
-  background: radial-gradient(circle at 70% 30%, #FE2C55, transparent 70%);
-}
-
-/* YouTube Theme */
-body.youtube-theme {
-  background: radial-gradient(circle at center, #1e1e1e 0%, #000 100%);
-}
-body.youtube-theme::before {
-  background: radial-gradient(circle at 40% 60%, #ff0000, transparent 70%);
-}
-body.youtube-theme::after {
-  background: radial-gradient(circle at 70% 30%, #ffffff, transparent 70%);
-}
-
-/* Instagram Theme */
-body.instagram-theme {
-  background: radial-gradient(circle at center, #2a0845 0%, #6441A5 50%, #E1306C 100%);
-}
-body.instagram-theme::before {
-  background: radial-gradient(circle at 30% 70%, #FEDA75, transparent 70%);
-}
-body.instagram-theme::after {
-  background: radial-gradient(circle at 70% 30%, #C13584, transparent 70%);
-}
-
-/* === While Analyzing: Intensify Colors === */
-body.active-analyzing.tiktok-theme::before {
-  background: radial-gradient(circle at 40% 60%, #25F4EE, #FE2C55 70%);
-  filter: blur(80px) brightness(1.5);
-}
-body.active-analyzing.youtube-theme::before {
-  background: radial-gradient(circle at 40% 60%, #ff0000, #ffffff 70%);
-  filter: blur(80px) brightness(1.5);
-}
-body.active-analyzing.instagram-theme::before {
-  background: radial-gradient(circle at 40% 60%, #FEDA75, #C13584 70%);
-  filter: blur(80px) brightness(1.5);
-}
-
-/* === Mobile Adjustments === */
-@media (max-width: 768px) {
-  h1 { font-size: 1.5rem; }
-  .logo { width: 90px; }
-  button, select, input[type=file] { font-size: 0.9rem; }
+body.instagram-theme select:hover {
+  border-color: #DD2A7B;
 }

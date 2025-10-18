@@ -6,161 +6,149 @@
   <title>LongLine Media Viral Optimizer</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="tiktok-theme">
+
+<body class="neutral-theme">
   <div class="container">
-    <img src="{{ url_for('static', filename='Longlinemedialogotransparent.png') }}" alt="LongLine Media Logo" class="logo">
-    <h1>🎬 TikTok, YouTube & Instagram Viral Optimizer</h1>
+    <img src="{{ url_for('static', filename='Longlinemedialogotransparent.png') }}" alt="LongLine Media Logo" class="logo" />
 
-    <!-- Platform selector -->
-    <label for="platform">Select Platform:</label><br />
-    <select id="platform">
-      <option value="TikTok">TikTok</option>
-      <option value="YouTube">YouTube</option>
-      <option value="Instagram">Instagram</option>
-    </select>
+    <h1>🎥 Viral Video Analyzer</h1>
 
-    <!-- Video upload -->
-    <div class="upload-container" id="video-dropzone">
-      <p>🎬 Drag & drop your video here or click to upload</p>
-      <input type="file" id="video" accept="video/*" />
-      <label for="video">Choose a video</label>
-      <p id="video-filename"></p>
+    <!-- Platform Selector -->
+    <div>
+      <label for="platform">Select Platform:</label>
+      <select id="platform">
+        <option value="TikTok" selected>TikTok</option>
+        <option value="YouTube">YouTube</option>
+        <option value="Instagram">Instagram</option>
+      </select>
     </div>
 
-    <!-- CSV upload -->
-    <div class="upload-container" id="csv-dropzone">
-      <p>📄 Upload your CSV data (optional)</p>
-      <input type="file" id="csv" accept=".csv" />
-      <label for="csv">Choose a CSV</label>
-      <p id="csv-filename"></p>
+    <!-- Upload Video -->
+    <div class="upload-container" id="video-upload">
+      <h3>🎬 Upload your video file</h3>
+      <input type="file" id="video" accept="video/*">
+      <label for="video">Click to upload a video or drag it here</label>
+      <p id="video-status" class="upload-status"></p>
     </div>
 
-    <!-- Analyze button -->
+    <!-- Upload CSV -->
+    <div class="upload-container" id="csv-upload">
+      <h3>📊 Upload your CSV data (optional)</h3>
+      <input type="file" id="csv" accept=".csv">
+      <label for="csv">Click to upload CSV (optional)</label>
+      <p id="csv-status" class="upload-status"></p>
+    </div>
+
+    <!-- Analyze Button -->
     <button id="analyze-btn">Analyze</button>
-    <div id="glow-bar"></div>
 
-    <!-- Loading -->
-    <div class="loading-section hidden" id="loader">
-      <p id="loader-text">Initializing AI analysis...</p>
+    <!-- Loading Bar -->
+    <div id="loading-bar-container" class="hidden">
+      <div id="loading-bar"></div>
+      <p id="loading-status">Analyzing video...</p>
     </div>
 
-    <!-- Detected attributes -->
-    <div id="detected" class="hidden">
-      <h3>🤖 Auto-Detected Video Attributes</h3>
-      <p><strong>Niche:</strong> <span id="niche"></span></p>
-      <p><strong>Tone:</strong> <span id="tone"></span></p>
-      <p><strong>Keywords:</strong> <span id="keywords"></span></p>
-    </div>
-
-    <!-- Results -->
-    <div id="result-card" class="hidden">
-      <pre id="results"></pre>
-    </div>
-
-    <!-- Reset -->
-    <button id="reset-btn" class="hidden">🔄 New Analysis</button>
+    <!-- Results Sections -->
+    <div id="detected" class="hidden"></div>
+    <div id="results" class="hidden"></div>
   </div>
 
   <script>
+    const platformSelect = document.getElementById("platform");
+    const body = document.body;
+    const analyzeBtn = document.getElementById("analyze-btn");
     const videoInput = document.getElementById("video");
     const csvInput = document.getElementById("csv");
-    const videoFilename = document.getElementById("video-filename");
-    const csvFilename = document.getElementById("csv-filename");
-    const analyzeBtn = document.getElementById("analyze-btn");
-    const resetBtn = document.getElementById("reset-btn");
+    const videoStatus = document.getElementById("video-status");
+    const csvStatus = document.getElementById("csv-status");
+    const loadingBarContainer = document.getElementById("loading-bar-container");
+    const loadingBar = document.getElementById("loading-bar");
+    const loadingStatus = document.getElementById("loading-status");
     const resultsDiv = document.getElementById("results");
     const detectedDiv = document.getElementById("detected");
-    const loader = document.getElementById("loader");
-    const loaderText = document.getElementById("loader-text");
-    const glowBar = document.getElementById("glow-bar");
-    const platformSelect = document.getElementById("platform");
 
-    /* ===== FILE NAME DISPLAY ===== */
-    videoInput.addEventListener("change", () => {
-      videoFilename.textContent = videoInput.files.length ? `📹 ${videoInput.files[0].name}` : "";
-    });
-    csvInput.addEventListener("change", () => {
-      csvFilename.textContent = csvInput.files.length ? `📄 ${csvInput.files[0].name}` : "";
-    });
-
-    /* ===== DRAG & DROP ===== */
-    function setupDropZone(dropzone, input, label) {
-      dropzone.addEventListener("dragover", e => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-      });
-      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
-      dropzone.addEventListener("drop", e => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-        input.files = e.dataTransfer.files;
-        label.textContent = `✅ ${e.dataTransfer.files[0].name} uploaded`;
-      });
-    }
-    setupDropZone(document.getElementById("video-dropzone"), videoInput, videoFilename);
-    setupDropZone(document.getElementById("csv-dropzone"), csvInput, csvFilename);
-
-    /* ===== PLATFORM COLOR SWITCH ===== */
+    /* === PLATFORM SWITCH LOGIC === */
     platformSelect.addEventListener("change", () => {
-      document.body.classList.remove("tiktok-theme", "youtube-theme", "instagram-theme");
-      document.body.classList.add(`${platformSelect.value.toLowerCase()}-theme`);
+      const platform = platformSelect.value;
+      body.classList.remove("tiktok-theme", "youtube-theme", "instagram-theme", "neutral-theme");
+      if (platform === "TikTok") body.classList.add("tiktok-theme");
+      else if (platform === "YouTube") body.classList.add("youtube-theme");
+      else if (platform === "Instagram") body.classList.add("instagram-theme");
     });
 
-    /* ===== ANALYZE BUTTON ===== */
+    /* === FILE UPLOAD VISUAL FEEDBACK === */
+    videoInput.addEventListener("change", () => {
+      if (videoInput.files.length > 0) {
+        videoStatus.textContent = `✅ Video uploaded: ${videoInput.files[0].name}`;
+        videoStatus.style.color = "#00f2ea";
+      } else videoStatus.textContent = "";
+    });
+
+    csvInput.addEventListener("change", () => {
+      if (csvInput.files.length > 0) {
+        csvStatus.textContent = `✅ CSV uploaded: ${csvInput.files[0].name}`;
+        csvStatus.style.color = "#00f2ea";
+      } else csvStatus.textContent = "";
+    });
+
+    /* === ANALYZE BUTTON === */
     analyzeBtn.addEventListener("click", async () => {
-      const video = videoInput.files[0];
-      if (!video) {
-        alert("Please upload a video before analyzing.");
+      const platform = platformSelect.value;
+      const videoFile = videoInput.files[0];
+      const csvFile = csvInput.files[0];
+
+      if (!videoFile) {
+        alert("Please upload a video first!");
         return;
       }
 
-      document.body.classList.add("active-analyzing");
-      glowBar.classList.add("active");
-      loader.classList.remove("hidden");
-      loaderText.textContent = "🎥 Running analysis...";
-      analyzeBtn.disabled = true;
+      // Show loading
+      loadingBarContainer.classList.remove("hidden");
+      resultsDiv.classList.add("hidden");
+      detectedDiv.classList.add("hidden");
+      body.classList.add("analyzing");
+
+      // Animate background intensity with progress
+      let progress = 0;
+      const updateProgress = () => {
+        progress += 1;
+        loadingBar.style.width = `${progress}%`;
+        if (progress <= 100) {
+          loadingStatus.textContent = `Analyzing (${progress}%)...`;
+          requestAnimationFrame(updateProgress);
+        }
+      };
+      updateProgress();
 
       const formData = new FormData();
-      formData.append("video", video);
-      if (csvInput.files[0]) formData.append("csv", csvInput.files[0]);
-      formData.append("platform", platformSelect.value);
+      formData.append("platform", platform);
+      formData.append("video", videoFile);
+      if (csvFile) formData.append("csv", csvFile);
 
       try {
-        const response = await fetch("/analyze", { method: "POST", body: formData });
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData
+        });
         const data = await response.json();
 
-        loader.classList.add("hidden");
-        glowBar.classList.remove("active");
-        document.body.classList.remove("active-analyzing");
+        // Hide loading
+        body.classList.remove("analyzing");
+        loadingBarContainer.classList.add("hidden");
+        loadingBar.style.width = "0%";
 
-        detectedDiv.classList.remove("hidden");
-        document.getElementById("niche").textContent = data.niche || "Auto-detected niche";
-        document.getElementById("tone").textContent = data.tone || "Auto-detected tone";
-        document.getElementById("keywords").textContent = data.keywords || "Auto-detected keywords";
-
-        resultsDiv.textContent = data.analysis || "No analysis returned.";
-        document.getElementById("result-card").classList.remove("hidden");
-        resetBtn.classList.remove("hidden");
+        if (data.error) {
+          alert(data.error);
+        } else {
+          resultsDiv.textContent = data.result;
+          resultsDiv.classList.remove("hidden");
+        }
       } catch (err) {
-        alert("Error analyzing video. Please try again.");
-        loader.classList.add("hidden");
-        glowBar.classList.remove("active");
-        document.body.classList.remove("active-analyzing");
+        console.error(err);
+        body.classList.remove("analyzing");
+        loadingBarContainer.classList.add("hidden");
+        alert("Error analyzing video.");
       }
-    });
-
-    /* ===== RESET BUTTON ===== */
-    resetBtn.addEventListener("click", () => {
-      videoInput.value = "";
-      csvInput.value = "";
-      videoFilename.textContent = "";
-      csvFilename.textContent = "";
-      resultsDiv.textContent = "";
-      loader.classList.add("hidden");
-      document.getElementById("result-card").classList.add("hidden");
-      detectedDiv.classList.add("hidden");
-      resetBtn.classList.add("hidden");
-      analyzeBtn.disabled = false;
     });
   </script>
 </body>
