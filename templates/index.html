@@ -3,240 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok, YouTube & Instagram Viral Optimizer</title>
+  <title>LongLine Media Viral Optimizer</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body class="tiktok-theme">
   <div class="container">
     <img src="{{ url_for('static', filename='Longlinemedialogotransparent.png') }}" alt="LongLine Media Logo" class="logo">
+    <h1>🎬 TikTok, YouTube & Instagram Viral Optimizer</h1>
 
-    <h1>🎬 Viral Video Optimizer</h1>
+    <!-- Platform selector -->
+    <label for="platform">Select Platform:</label><br />
+    <select id="platform">
+      <option value="TikTok">TikTok</option>
+      <option value="YouTube">YouTube</option>
+      <option value="Instagram">Instagram</option>
+    </select>
 
-    <!-- Platform Selector -->
-    <div class="platform-switch">
-      <label for="platform">Select Platform:</label><br />
-      <select id="platform">
-        <option value="TikTok">TikTok</option>
-        <option value="YouTube">YouTube</option>
-        <option value="Instagram">Instagram</option>
-      </select>
+    <!-- Video upload -->
+    <div class="upload-container" id="video-dropzone">
+      <p>🎬 Drag & drop your video here or click to upload</p>
+      <input type="file" id="video" accept="video/*" />
+      <label for="video">Choose a video</label>
+      <p id="video-filename"></p>
     </div>
 
-    <!-- Upload Section -->
-    <div id="upload-form">
-      <p>🎥 Drag and drop your video here or click below:</p>
-      <input type="file" id="video" accept="video/*" hidden />
-      <label for="video">
-        <button id="upload-btn">Choose Video</button>
-      </label>
-      <p id="upload-status"></p>
+    <!-- CSV upload -->
+    <div class="upload-container" id="csv-dropzone">
+      <p>📄 Upload your CSV data (optional)</p>
+      <input type="file" id="csv" accept=".csv" />
+      <label for="csv">Choose a CSV</label>
+      <p id="csv-filename"></p>
     </div>
 
-    <!-- Glow Bar -->
+    <!-- Analyze button -->
+    <button id="analyze-btn">Analyze</button>
     <div id="glow-bar"></div>
 
-    <!-- Analyze Button -->
-    <button id="analyze-btn">Analyze</button>
+    <!-- Loading -->
+    <div class="loading-section hidden" id="loader">
+      <p id="loader-text">Initializing AI analysis...</p>
+    </div>
 
-    <!-- Loading Section -->
-    <div class="loading-section hidden" id="loading-section">
-      <div class="loading-bar"></div>
-      <p id="loading-text">Initializing AI analysis...</p>
+    <!-- Detected attributes -->
+    <div id="detected" class="hidden">
+      <h3>🤖 Auto-Detected Video Attributes</h3>
+      <p><strong>Niche:</strong> <span id="niche"></span></p>
+      <p><strong>Tone:</strong> <span id="tone"></span></p>
+      <p><strong>Keywords:</strong> <span id="keywords"></span></p>
     </div>
 
     <!-- Results -->
     <div id="result-card" class="hidden">
       <pre id="results"></pre>
     </div>
+
+    <!-- Reset -->
+    <button id="reset-btn" class="hidden">🔄 New Analysis</button>
   </div>
 
   <script>
-    const platformSelect = document.getElementById("platform");
-    const glowBar = document.getElementById("glow-bar");
-    const loadingSection = document.getElementById("loading-section");
-    const loadingText = document.getElementById("loading-text");
-    const analyzeBtn = document.getElementById("analyze-btn");
-    const resultCard = document.getElementById("result-card");
-    const resultsPre = document.getElementById("results");
-    const uploadStatus = document.getElementById("upload-status");
     const videoInput = document.getElementById("video");
+    const csvInput = document.getElementById("csv");
+    const videoFilename = document.getElementById("video-filename");
+    const csvFilename = document.getElementById("csv-filename");
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const resetBtn = document.getElementById("reset-btn");
+    const resultsDiv = document.getElementById("results");
+    const detectedDiv = document.getElementById("detected");
+    const loader = document.getElementById("loader");
+    const loaderText = document.getElementById("loader-text");
+    const glowBar = document.getElementById("glow-bar");
+    const platformSelect = document.getElementById("platform");
 
-    let currentPlatform = "TikTok";
-    let loadingInterval;
+    /* ===== FILE NAME DISPLAY ===== */
+    videoInput.addEventListener("change", () => {
+      videoFilename.textContent = videoInput.files.length ? `📹 ${videoInput.files[0].name}` : "";
+    });
+    csvInput.addEventListener("change", () => {
+      csvFilename.textContent = csvInput.files.length ? `📄 ${csvInput.files[0].name}` : "";
+    });
 
-    // Platform Theme Switch
+    /* ===== DRAG & DROP ===== */
+    function setupDropZone(dropzone, input, label) {
+      dropzone.addEventListener("dragover", e => {
+        e.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+      dropzone.addEventListener("drop", e => {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+        input.files = e.dataTransfer.files;
+        label.textContent = `✅ ${e.dataTransfer.files[0].name} uploaded`;
+      });
+    }
+    setupDropZone(document.getElementById("video-dropzone"), videoInput, videoFilename);
+    setupDropZone(document.getElementById("csv-dropzone"), csvInput, csvFilename);
+
+    /* ===== PLATFORM COLOR SWITCH ===== */
     platformSelect.addEventListener("change", () => {
       document.body.classList.remove("tiktok-theme", "youtube-theme", "instagram-theme");
-      currentPlatform = platformSelect.value;
-      if (currentPlatform === "TikTok") document.body.classList.add("tiktok-theme");
-      if (currentPlatform === "YouTube") document.body.classList.add("youtube-theme");
-      if (currentPlatform === "Instagram") document.body.classList.add("instagram-theme");
+      document.body.classList.add(`${platformSelect.value.toLowerCase()}-theme`);
     });
 
-    // File Upload Display
-    videoInput.addEventListener("change", () => {
-      const file = videoInput.files[0];
-      if (file) {
-        uploadStatus.textContent = `🎬 Uploaded: ${file.name}`;
-      }
-    });
-
-    // Analyze Button Click
+    /* ===== ANALYZE BUTTON ===== */
     analyzeBtn.addEventListener("click", async () => {
-      const file = videoInput.files[0];
-      if (!file) {
-        uploadStatus.textContent = "⚠️ Please upload a video first.";
+      const video = videoInput.files[0];
+      if (!video) {
+        alert("Please upload a video before analyzing.");
         return;
       }
 
-      // Start loading visuals
+      document.body.classList.add("active-analyzing");
       glowBar.classList.add("active");
-      loadingSection.classList.remove("hidden");
+      loader.classList.remove("hidden");
+      loaderText.textContent = "🎥 Running analysis...";
       analyzeBtn.disabled = true;
-      uploadStatus.textContent = "";
-      resultCard.classList.add("hidden");
 
-      // Animate loading text
-      const loadingPhrases = {
-        TikTok: [
-          "Analyzing TikTok engagement metrics...",
-          "Detecting trending sounds and formats...",
-          "Evaluating hook strength...",
-          "Generating viral caption ideas..."
-        ],
-        YouTube: [
-          "Scanning YouTube retention patterns...",
-          "Evaluating thumbnail contrast...",
-          "Detecting keyword alignment...",
-          "Generating SEO-friendly title suggestions..."
-        ],
-        Instagram: [
-          "Analyzing Instagram Reels performance...",
-          "Evaluating visual storytelling style...",
-          "Checking niche consistency and aesthetics...",
-          "Generating caption and hashtag strategy..."
-        ]
-      };
+      const formData = new FormData();
+      formData.append("video", video);
+      if (csvInput.files[0]) formData.append("csv", csvInput.files[0]);
+      formData.append("platform", platformSelect.value);
 
-      let idx = 0;
-      clearInterval(loadingInterval);
-      loadingInterval = setInterval(() => {
-        loadingText.textContent = loadingPhrases[currentPlatform][idx];
-        idx = (idx + 1) % loadingPhrases[currentPlatform].length;
-      }, 2500);
+      try {
+        const response = await fetch("/analyze", { method: "POST", body: formData });
+        const data = await response.json();
 
-      // Simulate AI API request delay (replace with actual fetch call)
-      await new Promise(res => setTimeout(res, 7000));
+        loader.classList.add("hidden");
+        glowBar.classList.remove("active");
+        document.body.classList.remove("active-analyzing");
 
-      // Stop loading visuals
-      clearInterval(loadingInterval);
-      glowBar.classList.remove("active");
-      loadingSection.classList.add("hidden");
+        detectedDiv.classList.remove("hidden");
+        document.getElementById("niche").textContent = data.niche || "Auto-detected niche";
+        document.getElementById("tone").textContent = data.tone || "Auto-detected tone";
+        document.getElementById("keywords").textContent = data.keywords || "Auto-detected keywords";
+
+        resultsDiv.textContent = data.analysis || "No analysis returned.";
+        document.getElementById("result-card").classList.remove("hidden");
+        resetBtn.classList.remove("hidden");
+      } catch (err) {
+        alert("Error analyzing video. Please try again.");
+        loader.classList.add("hidden");
+        glowBar.classList.remove("active");
+        document.body.classList.remove("active-analyzing");
+      }
+    });
+
+    /* ===== RESET BUTTON ===== */
+    resetBtn.addEventListener("click", () => {
+      videoInput.value = "";
+      csvInput.value = "";
+      videoFilename.textContent = "";
+      csvFilename.textContent = "";
+      resultsDiv.textContent = "";
+      loader.classList.add("hidden");
+      document.getElementById("result-card").classList.add("hidden");
+      detectedDiv.classList.add("hidden");
+      resetBtn.classList.add("hidden");
       analyzeBtn.disabled = false;
-      resultCard.classList.remove("hidden");
-
-      // Generate mock output with your structure
-      const videoName = file.name;
-      const mockData = {
-        duration: 42,
-        resolution: "1080x1920",
-        aspect_ratio: "9:16",
-        brightness: "High",
-        tone: "Energetic",
-        niche: "Personal Branding",
-        keywords: "Motivation, Growth, CreatorMindset"
-      };
-
-      const insightsLabel =
-        currentPlatform === "YouTube" ? "YouTube Insights"
-        : currentPlatform === "Instagram" ? "Instagram Insights"
-        : "TikTok Insights";
-
-      const tagLabel =
-        currentPlatform === "YouTube" ? "tags"
-        : currentPlatform === "Instagram" ? "hashtags"
-        : "hashtags";
-
-      const platformOutput = `
-Create a viral video analysis for ${currentPlatform} with this structure EXACTLY:
-
-🎬 Drag and drop your ${currentPlatform} video file here: "${videoName}"
-🎥 Running ${currentPlatform} Viral Optimizer...
-
-🤖 Generating AI-powered analysis, captions, and viral tips...
-
-🔥 Fetching viral video comparisons and strategic insights...
-
-✅ ${currentPlatform} Video Analysis Complete!
-
-🎬 Video: ${videoName}
-📏 Duration: ${mockData.duration}s
-🖼 Resolution: ${mockData.resolution}
-📱 Aspect Ratio: ${mockData.aspect_ratio}
-💡 Brightness: ${mockData.brightness}
-🎨 Tone: ${mockData.tone}
-⭐ Heuristic Score: 8/10 (High brightness and clear resolution contribute to visual appeal.)
-
-🎯 Detected Attributes:
-- Niche: ${mockData.niche}
-- Tone: ${mockData.tone}
-- Keywords: ${mockData.keywords}
-
-💬 ${insightsLabel}:
-### 1. Scroll-Stopping Caption
-(One creative, high-performing caption idea — ${
-        currentPlatform === "Instagram"
-          ? "emotional, story-driven, and includes a subtle CTA to save/share."
-          : "platform-optimized for engagement."
-      })
-
-### 2. 5 Viral ${tagLabel}
-(Provide 5 ${currentPlatform}-relevant ${tagLabel} that match the ${currentPlatform} algorithm.)
-
-### 3. Actionable Improvement Tip for Engagement
-(Platform-specific engagement improvement advice.)
-
-### 4. Viral Optimization Score (1–100)
-(Score with explanation tailored to ${currentPlatform}'s algorithm.)
-
-### 5. Motivation to Increase Virality
-(Encouraging, ${currentPlatform}-specific creator tip.)
-
-🔥 Viral Comparison Results:
-### Comparison with Viral ${currentPlatform} Videos in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-#### Viral Example 2
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-#### Viral Example 3
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-### Takeaway Strategy
-(Summarize actionable insights for ${currentPlatform} creators.)
-
-📋 Actionable Checklist:
-- Hook viewers in the first 2 seconds.
-- Use trending audio and relevant captions.
-- Encourage saves and shares with call-to-actions.
-- Post during peak activity windows (Fri–Sun, 6–10pm).
-- Maintain visual consistency across Reels.
-
-🎯 **Detected Niche:** ${mockData.niche}
-🕓 **Best Time to Post for ${mockData.niche} (${currentPlatform})**:
-⏰ 4–7 PM EST
-💡 Peak engagement around 8:43 PM EST.
-`;
-
-      resultsPre.textContent = platformOutput;
     });
   </script>
 </body>
