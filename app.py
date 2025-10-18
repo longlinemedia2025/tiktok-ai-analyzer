@@ -161,7 +161,7 @@ def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None)
     """
     duration = metrics["duration"]
     resolution = metrics["resolution"]
-    aspect_ratio = metrics["aspect_ratio']
+    aspect_ratio = metrics["aspect_ratio"]
     brightness = metrics["brightness"]
 
     niche = detected.get("niche", "General")
