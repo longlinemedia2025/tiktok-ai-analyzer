@@ -1,135 +1,112 @@
+/* ========= GENERAL PAGE LAYOUT ========= */
 body {
-  font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #fff;
   margin: 0;
   padding: 0;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
   overflow-x: hidden;
+  overflow-y: auto;
+  height: 100vh;
+  background: #000;
   position: relative;
-  min-height: 100vh;
 }
 
-.liquid-bg {
+.container {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ========= GOOEY BACKGROUND ========= */
+#gooey-bg {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
   overflow: hidden;
-  z-index: -1;
+}
+
+#gooey-bg svg {
+  width: 100%;
+  height: 100%;
 }
 
 .blob {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  opacity: 0.6;
-  animation: blobMove 12s infinite ease-in-out alternate;
-  filter: brightness(1.2);
+  fill: var(--blob-color);
+  opacity: 0.85;
+  animation: float 45s ease-in-out infinite;
+  transform-origin: center;
 }
 
-@keyframes blobMove {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(200px, -100px) scale(1.3); }
-  100% { transform: translate(-150px, 100px) scale(1); }
+/* ========= PLATFORM COLOR THEMES ========= */
+body[data-platform="tiktok"] {
+  --blob-color: #ff0050;
+  background: radial-gradient(circle at 30% 50%, #000000, #0a0a0a);
 }
 
-/* TikTok theme blobs */
-body.tiktok-mode .blob:nth-child(1) { background: #00f2ea; top: 20%; left: 10%; }
-body.tiktok-mode .blob:nth-child(2) { background: #ff0050; top: 50%; left: 50%; animation-delay: 2s; }
-body.tiktok-mode .blob:nth-child(3) { background: #fff; top: 70%; left: 30%; animation-delay: 4s; }
-
-/* YouTube theme blobs */
-body.youtube-mode .blob:nth-child(1) { background: #ff0000; top: 20%; left: 15%; }
-body.youtube-mode .blob:nth-child(2) { background: #ff4d00; top: 60%; left: 60%; animation-delay: 2s; }
-body.youtube-mode .blob:nth-child(3) { background: #ffffff; top: 75%; left: 25%; animation-delay: 4s; }
-
-/* Instagram theme blobs */
-body.instagram-mode .blob:nth-child(1) { background: #833ab4; top: 15%; left: 15%; }
-body.instagram-mode .blob:nth-child(2) { background: #fd1d1d; top: 55%; left: 55%; animation-delay: 2s; }
-body.instagram-mode .blob:nth-child(3) { background: #fcb045; top: 75%; left: 25%; animation-delay: 4s; }
-
-.container {
-  text-align: center;
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 40px 20px;
+body[data-platform="instagram"] {
+  --blob-color: #f58529;
+  background: radial-gradient(circle at 70% 50%, #833ab4, #fd1d1d, #fcb045);
 }
 
-.logo {
-  width: 120px;
-  margin-bottom: 20px;
+body[data-platform="youtube"] {
+  --blob-color: #ff0000;
+  background: radial-gradient(circle at 40% 60%, #1a0000, #330000, #660000);
 }
 
-h1 {
-  font-size: 2rem;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+/* ========= FLOATING ANIMATION ========= */
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  20% {
+    transform: translate(-8vw, -5vh) scale(1.1);
+  }
+  40% {
+    transform: translate(10vw, 7vh) scale(0.95);
+  }
+  60% {
+    transform: translate(-5vw, 8vh) scale(1.05);
+  }
+  80% {
+    transform: translate(6vw, -6vh) scale(1);
+  }
 }
 
-.upload-container {
+/* ========= CONTENT BOX STYLING ========= */
+.drop-zone,
+.csv-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin: 1rem auto;
+  width: 60%;
+  max-width: 600px;
   background: rgba(0, 0, 0, 0.5);
-  border: 2px dashed rgba(255, 255, 255, 0.4);
-  border-radius: 14px;
-  padding: 20px;
-  margin: 20px auto;
-  width: 80%;
-}
-
-.upload-container label {
-  color: #fff;
-  cursor: pointer;
-  font-weight: bold;
   transition: 0.3s;
 }
 
-.upload-container label:hover {
-  opacity: 0.8;
+.drop-zone:hover,
+.csv-zone:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
+/* ========= BUTTON STYLING ========= */
 button {
-  background: linear-gradient(90deg, #00f2ea, #ff0050);
-  color: #fff;
   border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
+  background: linear-gradient(90deg, #ff0050, #00f2ea);
+  color: white;
   font-weight: bold;
+  padding: 0.7rem 2rem;
+  border-radius: 25px;
   cursor: pointer;
   transition: 0.3s;
-  margin-top: 20px;
 }
 
 button:hover {
   transform: scale(1.05);
-}
-
-.loader {
-  display: none;
-  margin-top: 30px;
-}
-
-.loading-bar {
-  width: 80%;
-  height: 8px;
-  margin: 0 auto;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #00f2ea, #ff0050, #00f2ea);
-  background-size: 200%;
-  animation: loadingMove 2s linear infinite;
-}
-
-@keyframes loadingMove {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
-}
-
-#loader-text {
-  font-size: 0.9rem;
-  margin-top: 10px;
-  color: #eee;
-}
-
-#results {
-  margin-top: 30px;
-  background: rgba(0,0,0,0.4);
-  border-radius: 14px;
-  padding: 20px;
-  white-space: pre-wrap;
-  text-align: left;
+  opacity: 0.9;
 }

@@ -634,5 +634,61 @@
       // could tweak blob positions/sizes here if desired
     });
   </script>
+<!-- Gooey Background -->
+<div id="gooey-bg">
+  <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur" />
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  
+                  0 1 0 0 0  
+                  0 0 1 0 0  
+                  0 0 0 25 -10" result="goo" />
+        <feBlend in="SourceGraphic" in2="goo" />
+      </filter>
+    </defs>
+
+    <g filter="url(#goo)">
+      <!-- 15 Blobs for dense effect -->
+      <circle class="blob" cx="150" cy="300" r="100"></circle>
+      <circle class="blob" cx="300" cy="250" r="130"></circle>
+      <circle class="blob" cx="500" cy="350" r="110"></circle>
+      <circle class="blob" cx="700" cy="400" r="90"></circle>
+      <circle class="blob" cx="400" cy="500" r="120"></circle>
+      <circle class="blob" cx="600" cy="200" r="140"></circle>
+      <circle class="blob" cx="250" cy="450" r="100"></circle>
+      <circle class="blob" cx="550" cy="100" r="110"></circle>
+      <circle class="blob" cx="350" cy="150" r="120"></circle>
+      <circle class="blob" cx="750" cy="250" r="130"></circle>
+      <circle class="blob" cx="450" cy="550" r="100"></circle>
+      <circle class="blob" cx="150" cy="150" r="80"></circle>
+      <circle class="blob" cx="650" cy="500" r="90"></circle>
+      <circle class="blob" cx="550" cy="300" r="110"></circle>
+      <circle class="blob" cx="250" cy="350" r="100"></circle>
+    </g>
+  </svg>
+</div>
+
+<script>
+  // Platform color change
+  const platformSelect = document.getElementById("platform");
+  if (platformSelect) {
+    platformSelect.addEventListener("change", () => {
+      document.body.setAttribute("data-platform", platformSelect.value.toLowerCase());
+    });
+  }
+
+  // Gentle mouse movement for parallax effect
+  const blobs = document.querySelectorAll(".blob");
+  document.addEventListener("mousemove", (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 30;
+    const y = (e.clientY / window.innerHeight - 0.5) * 30;
+    blobs.forEach((blob, i) => {
+      const speed = (i + 1) / 15;
+      blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+    });
+  });
+</script>
 </body>
 </html>
