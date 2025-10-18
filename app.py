@@ -185,7 +185,6 @@ def generate_ai_analysis(platform, video_name, metrics, detected, csv_data=None)
     - Hook viewers in the first 2 seconds.
     - Use trending audio and relevant captions.
     - Encourage saves and shares with call-to-actions.
-    - Post during peak activity windows (Fri–Sun, 6–10pm).
     - Maintain visual consistency across Reels.
 
     🎯 **Detected Niche:** {niche}
