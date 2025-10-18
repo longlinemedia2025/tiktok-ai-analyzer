@@ -6,10 +6,9 @@
   <title>AI Social Analyzer</title>
   <style>
     :root {
-      --tiktok-color: #ff0050;
-      --youtube-color: #ff0000;
-      --instagram-color: #e1306c;
-      --x-color: #1da1f2;
+      --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
+      --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
+      --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
       --base-bg: #080808;
     }
 
@@ -42,6 +41,8 @@
     .blob {
       opacity: 0;
       animation: fadeIn 2s ease-in forwards;
+      mix-blend-mode: screen;
+      transition: fill 0.8s ease, filter 0.8s ease;
     }
 
     @keyframes fadeIn {
@@ -73,7 +74,7 @@
 
     select, input[type="file"] { background: #fff; color: #000; }
     button {
-      background: var(--tiktok-color);
+      background: #ff0050;
       color: #fff;
       cursor: pointer;
       transition: 0.3s;
@@ -84,7 +85,7 @@
     #loading-bar {
       height: 8px;
       width: 0%;
-      background: var(--tiktok-color);
+      background: #ff0050;
       border-radius: 5px;
       margin-top: 15px;
       transition: width 0.3s ease, background 0.3s ease;
@@ -110,7 +111,7 @@
     <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
       <defs>
         <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="35" result="blur"/>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
           <feColorMatrix in="blur" mode="matrix"
             values="1 0 0 0 0  
                     0 1 0 0 0  
@@ -120,12 +121,12 @@
         </filter>
       </defs>
       <g id="blobs-group">
-        <circle class="blob" cx="200" cy="300" r="150"></circle>
-        <circle class="blob" cx="400" cy="150" r="180"></circle>
-        <circle class="blob" cx="600" cy="400" r="160"></circle>
-        <circle class="blob" cx="800" cy="300" r="170"></circle>
+        <circle class="blob" cx="150" cy="250" r="160"></circle>
+        <circle class="blob" cx="400" cy="180" r="170"></circle>
+        <circle class="blob" cx="700" cy="300" r="160"></circle>
+        <circle class="blob" cx="850" cy="500" r="140"></circle>
         <circle class="blob" cx="500" cy="550" r="150"></circle>
-        <circle class="blob" cx="300" cy="500" r="130"></circle>
+        <circle class="blob" cx="250" cy="500" r="130"></circle>
       </g>
     </svg>
   </div>
@@ -138,7 +139,6 @@
       <option value="tiktok" selected>TikTok</option>
       <option value="youtube">YouTube</option>
       <option value="instagram">Instagram</option>
-      <option value="x">X (Twitter)</option>
     </select>
 
     <h3>Upload a Video</h3>
@@ -160,11 +160,10 @@
   </div>
 
   <script>
-    const platformColors = {
-      tiktok: '#ff0050',
-      youtube: '#ff0000',
-      instagram: '#e1306c',
-      x: '#1da1f2'
+    const colorThemes = {
+      tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
+      youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
+      instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045']
     };
 
     const blobs = document.querySelectorAll('.blob');
@@ -174,17 +173,16 @@
     const aiResults = document.getElementById('ai-results');
     let progress = 0;
 
-    // Initial random blob positions & motion vectors
     const blobData = Array.from(blobs).map(() => ({
       x: Math.random() * 1000,
       y: Math.random() * 700,
-      r: 120 + Math.random() * 60,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5,
+      r: 140 + Math.random() * 40,
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: (Math.random() - 0.5) * 0.4,
       pulse: Math.random() * Math.PI * 2
     }));
 
-    // Animate continuous floating
+    // Gooey + floating motion
     function animateBlobs(time) {
       blobData.forEach((b, i) => {
         b.x += b.dx;
@@ -201,31 +199,31 @@
     }
     requestAnimationFrame(animateBlobs);
 
-    // Slight parallax to mouse
+    // Mouse parallax
     document.addEventListener('mousemove', (e) => {
-      const moveX = (e.clientX / window.innerWidth - 0.5) * 20;
-      const moveY = (e.clientY / window.innerHeight - 0.5) * 20;
+      const moveX = (e.clientX / window.innerWidth - 0.5) * 25;
+      const moveY = (e.clientY / window.innerHeight - 0.5) * 25;
       blobs.forEach((blob, i) => {
-        blob.style.transform = `translate(${moveX * (i / 4)}px, ${moveY * (i / 4)}px)`;
+        blob.style.transform = `translate(${moveX * (i / 6)}px, ${moveY * (i / 6)}px)`;
       });
     });
 
-    // Update colors per platform
+    // Assign colors based on platform
     function updateColors() {
-      const color = platformColors[platformSelect.value];
-      document.body.setAttribute('data-platform', platformSelect.value);
-      analyzeBtn.style.background = color;
-      loadingBar.style.background = color;
+      const platform = platformSelect.value;
+      const palette = colorThemes[platform];
+      analyzeBtn.style.background = palette[0];
+      loadingBar.style.background = palette[0];
       blobs.forEach((b, i) => {
+        const color = palette[i % palette.length];
         b.setAttribute('fill', color);
-        const glowIntensity = Math.min(40, 10 + progress / 2);
-        b.style.filter = `drop-shadow(0 0 ${glowIntensity}px ${color})`;
+        b.style.filter = `drop-shadow(0 0 25px ${color})`;
       });
     }
 
     platformSelect.addEventListener('change', updateColors);
 
-    // Loading / pulse sync with progress
+    // Simulate loading
     analyzeBtn.addEventListener('click', () => {
       progress = 0;
       aiResults.style.display = "none";
@@ -237,12 +235,8 @@
           aiResults.style.display = "block";
         }
         loadingBar.style.width = progress + "%";
-        const pulseSpeed = 1 + progress / 50;
-        blobs.forEach((b, i) => {
-          b.style.animation = `pulse ${1 / pulseSpeed}s infinite alternate`;
-        });
         updateColors();
-      }, 180);
+      }, 150);
     });
 
     updateColors();
