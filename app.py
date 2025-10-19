@@ -44,27 +44,49 @@ def generate_best_post_time(platform, niche):
         "tiktok": ("6–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 55))),
         "youtube": ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(15, 59))),
         "instagram": ("5–8 PM EST", "6:{:02d} PM EST".format(random.randint(20, 50))),
+        "facebook": ("9–11 AM EST", "10:{:02d} AM EST".format(random.randint(0, 59))),
     }
 
     # Adjust by niche keywords
     niche_lower = niche.lower() if niche else ""
-    if any(k in niche_lower for k in ["fitness", "motivation", "lifestyle"]):
-        post_window, peak = ("6–9 AM EST", "7:{:02d} AM EST".format(random.randint(0, 50)))
-    elif any(k in niche_lower for k in ["business", "education", "career"]):
-        post_window, peak = ("12–3 PM EST", "1:{:02d} PM EST".format(random.randint(5, 55)))
-    elif any(k in niche_lower for k in ["gaming", "music", "entertainment"]):
-        post_window, peak = ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 59)))
+    if platform == "facebook":
+        if any(k in niche_lower for k in ["news", "politics", "community", "education"]):
+            post_window, peak = ("7–10 AM EST", "8:{:02d} AM EST".format(random.randint(5, 55)))
+        elif any(k in niche_lower for k in ["lifestyle", "beauty", "fashion", "health", "fitness"]):
+            post_window, peak = ("11 AM–2 PM EST", "12:{:02d} PM EST".format(random.randint(10, 50)))
+        elif any(k in niche_lower for k in ["gaming", "entertainment", "music", "memes"]):
+            post_window, peak = ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(0, 59)))
+        elif any(k in niche_lower for k in ["business", "finance", "marketing"]):
+            post_window, peak = ("9 AM–12 PM EST", "10:{:02d} AM EST".format(random.randint(0, 59)))
+        else:
+            post_window, peak = ("8–11 AM EST", "9:{:02d} AM EST".format(random.randint(0, 59)))
     else:
-        post_window, peak = post_patterns.get(platform, ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(10, 59))))
+        if any(k in niche_lower for k in ["fitness", "motivation", "lifestyle"]):
+            post_window, peak = ("6–9 AM EST", "7:{:02d} AM EST".format(random.randint(0, 50)))
+        elif any(k in niche_lower for k in ["business", "education", "career"]):
+            post_window, peak = ("12–3 PM EST", "1:{:02d} PM EST".format(random.randint(5, 55)))
+        elif any(k in niche_lower for k in ["gaming", "music", "entertainment"]):
+            post_window, peak = ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 59)))
+        else:
+            post_window, peak = post_patterns.get(platform, ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(10, 59))))
 
     return f"⏰ {day} {post_window}\n💡 Peak engagement around {peak}"
 
 
 def generate_ai_analysis(video_props, platform, video_name):
-    """Generate AI analysis using OpenAI API."""
-    prompt = f"""
-You are an expert social media strategist. Analyze this {platform} video and generate viral optimization insights.
+    """Generate AI analysis using OpenAI API tuned for each platform."""
+    tone_focus = {
+        "tiktok": "fast-paced trends and short-form engagement hooks",
+        "youtube": "retention, watch-time optimization, and storytelling structure",
+        "instagram": "visual aesthetic, brand tone, and emotional storytelling",
+        "facebook": "shareability, community engagement, and conversation triggers"
+    }
 
+    prompt = f"""
+You are an expert social media strategist specializing in {platform}’s algorithm. 
+Analyze this {platform} video and generate viral optimization insights tailored to {platform}’s ranking system.
+
+Platform focus: {tone_focus.get(platform, 'social video engagement principles')}
 Video: {video_name}
 Duration: {video_props['duration']}s
 Resolution: {video_props['resolution']}
@@ -72,7 +94,7 @@ Aspect Ratio: {video_props['aspect_ratio']}
 Brightness: {video_props['brightness']}
 Tone: {video_props['tone']}
 
-Provide a complete analysis in this exact structured format:
+Provide your response in this exact structured format:
 
 🎬 Drag and drop your {platform} video file here: "{video_name}"
 🎥 Running {platform} Viral Optimizer...
@@ -98,13 +120,13 @@ Provide a complete analysis in this exact structured format:
 
 💬 AI-Generated Viral Insights:
 ### 1. Scroll-Stopping Caption
-(Give a catchy, emotional caption)
+(Give a catchy, emotional caption tailored to {platform})
 
 ### 2. 5 Viral Tags
 (Give 5 tags relevant to the {platform} niche)
 
 ### 3. Actionable Improvement Tip for Engagement
-(Give one improvement idea)
+(Give one improvement idea specific to {platform})
 
 ### 4. Viral Optimization Score (1–100)
 (Give a score and a short explanation)
@@ -134,9 +156,9 @@ Provide a complete analysis in this exact structured format:
 
 📋 Actionable Checklist:
 - Hook viewers in the first 2 seconds.
-- Use trending audio and relevant captions.
-- Encourage saves and shares with call-to-actions.
-- Maintain visual consistency across Reels.
+- Use platform-native text formats and CTAs.
+- Encourage shares and comments to boost visibility.
+- Post when your target audience is most active.
 
 🎯 **Detected Niche:** (detected niche)
 🕓 **Best Time to Post for that Niche ({platform.capitalize()})**:
@@ -160,7 +182,7 @@ def index():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        platform = request.form.get("platform", "tiktok")
+        platform = request.form.get("platform", "tiktok").lower()
         video = request.files.get("video")
 
         if not video:
