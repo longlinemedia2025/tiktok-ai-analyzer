@@ -19,7 +19,7 @@
       position: relative;
     }
 
-    /* ========== Canvas Gooey Background ========== */
+    /* Canvas Gooey Background */
     #gooey-canvas {
       position: fixed;
       top: 0;
@@ -28,9 +28,10 @@
       height: 100%;
       z-index: -1;
       pointer-events: none;
+      filter: blur(60px) saturate(160%) brightness(1.4);
     }
 
-    /* ========== Container ========== */
+    /* Container */
     .container {
       max-width: 800px;
       margin: 100px auto;
@@ -39,7 +40,7 @@
       border-radius: 20px;
       box-shadow: 0 0 30px rgba(255,255,255,0.04);
       text-align: center;
-      backdrop-filter: blur(6px);
+      backdrop-filter: blur(8px);
       position: relative;
       z-index: 2;
     }
@@ -68,7 +69,6 @@
     }
     button:hover { opacity: 0.92; transform: translateY(-2px); }
 
-    /* Loading Bar */
     #loading-bar {
       height: 8px;
       width: 0%;
@@ -78,7 +78,6 @@
       transition: width 0.18s ease, background 0.3s ease;
     }
 
-    /* AI Results */
     #ai-results {
       margin-top: 30px;
       text-align: left;
@@ -91,7 +90,6 @@
 
     #ai-results h3 { margin-top: 0; }
 
-    /* small meta lines */
     .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
 
     @media (max-width: 768px) {
@@ -106,10 +104,8 @@
 </head>
 
 <body data-platform="tiktok">
-  <!-- Canvas Gooey Background -->
   <canvas id="gooey-canvas"></canvas>
 
-  <!-- Main UI -->
   <div class="container" role="main">
     <h1>AI Social Analyzer</h1>
 
@@ -143,7 +139,7 @@
   </div>
 
   <script>
-    /* ========== Gooey Canvas Background ========== */
+    /* Canvas Gooey Background */
     const canvas = document.getElementById("gooey-canvas");
     const ctx = canvas.getContext("2d");
     let width, height, blobs = [];
@@ -186,18 +182,15 @@
       blobs.forEach(b => {
         b.x += b.dx;
         b.y += b.dy;
-
         if (b.x < -200) b.x = width + 200;
         if (b.x > width + 200) b.x = -200;
         if (b.y < -200) b.y = height + 200;
         if (b.y > height + 200) b.y = -200;
-
         const pulse = 1 + Math.sin(t / 700 + b.pulseOffset) * 0.06;
         const radius = b.r * pulse;
         const gradient = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, radius);
-        gradient.addColorStop(0, b.color + "99");
+        gradient.addColorStop(0, b.color + "aa");
         gradient.addColorStop(1, b.color + "00");
-
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
@@ -207,21 +200,12 @@
       requestAnimationFrame(animateBlobs);
     }
 
-    document.addEventListener("mousemove", (e) => {
-      const moveX = (e.clientX / window.innerWidth - 0.5) * 30;
-      const moveY = (e.clientY / window.innerHeight - 0.5) * 30;
-      blobs.forEach((b, i) => {
-        b.x += moveX * 0.02 * (i % 3);
-        b.y += moveY * 0.02 * (i % 3);
-      });
-    });
-
     document.getElementById("platform")?.addEventListener("change", initBlobs);
 
     initBlobs();
     requestAnimationFrame(animateBlobs);
 
-    /* ========== UI Logic (same as before) ========== */
+    /* UI Logic */
     const loadingBar = document.getElementById('loading-bar');
     const platformSelect = document.getElementById('platform');
     const analyzeBtn = document.getElementById('analyzeBtn');
@@ -237,9 +221,10 @@
     const csvMeta = document.getElementById('csv-meta');
     let progress = 0;
 
+    const platformThemes = platformColors;
     function updateColors() {
       const platform = platformSelect.value;
-      const palette = platformColors[platform] || platformColors['tiktok'];
+      const palette = platformThemes[platform] || platformThemes['tiktok'];
       analyzeBtn.style.background = palette[0];
       loadingBar.style.background = palette[0];
     }
@@ -248,34 +233,24 @@
       if (videoUpload.files.length) {
         const f = videoUpload.files[0];
         videoMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else {
-        videoMeta.textContent = '';
-      }
+      } else { videoMeta.textContent = ''; }
     });
     csvUpload.addEventListener('change', ()=> {
       if (csvUpload.files.length) {
         const f = csvUpload.files[0];
         csvMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else {
-        csvMeta.textContent = '';
-      }
+      } else { csvMeta.textContent = ''; }
     });
 
-    platformSelect.addEventListener('change', () => {
-      updateColors();
-    });
-
-    updateColors(); // initial
+    platformSelect.addEventListener('change', updateColors);
+    updateColors();
 
     analyzeBtn.addEventListener('click', async () => {
       const videoFile = videoUpload.files[0];
       const csvFile = csvUpload.files[0];
       const platform = platformSelect.value;
 
-      if (!videoFile) {
-        alert("Please upload a video first!");
-        return;
-      }
+      if (!videoFile) { alert("Please upload a video first!"); return; }
 
       progress = 0;
       aiResults.style.display = "none";
@@ -302,11 +277,7 @@
         const data = await resp.json();
         clearInterval(progressInterval);
         loadingBar.style.width = "100%";
-
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
+        if (data.error) { alert("Error: " + data.error); return; }
 
         const resultText = data.result || "";
         fullResult.textContent = resultText;
