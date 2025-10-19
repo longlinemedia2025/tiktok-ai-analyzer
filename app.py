@@ -9,7 +9,6 @@ import tempfile
 import re
 import datetime
 import random
-import json
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
@@ -20,19 +19,10 @@ def analyze_video_properties(video_path):
     """Extract basic visual properties from video."""
     clip = VideoFileClip(video_path)
     duration = round(clip.duration, 2)
-    sample_time = min(max(0.1, clip.duration / 2), clip.duration - 0.1)
-    frame = clip.get_frame(sample_time)
-    try:
-        frame_arr = (frame * 255).astype(np.uint8)
-    except Exception:
-        frame_arr = frame.astype(np.uint8)
-    height, width = frame_arr.shape[0], frame_arr.shape[1]
-    aspect_ratio = round(width / height, 3) if height != 0 else 0
-    try:
-        gray = cv2.cvtColor(frame_arr, cv2.COLOR_RGB2GRAY)
-    except Exception:
-        gray = cv2.cvtColor(frame_arr, cv2.COLOR_BGR2GRAY)
-    brightness = float(np.mean(gray))
+    frame = clip.get_frame(clip.duration / 2)
+    height, width, _ = frame.shape
+    aspect_ratio = round(width / height, 3)
+    brightness = np.mean(cv2.cvtColor((frame * 255).astype(np.uint8), cv2.COLOR_BGR2GRAY))
     tone = "bright and energetic" if brightness > 100 else "dark and moody"
 
     return {
@@ -45,89 +35,75 @@ def analyze_video_properties(video_path):
 
 
 def generate_best_post_time(platform, niche):
-    """Generate realistic best posting time dynamically using niche, platform, and day/time behavior."""
+    """Generate a realistic best posting time based on niche, platform, and day."""
     now = datetime.datetime.now()
     day = now.strftime("%a")
-    hour = now.hour
 
+    # Base posting time patterns by platform
     post_patterns = {
-        "TikTok": ("6–10 PM EST", f"8:{random.randint(10,55):02d} PM EST"),
-        "YouTube": ("7–10 PM EST", f"8:{random.randint(15,59):02d} PM EST"),
-        "Instagram": ("5–8 PM EST", f"6:{random.randint(20,50):02d} PM EST"),
-        "Facebook": ("11 AM–2 PM EST", f"12:{random.randint(5,55):02d} PM EST"),
+        "tiktok": ("6–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 55))),
+        "youtube": ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(15, 59))),
+        "instagram": ("5–8 PM EST", "6:{:02d} PM EST".format(random.randint(20, 50))),
+        "facebook": ("9–11 AM EST", "10:{:02d} AM EST".format(random.randint(0, 59))),
     }
 
-    niche_lower = (niche or "").lower()
-    dynamic_time = ""
-
-    if "gaming" in niche_lower:
-        dynamic_time = ("Fri" if day not in ["Fri", "Sat"] else day, "7–10 PM EST", f"8:{random.randint(15,55):02d} PM EST")
-    elif "business" in niche_lower or "education" in niche_lower:
-        dynamic_time = (day, "12–3 PM EST", f"1:{random.randint(10,50):02d} PM EST")
-    elif "fitness" in niche_lower or "motivation" in niche_lower:
-        dynamic_time = (day, "6–9 AM EST", f"7:{random.randint(0,45):02d} AM EST")
-    elif "lifestyle" in niche_lower or "fashion" in niche_lower:
-        dynamic_time = (day, "9 AM–12 PM EST", f"10:{random.randint(0,50):02d} AM EST")
-    elif "news" in niche_lower or "current events" in niche_lower:
-        dynamic_time = (day, "8–11 AM EST", f"9:{random.randint(10,55):02d} AM EST")
+    # Adjust by niche keywords
+    niche_lower = niche.lower() if niche else ""
+    if platform == "facebook":
+        if any(k in niche_lower for k in ["news", "politics", "community", "education"]):
+            post_window, peak = ("7–10 AM EST", "8:{:02d} AM EST".format(random.randint(5, 55)))
+        elif any(k in niche_lower for k in ["lifestyle", "beauty", "fashion", "health", "fitness"]):
+            post_window, peak = ("11 AM–2 PM EST", "12:{:02d} PM EST".format(random.randint(10, 50)))
+        elif any(k in niche_lower for k in ["gaming", "entertainment", "music", "memes"]):
+            post_window, peak = ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(0, 59)))
+        elif any(k in niche_lower for k in ["business", "finance", "marketing"]):
+            post_window, peak = ("9 AM–12 PM EST", "10:{:02d} AM EST".format(random.randint(0, 59)))
+        else:
+            post_window, peak = ("8–11 AM EST", "9:{:02d} AM EST".format(random.randint(0, 59)))
     else:
-        dynamic_time = (day, *post_patterns.get(platform, ("6–9 PM EST", f"7:{random.randint(10,59):02d} PM EST")))
+        if any(k in niche_lower for k in ["fitness", "motivation", "lifestyle"]):
+            post_window, peak = ("6–9 AM EST", "7:{:02d} AM EST".format(random.randint(0, 50)))
+        elif any(k in niche_lower for k in ["business", "education", "career"]):
+            post_window, peak = ("12–3 PM EST", "1:{:02d} PM EST".format(random.randint(5, 55)))
+        elif any(k in niche_lower for k in ["gaming", "music", "entertainment"]):
+            post_window, peak = ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 59)))
+        else:
+            post_window, peak = post_patterns.get(platform, ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(10, 59))))
 
-    day, window, peak = dynamic_time
-    return f"⏰ {day} {window}\n💡 Peak engagement around {peak}"
+    return f"⏰ {day} {post_window}\n💡 Peak engagement around {peak}"
 
 
 def generate_ai_analysis(video_props, platform, video_name):
-    """Generate AI analysis using OpenAI API tuned per platform (including Facebook)."""
-    platform_label = platform
-    if platform_label.lower() == "tiktok":
-        algo_focus = (
-            "Analyze this TikTok video using TikTok’s algorithmic preferences: "
-            "short loops, early engagement, strong hook within first 2 seconds, trending sounds, and native features."
-        )
-        tag_label = "Hashtags"
-        insights_label = "AI-Generated Viral Insights"
-    elif platform_label.lower() == "youtube":
-        algo_focus = (
-            "Analyze this YouTube video using YouTube’s algorithmic priorities: "
-            "click-through rate, watch time, audience retention, SEO title/description, and suggested feed optimization."
-        )
-        tag_label = "Tags"
-        insights_label = "AI-Generated Viral Insights"
-    elif platform_label.lower() == "instagram":
-        algo_focus = (
-            "Analyze this Instagram Reel using Instagram's algorithmic signals: "
-            "early saves/shares, Reels completion rate, trending audio, and Explore/Hashtag discoverability."
-        )
-        tag_label = "Hashtags"
-        insights_label = "Reels-Focused Viral Insights"
-    elif platform_label.lower() == "facebook":
-        algo_focus = (
-            "Analyze this Facebook Reel/Post according to Facebook's algorithm: "
-            "prioritize native video completion, early reactions & shares, group/community amplification, "
-            "and content that sparks conversation. Include timing suggestions using recent engagement behavior "
-            "for the detected niche and day of week."
-        )
-        tag_label = "Tags/Hashtags"
-        insights_label = "Facebook-Specific Viral Insights"
-    else:
-        algo_focus = "Analyze this video for general social media virality."
-        tag_label = "Tags"
-        insights_label = "AI-Generated Viral Insights"
+    """Generate AI analysis using OpenAI API tuned for each platform."""
+    tone_focus = {
+        "tiktok": "fast-paced trends and short-form engagement hooks",
+        "youtube": "retention, watch-time optimization, and storytelling structure",
+        "instagram": "visual aesthetic, brand tone, and emotional storytelling",
+        "facebook": "shareability, community engagement, and conversation triggers"
+    }
 
     prompt = f"""
-{algo_focus}
+You are an expert social media strategist specializing in {platform}’s algorithm. 
+Analyze this {platform} video and generate viral optimization insights tailored to {platform}’s ranking system.
 
-Create a viral video analysis for {platform_label} with this structure EXACTLY:
+Platform focus: {tone_focus.get(platform, 'social video engagement principles')}
+Video: {video_name}
+Duration: {video_props['duration']}s
+Resolution: {video_props['resolution']}
+Aspect Ratio: {video_props['aspect_ratio']}
+Brightness: {video_props['brightness']}
+Tone: {video_props['tone']}
 
-🎬 Drag and drop your {platform_label} video file here: "{video_name}"
-🎥 Running {platform_label} Viral Optimizer...
+Provide your response in this exact structured format:
+
+🎬 Drag and drop your {platform} video file here: "{video_name}"
+🎥 Running {platform} Viral Optimizer...
 
 🤖 Generating AI-powered analysis, captions, and viral tips...
 
 🔥 Fetching viral video comparisons and strategic insights...
 
-✅ {platform_label} Video Analysis Complete!
+✅ {platform.capitalize()} Video Analysis Complete!
 
 🎬 Video: {video_name}
 📏 Duration: {video_props['duration']}s
@@ -138,28 +114,28 @@ Create a viral video analysis for {platform_label} with this structure EXACTLY:
 ⭐ Heuristic Score: 8/10 (High brightness and clear resolution contribute to visual appeal.)
 
 🎯 Detected Attributes:
-- Niche: (detect from content)
+- Niche: (based on tone and content)
 - Tone: {video_props['tone']}
-- Keywords: (detect likely keywords from content)
+- Keywords: (based on likely subject matter)
 
-💬 {insights_label}:
+💬 AI-Generated Viral Insights:
 ### 1. Scroll-Stopping Caption
-(Provide one creative, high-performing caption idea tailored to {platform_label}.)
+(Give a catchy, emotional caption tailored to {platform})
 
-### 2. 5 Viral {tag_label}
-(Provide 5 {platform_label}-relevant {tag_label.lower()} based on content and niche.)
+### 2. 5 Viral Tags
+(Give 5 tags relevant to the {platform} niche)
 
 ### 3. Actionable Improvement Tip for Engagement
-(Provide a short, actionable suggestion tuned for {platform_label}’s algorithm.)
+(Give one improvement idea specific to {platform})
 
 ### 4. Viral Optimization Score (1–100)
-(Give a numeric score and short explanation.)
+(Give a score and a short explanation)
 
 ### 5. Motivation to Increase Virality
-(Give platform-specific encouragement or strategy tip.)
+(Give an encouraging tip)
 
 🔥 Viral Comparison Results:
-### Comparison with Viral {platform_label} Videos in the Same Niche
+### Comparison with Viral {platform} Videos in the Same Niche
 #### Viral Example 1
 - **Video Concept Summary:** ...
 - **What Made It Go Viral:** ...
@@ -176,32 +152,26 @@ Create a viral video analysis for {platform_label} with this structure EXACTLY:
 - **How to Replicate Success:** ...
 
 ### Takeaway Strategy
-(Summarize actionable insights for {platform_label} creators)
+(Summarize actionable insights for {platform} creators)
 
 📋 Actionable Checklist:
 - Hook viewers in the first 2 seconds.
-- Use trending audio and relevant captions.
-- Encourage saves and shares with call-to-actions.
-- Maintain visual consistency across posts.
+- Use platform-native text formats and CTAs.
+- Encourage shares and comments to boost visibility.
+- Post when your target audience is most active.
 
 🎯 **Detected Niche:** (detected niche)
-🕓 **Best Time to Post for {platform_label} (by niche)**:
+🕓 **Best Time to Post for that Niche ({platform.capitalize()})**:
 ⏰ (Day + time range in EST)
 💡 Peak engagement around (specific time in EST)
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.9,
-            max_tokens=1200,
-        )
-        text = response.choices[0].message.content.strip()
-    except Exception as e:
-        text = f"(AI generation failed: {str(e)})\n\nPlease retry."
-
-    return text
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.9,
+    )
+    return response.choices[0].message.content.strip()
 
 
 @app.route("/")
@@ -212,7 +182,7 @@ def index():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        platform = request.form.get("platform", "TikTok")
+        platform = request.form.get("platform", "tiktok").lower()
         video = request.files.get("video")
 
         if not video:
@@ -222,45 +192,38 @@ def analyze():
             video.save(temp.name)
             video_path = temp.name
 
+        # Extract video properties
         props = analyze_video_properties(video_path)
+
+        # Get AI-generated text
         ai_text = generate_ai_analysis(props, platform, video.filename)
 
-        niche_match = re.search(r"Detected Niche:\s*(.+)", ai_text)
-        niche = (niche_match.group(1).strip() if niche_match else "General")
+        # Extract niche
+        niche_match = re.search(r"Niche:\s*(.+)", ai_text)
+        niche = niche_match.group(1).strip() if niche_match else "General"
 
+        # Generate best posting time dynamically
         best_time_text = generate_best_post_time(platform, niche)
 
-        hashtags_list = re.findall(r"#\w+", ai_text)
-        score_match = re.search(r"(\d{1,3})\s*(?:/100|\%)", ai_text)
-        score = score_match.group(1) if score_match else None
+        # Extract viral score
+        score_match = re.search(r"(\d{1,3})/100", ai_text)
+        score = score_match.group(1) if score_match else "N/A"
 
+        # Combine results with score near top
         final_output = f"""
 AI Results
-🎬 Drag and drop your {platform} video file here: "{video.filename}"
-🎥 Running {platform} Viral Optimizer...
+🎬 Video Analyzed: "{video.filename}"
 
-🤖 Generating AI-powered analysis, captions, and viral tips...
+⭐ Viral Optimization Score: {score}/100
 
-🔥 Fetching viral video comparisons and strategic insights...
+{ai_text}
 
-✅ {platform} Video Analysis Complete!
-
-🎬 Video: {video.filename}
-📏 Duration: {props['duration']}s
-🖼 Resolution: {props['resolution']}
-📱 Aspect Ratio: {props['aspect_ratio']}
-💡 Brightness: {props['brightness']}
-🎨 Tone: {props['tone']}
-⭐ Heuristic Score: {score or '8'}/10
-
-💬 AI-Generated Viral Insights:
-{ai_text.split('💬',1)[-1] if '💬' in ai_text else ai_text}
-
-🕓 **Best Time to Post for {niche} ({platform})**:
+🕓 **Best Time to Post for {niche} ({platform.capitalize()})**:
 {best_time_text}
 """
 
-        final_output = re.sub(r"===JSON===.*", "", final_output, flags=re.DOTALL).strip()
+        # Clean out any leftover JSON-like text
+        final_output = re.sub(r"===JSON===.*", "", final_output, flags=re.DOTALL)
 
         return jsonify({"result": final_output})
 
@@ -269,4 +232,4 @@ AI Results
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)
