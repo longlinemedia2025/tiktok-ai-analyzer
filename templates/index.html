@@ -9,7 +9,7 @@
       --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
       --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
       --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
-      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #ffffff;
+      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #a6c9ff, #ffffff;
       --base-bg: #080808;
     }
 
@@ -20,6 +20,7 @@
       color: #fff;
       overflow-x: hidden;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     #gooey-bg {
@@ -41,9 +42,9 @@
 
     .blob {
       opacity: 0;
-      animation: fadeIn 1.6s ease-in forwards;
+      animation: fadeIn 1.4s ease-in forwards;
       mix-blend-mode: screen;
-      transition: fill 0.8s ease, filter 0.8s ease;
+      transition: fill 0.6s ease, filter 0.6s ease, transform 0.12s ease;
       will-change: transform, opacity;
     }
 
@@ -121,7 +122,7 @@
     <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
       <defs>
         <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
           <feColorMatrix in="blur" mode="matrix"
             values="1 0 0 0 0  
                     0 1 0 0 0  
@@ -188,48 +189,54 @@
     const analyzeBtn = document.getElementById('analyzeBtn');
 
     const viewBoxW = 1000, viewBoxH = 700;
-    const blobData = blobs.map((b, i) => ({
+    const blobData = blobs.map(b => ({
       x: parseFloat(b.getAttribute('cx')),
       y: parseFloat(b.getAttribute('cy')),
       r: parseFloat(b.getAttribute('r')),
-      dx: (Math.random() - 0.5) * 0.8,
-      dy: (Math.random() - 0.5) * 0.8,
+      dx: (Math.random() - 0.5) * 1.2,
+      dy: (Math.random() - 0.5) * 1.2,
       pulse: Math.random() * Math.PI * 2,
       speedMult: 0.4 + Math.random() * 0.6
     }));
 
-    // smooth GPU-friendly animation for mobile
-    let lastTime = performance.now();
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const svgBlur = document.querySelector('#goo feGaussianBlur');
+    if (isIOS) svgBlur.setAttribute('stdDeviation', '10');
+
+    let lastFrame = 0;
+    const frameRate = isIOS ? 30 : 60;
+
     function animate(now) {
-      const dt = (now - lastTime) / 16.6;
-      lastTime = now;
-      for (let i = 0; i < blobData.length; i++) {
-        const b = blobData[i];
-        b.x += b.dx * b.speedMult * dt;
-        b.y += b.dy * b.speedMult * dt;
+      if (now - lastFrame < 1000 / frameRate) return requestAnimationFrame(animate);
+      lastFrame = now;
+
+      for (const b of blobData) {
+        b.x += b.dx * b.speedMult;
+        b.y += b.dy * b.speedMult;
         if (b.x < -200) b.x = viewBoxW + 200;
         if (b.x > viewBoxW + 200) b.x = -200;
         if (b.y < -200) b.y = viewBoxH + 200;
         if (b.y > viewBoxH + 200) b.y = -200;
-        const pulse = 1 + Math.sin(now / 800 + b.pulse) * 0.06;
-        const r = b.r * pulse;
 
-        // transform-based movement instead of cx/cy updates (GPU accelerated)
-        blobs[i].style.transform = `translate3d(${b.x - 500}px, ${b.y - 350}px, 0) scale(${r / b.r})`;
+        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
+        const el = blobs[blobData.indexOf(b)];
+        el.setAttribute('cx', b.x);
+        el.setAttribute('cy', b.y);
+        el.setAttribute('r', r);
       }
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
 
     function updateColors() {
-      const p = colorThemes[platformSelect.value] || colorThemes.tiktok;
+      const colors = colorThemes[platformSelect.value];
       blobs.forEach((b, i) => {
-        const c = p[i % p.length];
+        const c = colors[i % colors.length];
         b.setAttribute('fill', c);
-        b.style.filter = `drop-shadow(0 0 32px ${c})`;
+        b.style.filter = isIOS ? `brightness(1.2)` : `drop-shadow(0 0 32px ${c})`;
       });
-      analyzeBtn.style.background = p[0];
-      loadingBar.style.background = p[0];
+      analyzeBtn.style.background = colors[0];
+      loadingBar.style.background = colors[0];
     }
 
     platformSelect.addEventListener('change', updateColors);
