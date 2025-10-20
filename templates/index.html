@@ -3,414 +3,278 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Social Analyzer</title>
+  <title>Viral Optimizer Tool</title>
   <style>
-    :root {
-      --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
-      --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
-      --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
-      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #ffffff;
-      --base-bg: #080808;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
     body {
       margin: 0;
-      font-family: "Poppins", sans-serif;
-      background: var(--base-bg);
-      color: #fff;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-
-    /* ================= Gooey Background ================= */
-    #gooey-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #0a0a0a;
       overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    #gooey-bg svg {
-      width: 100%;
-      height: 100%;
-      filter: url(#goo);
-    }
-
-    .blob {
-      opacity: 0;
-      animation: fadeIn 1.6s ease-in forwards;
-      mix-blend-mode: screen;
-      transition: fill 0.8s ease, filter 0.8s ease, transform 0.15s ease;
-      will-change: transform, opacity;
-    }
-
-    @keyframes fadeIn {
-      to { opacity: 1; }
-    }
-
-    /* ================= Layout Container ================= */
-    .container {
-      max-width: 800px;
-      margin: 80px auto;
-      padding: 32px;
-      background: rgba(20, 20, 20, 0.84);
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255,255,255,0.04);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
       text-align: center;
-      backdrop-filter: blur(6px);
-      position: relative;
-      z-index: 2;
     }
 
-    h1 { font-size: 2.2rem; margin-bottom: 20px; }
+    h1 {
+      margin-top: 1rem;
+      font-size: 2.3rem;
+      font-weight: 600;
+    }
 
     select, input[type="file"], button {
-      margin: 10px 0;
-      padding: 10px;
+      font-family: inherit;
+      margin: 0.5rem;
+      padding: 0.6rem 1rem;
       border-radius: 10px;
       border: none;
       font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+      outline: none;
+      transition: 0.3s;
     }
 
-    select, input[type="file"] { background: #fff; color: #000; }
-    button {
-      background: #ff0050;
-      color: #fff;
+    select, input[type="file"] {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
       cursor: pointer;
-      transition: 0.2s;
-      font-weight: 800;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    button:hover { opacity: 0.92; transform: translateY(-2px); }
-
-    /* Loading Bar */
-    #loading-bar {
-      height: 8px;
-      width: 0%;
-      background: #ff0050;
-      border-radius: 5px;
-      margin-top: 15px;
-      transition: width 0.18s ease, background 0.3s ease;
-      will-change: width;
     }
 
-    /* AI Results */
-    #ai-results {
-      margin-top: 30px;
-      text-align: left;
-      background: rgba(255,255,255,0.03);
-      padding: 20px;
-      border-radius: 10px;
-      display: none;
+    button {
+      background: linear-gradient(90deg, #ff0050, #ff7a00);
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    #drop-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      width: 80%;
+      max-width: 500px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 1rem;
+      transition: 0.3s;
+    }
+
+    #drop-zone.dragover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #fff;
       color: #fff;
     }
 
-    #ai-results h3 { margin-top: 0; }
+    #csv-upload {
+      margin-top: 10px;
+    }
 
-    /* small meta lines */
-    .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
+    #loading-bar {
+      height: 6px;
+      width: 80%;
+      border-radius: 5px;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
 
-    /* small responsive improvements for mobile */
-    @media (max-width: 480px) {
-      .container { margin: 40px 12px; padding: 20px; }
-      h1 { font-size: 1.6rem; }
+    #progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff0050, #ff7a00);
+      border-radius: 5px;
+      transition: width 0.25s ease-in-out;
+    }
+
+    #results {
+      margin-top: 20px;
+      width: 80%;
+      max-width: 800px;
+      background: rgba(20, 20, 20, 0.92);
+      border-radius: 20px;
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 70vh;
+      white-space: pre-wrap;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      filter: url(#goo);
+      animation: floatBlobs 16s ease-in-out infinite;
+    }
+
+    @keyframes floatBlobs {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(60px, -60px) scale(1.2); }
+    }
+
+    svg {
+      position: absolute;
+      width: 0;
+      height: 0;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      #results {
+        width: 95%;
+      }
     }
   </style>
 </head>
+<body>
+  <h1>🎬 Viral Optimizer Tool</h1>
+  <select id="platform">
+    <option value="TikTok" selected>TikTok</option>
+    <option value="Instagram">Instagram</option>
+    <option value="YouTube">YouTube</option>
+    <option value="Facebook">Facebook</option>
+  </select>
 
-<body data-platform="tiktok">
-  <!-- Gooey Background -->
-  <div id="gooey-bg" aria-hidden="true">
-    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
-          <feColorMatrix in="blur" mode="matrix"
-            values="1 0 0 0 0  
-                    0 1 0 0 0  
-                    0 0 1 0 0  
-                    0 0 0 25 -10" result="goo"/>
-          <feBlend in="SourceGraphic" in2="goo"/>
-        </filter>
-      </defs>
-      <g id="blobs-group">
-        <!-- 6 large blobs (keeps look you asked for) -->
-        <circle class="blob" cx="150" cy="250" r="160"></circle>
-        <circle class="blob" cx="400" cy="180" r="170"></circle>
-        <circle class="blob" cx="700" cy="300" r="160"></circle>
-        <circle class="blob" cx="850" cy="500" r="140"></circle>
-        <circle class="blob" cx="500" cy="550" r="150"></circle>
-        <circle class="blob" cx="250" cy="500" r="130"></circle>
-      </g>
-    </svg>
+  <div id="drop-zone">🎥 Drag & Drop your video here or click to upload</div>
+  <input type="file" id="video" accept="video/*" hidden />
+
+  <div id="csv-upload">
+    <label for="csv">📂 Upload CSV (optional):</label>
+    <input type="file" id="csv" accept=".csv" />
   </div>
 
-  <!-- Main UI -->
-  <div class="container" role="main">
-    <h1>AI Social Analyzer</h1>
+  <button id="analyzeBtn">Analyze Video</button>
+  <div id="loading-bar"><div id="progress"></div></div>
 
-    <select id="platform" aria-label="Select platform">
-      <option value="tiktok" selected>TikTok</option>
-      <option value="youtube">YouTube</option>
-      <option value="instagram">Instagram</option>
-      <option value="facebook">Facebook</option>
-    </select>
+  <div id="results"></div>
 
-    <h3>Upload a Video</h3>
-    <input type="file" id="videoUpload" accept="video/*"/>
-    <div id="video-meta" class="file-meta"></div>
+  <!-- Gooey Filter -->
+  <svg>
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" />
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 25 -10" result="goo" />
+        <feBlend in="SourceGraphic" in2="goo" />
+      </filter>
+    </defs>
+  </svg>
 
-    <h3>Upload CSV for Analysis</h3>
-    <input type="file" id="csvUpload" accept=".csv"/>
-    <div id="csv-meta" class="file-meta"></div>
-
-    <button id="analyzeBtn">Analyze</button>
-    <div id="loading-bar" aria-hidden="true"></div>
-
-    <div id="ai-results" aria-live="polite">
-      <h3>AI Results</h3>
-
-      <!-- The large textual result (exact formatted block) -->
-      <pre id="full-result" style="white-space:pre-wrap; background:transparent; border:none; color:inherit; padding:0; margin:0;"></pre>
-
-      <!-- quick structured highlights -->
-      <div style="margin-top:12px;">
-        <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
-        <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
-        <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
-        <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
-      </div>
-    </div>
-  </div>
+  <div id="blobs"></div>
 
   <script>
-    // palettes (expanded with Facebook)
-    const colorThemes = {
-      tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
-      youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
-      instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
-      facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
+    const blobsContainer = document.getElementById('blobs');
+    const platformSelect = document.getElementById('platform');
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('video');
+    const csvInput = document.getElementById('csv');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resultsDiv = document.getElementById('results');
+    const progressBar = document.getElementById('progress');
+
+    const platforms = {
+      TikTok: ['#ff0050', '#ff7a00'],
+      Instagram: ['#833ab4', '#fd1d1d', '#fcb045'],
+      YouTube: ['#ff0000', '#282828'],
+      Facebook: ['#1877f2', '#42b72a']
     };
 
-    const blobs = Array.from(document.querySelectorAll('.blob'));
-    const loadingBar = document.getElementById('loading-bar');
-    const platformSelect = document.getElementById('platform');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const aiResults = document.getElementById('ai-results');
-    const fullResult = document.getElementById('full-result');
-    const captionEl = document.getElementById('caption');
-    const hashtagsEl = document.getElementById('hashtags');
-    const tagsEl = document.getElementById('tags');
-    const scoreEl = document.getElementById('score');
-    const videoUpload = document.getElementById('videoUpload');
-    const csvUpload = document.getElementById('csvUpload');
-    const videoMeta = document.getElementById('video-meta');
-    const csvMeta = document.getElementById('csv-meta');
-
-    // lighten CPU load for mobile: use smaller per-blob operations and hardware-accelerated transforms
-    const viewBoxW = 1000, viewBoxH = 700;
-    const blobData = blobs.map((b, i) => ({
-      x: parseFloat(b.getAttribute('cx')) || (100 + i*120),
-      y: parseFloat(b.getAttribute('cy')) || (120 + i*60),
-      r: parseFloat(b.getAttribute('r')) || (140),
-      dx: (Math.random() - 0.5) * (0.6 + Math.random()*1.0),
-      dy: (Math.random() - 0.5) * (0.6 + Math.random()*1.0),
-      pulse: Math.random() * Math.PI * 2,
-      speedMult: 0.25 + Math.random() * 0.9
-    }));
-
-    // Animate using requestAnimationFrame; small calculations and setting attributes (cx/cy) - still smooth on mobile
-    let lastTime = performance.now();
-    function animateBlobs(now) {
-      const dt = Math.min(40, now - lastTime);
-      lastTime = now;
-      for (let i = 0; i < blobData.length; i++) {
-        const b = blobData[i];
-        b.x += b.dx * b.speedMult * (dt/16);
-        b.y += b.dy * b.speedMult * (dt/16);
-
-        // wrap-around bounds so blobs don't clump off-screen
-        if (b.x < -250) b.x = viewBoxW + 250;
-        if (b.x > viewBoxW + 250) b.x = -250;
-        if (b.y < -250) b.y = viewBoxH + 250;
-        if (b.y > viewBoxH + 250) b.y = -250;
-
-        const pulse = 1 + Math.sin(now / 800 + b.pulse) * 0.06;
-        const r = Math.max(60, b.r * pulse);
-
-        const c = blobs[i];
-        c.setAttribute('cx', Math.round(b.x));
-        c.setAttribute('cy', Math.round(b.y));
-        c.setAttribute('r', Math.round(r));
-      }
-      requestAnimationFrame(animateBlobs);
+    // Generate blobs dynamically
+    for (let i = 0; i < 6; i++) {
+      const blob = document.createElement('div');
+      blob.classList.add('blob');
+      const size = Math.random() * 250 + 180;
+      blob.style.width = `${size}px`;
+      blob.style.height = `${size}px`;
+      blob.style.left = `${Math.random() * 100}%`;
+      blob.style.top = `${Math.random() * 100}%`;
+      blobsContainer.appendChild(blob);
     }
-    requestAnimationFrame(animateBlobs);
 
-    // mouse/touch parallax: translate using GPU-friendly translate3d
-    function handlePointerMove(clientX, clientY) {
-      const moveX = (clientX / window.innerWidth - 0.5) * 12;
-      const moveY = (clientY / window.innerHeight - 0.5) * 12;
-      blobs.forEach((blob, i) => {
-        const tx = (i - (blobs.length/2)) * 0.5;
-        // use translate3d to trigger GPU compositing
-        blob.style.transform = `translate3d(${moveX * tx}px, ${moveY * tx}px, 0)`;
+    function updateBlobColors() {
+      const colors = platforms[platformSelect.value];
+      document.querySelectorAll('.blob').forEach((blob, i) => {
+        blob.style.background = `radial-gradient(circle, ${colors[i % colors.length]}, transparent 70%)`;
+        blob.style.animationDuration = `${14 + Math.random() * 5}s`;
       });
     }
-    document.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
-    // touch support
-    document.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches[0]) {
-        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
 
-    // color handling
-    function updateColors() {
-      const platform = platformSelect.value;
-      const palette = colorThemes[platform] || colorThemes.tiktok;
-      analyzeBtn.style.background = palette[0];
-      loadingBar.style.background = palette[0];
-      blobs.forEach((b, i) => {
-        const color = palette[i % palette.length];
-        b.setAttribute('fill', color);
-        // reduce filter cost on low-powered devices
-        b.style.filter = `drop-shadow(0 0 ${Math.min(36, 10 + window.devicePixelRatio*12)}px ${color})`;
-      });
-      // set body data attribute (kept for any CSS mode logic)
-      document.body.setAttribute('data-platform', platform);
-    }
+    updateBlobColors();
+    platformSelect.addEventListener('change', updateBlobColors);
 
-    platformSelect.addEventListener('change', updateColors);
-
-    // upload meta displays
-    videoUpload.addEventListener('change', ()=> {
-      if (videoUpload.files.length) {
-        const f = videoUpload.files[0];
-        videoMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else { videoMeta.textContent = ''; }
+    // Drop & upload logic
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
     });
-    csvUpload.addEventListener('change', ()=> {
-      if (csvUpload.files.length) {
-        const f = csvUpload.files[0];
-        csvMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else { csvMeta.textContent = ''; }
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleVideo(file);
+    });
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) handleVideo(file);
     });
 
-    updateColors(); // initial colors
-
-    // Analyze button behavior: progress animation + POST to /analyze
-    analyzeBtn.addEventListener('click', async () => {
-      const videoFile = videoUpload.files[0];
-      const csvFile = csvUpload.files[0];
-      const platform = platformSelect.value;
-
-      if (!videoFile) {
-        alert("Please upload a video first!");
-        return;
-      }
-
-      // reset UI
-      aiResults.style.display = "none";
-      fullResult.textContent = "";
-      captionEl.innerText = "Waiting...";
-      hashtagsEl.innerText = "Waiting...";
-      tagsEl.innerText = "Waiting...";
-      scoreEl.innerText = "Waiting...";
-      loadingBar.style.width = "0%";
-
-      // small progressive animation until server responds
+    let animationInterval;
+    function animateProgress(speed) {
       let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 6;
-        if (progress >= 92) progress = 92;
-        loadingBar.style.width = progress + "%";
-        // pulse intensity: adjust blob glow by progress
-        blobs.forEach((b) => {
-          const c = b.getAttribute('fill') || '#fff';
-          b.style.filter = `drop-shadow(0 0 ${8 + progress/12}px ${c})`;
-        });
-      }, 180);
+      clearInterval(animationInterval);
+      animationInterval = setInterval(() => {
+        progress = Math.min(progress + Math.random() * 3.5, 100);
+        progressBar.style.width = `${progress}%`;
 
-      // package form
-      const fd = new FormData();
-      // pass platform capitalization expected by backend (TikTok, YouTube, Instagram, Facebook)
-      const platformForBackend = (platform === 'youtube') ? 'YouTube' : (platform === 'instagram') ? 'Instagram' : (platform === 'facebook') ? 'Facebook' : 'TikTok';
-      fd.append('platform', platformForBackend);
-      fd.append('video', videoFile);
-      if (csvFile) fd.append('csv', csvFile);
+        // Pulse blobs stronger with progress
+        document.querySelectorAll('.blob').forEach(blob => {
+          const scale = 1 + (progress / 100) * 0.35;
+          blob.style.transform = `scale(${scale})`;
+        });
+
+        if (progress >= 100) clearInterval(animationInterval);
+      }, speed);
+    }
+
+    async function handleVideo(file) {
+      resultsDiv.textContent = `🎥 Uploading and analyzing "${file.name}"...`;
+      const platform = platformSelect.value;
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('platform', platform);
+      if (csvInput.files.length > 0) {
+        formData.append('csv', csvInput.files[0]);
+      }
+      animateProgress(120);
 
       try {
-        const resp = await fetch('/analyze', { method: 'POST', body: fd });
-        const data = await resp.json();
-        clearInterval(progressInterval);
-        loadingBar.style.width = "100%";
-
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
-
-        // full human-readable text
-        const resultText = data.result || "";
-        fullResult.textContent = resultText;
-
-        // structured object (if backend returned)
-        const s = data.structured || {};
-        captionEl.innerText = s.caption || extractCaptionFromText(resultText) || "N/A";
-        hashtagsEl.innerText = s.hashtags || extractHashtags(resultText) || "Not detected";
-        tagsEl.innerText = s.tags || extractTags(resultText) || "N/A";
-        scoreEl.innerText = (s.optimization_score !== undefined) ? s.optimization_score : extractScore(resultText) || "N/A";
-
-        // show result pane
-        aiResults.style.display = "block";
-
-        // collapse the loading bar after a moment
-        setTimeout(()=> { loadingBar.style.width = "0%"; }, 900);
-
+        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+        progressBar.style.width = '100%';
+        resultsDiv.textContent = data.result || data.error || 'No result received.';
       } catch (err) {
-        clearInterval(progressInterval);
-        loadingBar.style.width = "0%";
-        alert("Server error: " + (err.message || err));
-        console.error(err);
+        resultsDiv.textContent = '❌ Error: ' + err.message;
       }
-    });
-
-    // small parsing helpers (fallback)
-    function extractHashtags(text) {
-      const tags = text.match(/#\w+/g);
-      return tags ? tags.join(' ') : null;
-    }
-    function extractTags(text) {
-      const m = text.match(/###\s*2\.\s*5\s*Viral\s*(Tags|Hashtags)[\s\S]*?(?=###|$)/i);
-      if (m) {
-        const t = m[0].match(/#\w+/g);
-        return t ? t.slice(0,5).join(' ') : null;
-      }
-      return null;
-    }
-    function extractCaptionFromText(text) {
-      const m = text.match(/###\s*1\.\s*Scroll-Stopping Caption[\s\S]*?(?=###|$)/i);
-      if (m) {
-        const q = m[0].match(/"(.*?)"/);
-        if (q) return q[1];
-        const lines = m[0].split('\n').map(l=>l.trim()).filter(Boolean);
-        return lines.length>1 ? lines[1] : null;
-      }
-      // fallback: look for first quoted line in document
-      const q2 = text.match(/"(.*?)"/);
-      return q2 ? q2[1] : null;
-    }
-    function extractScore(text) {
-      const m = text.match(/(\d{1,3})\/100/);
-      return m ? m[1] : null;
     }
   </script>
 </body>
