@@ -83,7 +83,7 @@ def generate_ai_analysis(video_props, platform, video_name):
     }
 
     prompt = f"""
-You are an expert social media strategist specializing in {platform}’s algorithm. 
+You are an expert social media strategist specializing in {platform}’s algorithm.
 Analyze this {platform} video and generate viral optimization insights tailored to {platform}’s ranking system.
 
 Platform focus: {tone_focus.get(platform, 'social video engagement principles')}
@@ -122,14 +122,14 @@ Provide your response in this exact structured format:
 ### 1. Scroll-Stopping Caption
 (Give a catchy, emotional caption tailored to {platform})
 
-### 2. 5 Viral Tags
-(Give 5 tags relevant to the {platform} niche)
+### 2. 5 Viral Hashtags
+(Give 5 hashtags relevant to the {platform} niche)
 
 ### 3. Actionable Improvement Tip for Engagement
 (Give one improvement idea specific to {platform})
 
 ### 4. Viral Optimization Score (1–100)
-(Give a score and a short explanation)
+(Give a score and short explanation)
 
 ### 5. Motivation to Increase Virality
 (Give an encouraging tip)
@@ -168,8 +168,12 @@ Provide your response in this exact structured format:
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "You are an advanced AI trained for viral video analysis."},
+            {"role": "user", "content": prompt},
+        ],
         temperature=0.9,
+        max_tokens=1600,
     )
     return response.choices[0].message.content.strip()
 
@@ -209,7 +213,7 @@ def analyze():
         score_match = re.search(r"(\d{1,3})/100", ai_text)
         score = score_match.group(1) if score_match else "N/A"
 
-        # Combine results with score near top
+        # Combine results neatly
         final_output = f"""
 AI Results
 🎬 Video Analyzed: "{video.filename}"
@@ -222,7 +226,6 @@ AI Results
 {best_time_text}
 """
 
-        # Clean out any leftover JSON-like text
         final_output = re.sub(r"===JSON===.*", "", final_output, flags=re.DOTALL)
 
         return jsonify({"result": final_output})
