@@ -97,6 +97,14 @@
       will-change: width;
     }
 
+    #loading-status {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      font-style: italic;
+      color: #cfcfcf;
+      min-height: 24px;
+    }
+
     #ai-results {
       margin-top: 30px;
       text-align: left;
@@ -162,6 +170,7 @@
 
     <button id="analyzeBtn">Analyze</button>
     <div id="loading-bar"></div>
+    <div id="loading-status"></div>
 
     <div id="ai-results">
       <h3>AI Results</h3>
@@ -186,7 +195,9 @@
 
     const platformSelect = document.getElementById('platform');
     const loadingBar = document.getElementById('loading-bar');
+    const loadingStatus = document.getElementById('loading-status');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const aiResults = document.getElementById('ai-results');
 
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map(b => ({
@@ -209,7 +220,6 @@
     function animate(now) {
       if (now - lastFrame < 1000 / frameRate) return requestAnimationFrame(animate);
       lastFrame = now;
-
       for (const b of blobData) {
         b.x += b.dx * b.speedMult;
         b.y += b.dy * b.speedMult;
@@ -217,7 +227,6 @@
         if (b.x > viewBoxW + 200) b.x = -200;
         if (b.y < -200) b.y = viewBoxH + 200;
         if (b.y > viewBoxH + 200) b.y = -200;
-
         const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
         const el = blobs[blobData.indexOf(b)];
         el.setAttribute('cx', b.x);
@@ -241,6 +250,43 @@
 
     platformSelect.addEventListener('change', updateColors);
     updateColors();
+
+    // --- Simulated AI Loading Process ---
+    const steps = [
+      "Initializing AI engine...",
+      "Analyzing video brightness and resolution...",
+      "Detecting pacing and visual patterns...",
+      "Evaluating emotional tone and colors...",
+      "Extracting audio and detecting clarity...",
+      "Identifying niche and style alignment...",
+      "Generating captions and hashtags...",
+      "Finalizing viral optimization score..."
+    ];
+
+    analyzeBtn.addEventListener('click', () => {
+      aiResults.style.display = 'none';
+      let progress = 0;
+      loadingBar.style.width = "0%";
+      loadingStatus.textContent = "Starting analysis...";
+      const interval = setInterval(() => {
+        progress += 5 + Math.random() * 8;
+        loadingBar.style.width = Math.min(progress, 100) + "%";
+
+        const stepIndex = Math.floor((progress / 100) * steps.length);
+        loadingStatus.textContent = steps[stepIndex] || "Finalizing...";
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          loadingBar.style.width = "100%";
+          loadingStatus.textContent = "✅ AI analysis complete!";
+          aiResults.style.display = 'block';
+          document.getElementById("caption").textContent = "AI-generated caption idea";
+          document.getElementById("hashtags").textContent = "#viral #socialgrowth #ai";
+          document.getElementById("tags").textContent = "@creator @trend";
+          document.getElementById("score").textContent = "94/100";
+        }
+      }, 500);
+    });
   </script>
 </body>
 </html>
