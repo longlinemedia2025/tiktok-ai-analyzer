@@ -3,195 +3,179 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Social Media Analyzer</title>
+  <title>AI Social Analyzer</title>
   <style>
     :root {
-      --bg: #0e0e10;
-      --text: #fff;
+      --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
+      --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
+      --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
+      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #ffffff;
+      --base-bg: #080808;
     }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
       margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: var(--base-bg);
+      color: #fff;
       overflow-x: hidden;
-      position: relative;
-      height: 100vh;
+      min-height: 100vh;
     }
 
-    h1 {
-      text-align: center;
-      font-size: 2rem;
-      font-weight: 700;
-      margin-top: 1rem;
-    }
-
-    .content {
-      position: relative;
-      z-index: 3;
-      max-width: 700px;
-      margin: 1rem auto;
-      padding: 1rem;
-      border-radius: 16px;
-      backdrop-filter: blur(16px);
-      background: rgba(0, 0, 0, 0.4);
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.4rem;
-    }
-
-    select, input[type="file"], button {
-      width: 100%;
-      padding: 0.6rem;
-      border-radius: 8px;
-      border: none;
-      font-size: 1rem;
-    }
-
-    button {
-      background: #ff0050;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    button:hover {
-      transform: scale(1.03);
-    }
-
-    #loading-bar {
-      height: 6px;
-      background: #ff0050;
-      border-radius: 4px;
-      width: 0%;
-      transition: width 0.3s ease;
-      margin: 1rem 0;
-    }
-
-    #ai-results {
-      display: none;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 1rem;
-    }
-
-    #ai-results p {
-      margin: 0.5rem 0;
-    }
-
-    .meta {
-      font-size: 0.85rem;
-      opacity: 0.7;
-      margin-top: 0.2rem;
-    }
-
-    /* Gooey blob setup */
     #gooey-bg {
       position: fixed;
-      inset: 0;
-      z-index: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
       overflow: hidden;
-      filter: url(#gooey);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #gooey-bg svg {
+      width: 100%;
+      height: 100%;
+      filter: url(#goo);
     }
 
     .blob {
-      position: absolute;
-      width: 400px;
-      height: 400px;
-      border-radius: 50%;
-      opacity: 0.35;
-      mix-blend-mode: lighten;
-      will-change: transform;
-      transition: filter 0.4s ease;
+      opacity: 0;
+      animation: fadeIn 1.6s ease-in forwards;
+      mix-blend-mode: screen;
+      transition: fill 0.8s ease, filter 0.8s ease, transform 0.15s ease;
+      will-change: transform, opacity;
     }
 
-    svg {
-      position: absolute;
-      width: 0;
-      height: 0;
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    .container {
+      max-width: 800px;
+      margin: 80px auto;
+      padding: 32px;
+      background: rgba(20, 20, 20, 0.84);
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(255,255,255,0.04);
+      text-align: center;
+      backdrop-filter: blur(6px);
+      position: relative;
+      z-index: 2;
     }
 
-    @media (max-width: 600px) {
-      .blob {
-        width: 280px;
-        height: 280px;
-      }
-      .content {
-        margin: 0.5rem;
-        padding: 0.8rem;
-      }
+    h1 { font-size: 2.2rem; margin-bottom: 20px; }
+
+    select, input[type="file"], button {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    select, input[type="file"] { background: #fff; color: #000; }
+    button {
+      background: #ff0050;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 800;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    button:hover { opacity: 0.92; transform: translateY(-2px); }
+
+    #loading-bar {
+      height: 8px;
+      width: 0%;
+      background: #ff0050;
+      border-radius: 5px;
+      margin-top: 15px;
+      transition: width 0.18s ease, background 0.3s ease;
+      will-change: width;
+    }
+
+    #ai-results {
+      margin-top: 30px;
+      text-align: left;
+      background: rgba(255,255,255,0.03);
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      color: #fff;
+    }
+
+    #ai-results h3 { margin-top: 0; }
+    .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
+
+    @media (max-width: 480px) {
+      .container { margin: 40px 12px; padding: 20px; }
+      h1 { font-size: 1.6rem; }
     }
   </style>
 </head>
-<body>
-  <svg>
-    <filter id="gooey">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
-      <feColorMatrix in="blur" mode="matrix"
-        values="1 0 0 0 0  
-                0 1 0 0 0  
-                0 0 1 0 0  
-                0 0 0 20 -10" />
-    </filter>
-  </svg>
 
-  <div id="gooey-bg">
-    <div class="blob"></div>
-    <div class="blob"></div>
-    <div class="blob"></div>
-    <div class="blob"></div>
+<body data-platform="tiktok">
+  <div id="gooey-bg" aria-hidden="true">
+    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
+          <feColorMatrix in="blur" mode="matrix"
+            values="1 0 0 0 0  
+                    0 1 0 0 0  
+                    0 0 1 0 0  
+                    0 0 0 25 -10" result="goo"/>
+          <feBlend in="SourceGraphic" in2="goo"/>
+        </filter>
+      </defs>
+      <g id="blobs-group">
+        <circle class="blob" cx="150" cy="250" r="160"></circle>
+        <circle class="blob" cx="400" cy="180" r="170"></circle>
+        <circle class="blob" cx="700" cy="300" r="160"></circle>
+        <circle class="blob" cx="850" cy="500" r="140"></circle>
+        <circle class="blob" cx="500" cy="550" r="150"></circle>
+        <circle class="blob" cx="250" cy="500" r="130"></circle>
+      </g>
+    </svg>
   </div>
 
-  <div class="content">
-    <h1>AI Social Media Analyzer</h1>
+  <div class="container" role="main">
+    <h1>AI Social Analyzer</h1>
 
-    <div class="form-group">
-      <label for="platform">Choose Platform:</label>
-      <select id="platform">
-        <option value="tiktok">TikTok</option>
-        <option value="youtube">YouTube</option>
-        <option value="instagram">Instagram</option>
-        <option value="facebook">Facebook</option>
-      </select>
-    </div>
+    <select id="platform">
+      <option value="tiktok" selected>TikTok</option>
+      <option value="youtube">YouTube</option>
+      <option value="instagram">Instagram</option>
+      <option value="facebook">Facebook</option>
+    </select>
 
-    <div class="form-group">
-      <label for="videoUpload">Upload Video:</label>
-      <input type="file" id="videoUpload" accept="video/*" />
-      <p id="video-meta" class="meta"></p>
-    </div>
+    <h3>Upload a Video</h3>
+    <input type="file" id="videoUpload" accept="video/*"/>
+    <div id="video-meta" class="file-meta"></div>
 
-    <div class="form-group">
-      <label for="csvUpload">Upload CSV (optional):</label>
-      <input type="file" id="csvUpload" accept=".csv" />
-      <p id="csv-meta" class="meta"></p>
-    </div>
+    <h3>Upload CSV for Analysis</h3>
+    <input type="file" id="csvUpload" accept=".csv"/>
+    <div id="csv-meta" class="file-meta"></div>
 
     <button id="analyzeBtn">Analyze</button>
-
     <div id="loading-bar"></div>
 
     <div id="ai-results">
-      <p><strong>Caption:</strong> <span id="caption"></span></p>
-      <p><strong>Hashtags:</strong> <span id="hashtags"></span></p>
-      <p><strong>Tags:</strong> <span id="tags"></span></p>
-      <p><strong>Optimization Score:</strong> <span id="score"></span></p>
-      <pre id="full-result"></pre>
+      <h3>AI Results</h3>
+      <pre id="full-result" style="white-space:pre-wrap;background:transparent;border:none;color:inherit;padding:0;margin:0;"></pre>
+      <div style="margin-top:12px;">
+        <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
+        <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
+        <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
+        <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
+      </div>
     </div>
   </div>
 
   <script>
-    // palettes (expanded with Facebook)
+    const blobs = Array.from(document.querySelectorAll('.blob'));
     const colorThemes = {
       tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
       youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
@@ -199,151 +183,59 @@
       facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
     };
 
-    const blobs = Array.from(document.querySelectorAll('.blob'));
-    const loadingBar = document.getElementById('loading-bar');
     const platformSelect = document.getElementById('platform');
+    const loadingBar = document.getElementById('loading-bar');
     const analyzeBtn = document.getElementById('analyzeBtn');
-    const aiResults = document.getElementById('ai-results');
-    const fullResult = document.getElementById('full-result');
-    const captionEl = document.getElementById('caption');
-    const hashtagsEl = document.getElementById('hashtags');
-    const tagsEl = document.getElementById('tags');
-    const scoreEl = document.getElementById('score');
-    const videoUpload = document.getElementById('videoUpload');
-    const csvUpload = document.getElementById('csvUpload');
-    const videoMeta = document.getElementById('video-meta');
-    const csvMeta = document.getElementById('csv-meta');
 
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map((b, i) => ({
-      x: 100 + i * 200,
-      y: 200 + i * 80,
-      r: 160,
-      dx: (Math.random() - 0.5) * (isMobile ? 0.4 : 0.9),
-      dy: (Math.random() - 0.5) * (isMobile ? 0.4 : 0.9),
+      x: parseFloat(b.getAttribute('cx')),
+      y: parseFloat(b.getAttribute('cy')),
+      r: parseFloat(b.getAttribute('r')),
+      dx: (Math.random() - 0.5) * 1.2,
+      dy: (Math.random() - 0.5) * 1.2,
       pulse: Math.random() * Math.PI * 2,
-      speedMult: isMobile ? 0.18 + Math.random() * 0.35 : 0.25 + Math.random() * 0.9
+      speedMult: 0.4 + Math.random() * 0.6
     }));
 
+    // smoother animation engine (adaptive frame rate)
     let lastTime = performance.now();
-    function animateBlobs(now) {
-      const dt = Math.min(40, now - lastTime);
+    let frameSkip = 0;
+    function animate(now) {
+      const dt = now - lastTime;
+      if (dt < 16 && frameSkip < 1) { frameSkip++; requestAnimationFrame(animate); return; }
+      frameSkip = 0;
       lastTime = now;
-      for (let i = 0; i < blobData.length; i++) {
-        const b = blobData[i];
-        b.x += b.dx * b.speedMult * (dt / 16);
-        b.y += b.dy * b.speedMult * (dt / 16);
 
-        if (b.x < -250) b.x = viewBoxW + 250;
-        if (b.x > viewBoxW + 250) b.x = -250;
-        if (b.y < -250) b.y = viewBoxH + 250;
-        if (b.y > viewBoxH + 250) b.y = -250;
-
-        const pulse = 1 + Math.sin(now / 800 + b.pulse) * 0.05;
-        const r = Math.max(60, b.r * pulse);
-        const blob = blobs[i];
-        blob.style.transform = `translate3d(${b.x / 15}px, ${b.y / 20}px, 0) scale(${r / b.r})`;
+      for (const b of blobData) {
+        b.x += b.dx * b.speedMult;
+        b.y += b.dy * b.speedMult;
+        if (b.x < -200) b.x = viewBoxW + 200;
+        if (b.x > viewBoxW + 200) b.x = -200;
+        if (b.y < -200) b.y = viewBoxH + 200;
+        if (b.y > viewBoxH + 200) b.y = -200;
+        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
+        const el = blobs[blobData.indexOf(b)];
+        el.setAttribute('cx', b.x);
+        el.setAttribute('cy', b.y);
+        el.setAttribute('r', r);
       }
-      requestAnimationFrame(animateBlobs);
+      requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animateBlobs);
-
-    // pointer parallax
-    let pointerX = 0, pointerY = 0;
-    function handlePointerMove(clientX, clientY) {
-      pointerX = (clientX / window.innerWidth - 0.5) * 12;
-      pointerY = (clientY / window.innerHeight - 0.5) * 12;
-    }
-    document.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
-    document.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches[0]) {
-        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    setInterval(() => {
-      blobs.forEach((blob, i) => {
-        const tx = (i - blobs.length / 2) * 0.5;
-        blob.style.transform += ` translate3d(${pointerX * tx}px, ${pointerY * tx}px, 0)`;
-      });
-    }, isMobile ? 100 : 40);
+    requestAnimationFrame(animate);
 
     function updateColors() {
-      const platform = platformSelect.value;
-      const palette = colorThemes[platform] || colorThemes.tiktok;
-      analyzeBtn.style.background = palette[0];
-      loadingBar.style.background = palette[0];
+      const p = colorThemes[platformSelect.value] || colorThemes.tiktok;
       blobs.forEach((b, i) => {
-        const color = palette[i % palette.length];
-        b.style.background = color;
-        b.style.filter = `drop-shadow(0 0 40px ${color})`;
+        const c = p[i % p.length];
+        b.setAttribute('fill', c);
+        b.style.filter = `drop-shadow(0 0 32px ${c})`;
       });
+      analyzeBtn.style.background = p[0];
+      loadingBar.style.background = p[0];
     }
     platformSelect.addEventListener('change', updateColors);
     updateColors();
-
-    videoUpload.addEventListener('change', () => {
-      if (videoUpload.files.length) {
-        const f = videoUpload.files[0];
-        videoMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else { videoMeta.textContent = ''; }
-    });
-    csvUpload.addEventListener('change', () => {
-      if (csvUpload.files.length) {
-        const f = csvUpload.files[0];
-        csvMeta.textContent = `Uploaded: ${f.name} • ${new Date().toLocaleString()}`;
-      } else { csvMeta.textContent = ''; }
-    });
-
-    analyzeBtn.addEventListener('click', async () => {
-      const videoFile = videoUpload.files[0];
-      const csvFile = csvUpload.files[0];
-      const platform = platformSelect.value;
-      if (!videoFile) {
-        alert("Please upload a video first!");
-        return;
-      }
-      aiResults.style.display = "none";
-      captionEl.innerText = hashtagsEl.innerText = tagsEl.innerText = scoreEl.innerText = "Waiting...";
-      loadingBar.style.width = "0%";
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 6;
-        if (progress >= 92) progress = 92;
-        loadingBar.style.width = progress + "%";
-      }, 180);
-
-      const fd = new FormData();
-      const platformForBackend = platform.charAt(0).toUpperCase() + platform.slice(1);
-      fd.append('platform', platformForBackend);
-      fd.append('video', videoFile);
-      if (csvFile) fd.append('csv', csvFile);
-
-      try {
-        const resp = await fetch('/analyze', { method: 'POST', body: fd });
-        const data = await resp.json();
-        clearInterval(progressInterval);
-        loadingBar.style.width = "100%";
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
-        const resultText = data.result || "";
-        fullResult.textContent = resultText;
-        const s = data.structured || {};
-        captionEl.innerText = s.caption || "N/A";
-        hashtagsEl.innerText = s.hashtags || "Not detected";
-        tagsEl.innerText = s.tags || "N/A";
-        scoreEl.innerText = s.optimization_score || "N/A";
-        aiResults.style.display = "block";
-        setTimeout(() => { loadingBar.style.width = "0%"; }, 900);
-      } catch (err) {
-        clearInterval(progressInterval);
-        loadingBar.style.width = "0%";
-        alert("Server error: " + (err.message || err));
-      }
-    });
   </script>
 </body>
 </html>
