@@ -13,8 +13,7 @@ app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# --- Helper: Extract a few frames from the video for visual analysis ---
+# --- Extract a few video frames for AI visual analysis ---
 def extract_video_frames(video_path, max_frames=5):
     frames = []
     clip = VideoFileClip(video_path)
@@ -24,124 +23,143 @@ def extract_video_frames(video_path, max_frames=5):
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         _, buffer = cv2.imencode(".jpg", frame_bgr)
         frames.append(base64.b64encode(buffer).decode("utf-8"))
-    return frames
+    return frames, duration, clip.size
 
+# --- Helper: Brightness and Tone estimation ---
+def analyze_visual_properties(video_path):
+    cap = cv2.VideoCapture(video_path)
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    brightness_values = []
+    for i in range(0, frame_count, max(1, frame_count // 10)):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        brightness = hsv[..., 2].mean()
+        brightness_values.append(brightness)
+    cap.release()
+    avg_brightness = float(np.mean(brightness_values))
+    tone = "bright" if avg_brightness > 160 else "neutral or mixed" if avg_brightness > 80 else "dark"
+    return avg_brightness, tone
 
-# --- Helper: Get current weekday ---
+# --- Helper: Detect current weekday ---
 def get_current_weekday():
     return datetime.now().strftime("%A")
 
+# --- Helper: Get best posting times ---
+def get_best_posting_time(niche, platform):
+    current_day = get_current_weekday()
+    schedule = {
+        "TikTok": {
+            "Beauty": {"Thu": "4–7 PM", "Fri": "6–9 PM", "Sat": "5–8 PM"},
+            "Fitness": {"Mon": "6–8 AM", "Tue": "5–7 PM", "Wed": "8–10 AM"},
+            "Food": {"Fri": "12–2 PM", "Sat": "5–8 PM", "Sun": "11 AM–2 PM"},
+            "Default": {"Fri": "6–9 PM", "Sat": "6–9 PM", "Sun": "6–9 PM"}
+        },
+        "Instagram": {
+            "Beauty": {"Mon": "6–8 PM", "Wed": "7–9 PM", "Thu": "6–9 PM"},
+            "Fitness": {"Tue": "7–9 AM", "Thu": "6–8 PM", "Sat": "8–10 AM"},
+            "Food": {"Mon": "12–2 PM", "Wed": "6–8 PM", "Fri": "11 AM–1 PM"},
+            "Default": {"Mon": "6–9 PM", "Wed": "6–9 PM", "Fri": "6–9 PM"}
+        },
+        "YouTube": {
+            "Beauty": {"Mon": "3–6 PM", "Wed": "4–7 PM", "Fri": "5–8 PM"},
+            "Fitness": {"Mon": "5–8 AM", "Wed": "6–9 PM", "Sat": "8–10 AM"},
+            "Food": {"Tue": "11 AM–2 PM", "Thu": "12–3 PM", "Sat": "5–8 PM"},
+            "Default": {"Mon": "5–8 PM", "Wed": "5–8 PM", "Fri": "5–8 PM"}
+        }
+    }
+    platform_schedule = schedule.get(platform, schedule["TikTok"])
+    niche_schedule = platform_schedule.get(niche, platform_schedule["Default"])
+    best_time = niche_schedule.get(current_day[:3], "6–9 PM")
+    peak = best_time.split("–")[0]
+    return current_day, best_time, peak
 
-# --- AI: Analyze video content visually + via caption ---
+# --- AI: Visual + Text Analysis ---
 def analyze_video_with_ai(frames, platform, caption=""):
-    # Create messages for multimodal AI input
     messages = [
         {
             "role": "system",
             "content": (
-                "You are a viral content analyst AI. You will receive video frames and a caption. "
-                "Describe what the video is about, identify the main niche (like Beauty, Fitness, Food, Fashion, Travel, Gaming, Comedy, etc.), "
-                "and explain why it might perform well on social media."
-            ),
+                "You are a viral video analysis AI. You receive frames from a video and must identify its topic, niche, and virality factors. "
+                "Then you generate captions, hashtags, optimization tips, and short motivational insights. "
+                "Finally, generate 3 example viral videos for the same niche and platform with: (1) summary, (2) what made it viral, (3) how to replicate it."
+            )
         },
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": f"Platform: {platform}\nCaption: {caption}"},
+                {"type": "text", "text": f"Platform: {platform}\nCaption: {caption}\nAnalyze this video visually and describe what it’s about."},
                 *[
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}}
                     for img in frames
                 ],
-            ],
+            ]
         },
     ]
-
     response = client.chat.completions.create(
-        model="gpt-4o-mini", messages=messages, max_tokens=500
+        model="gpt-4o-mini",
+        messages=messages,
+        max_tokens=1200,
+        temperature=0.8
     )
-
     return response.choices[0].message.content.strip()
 
-
-# --- Helper: Predict best post time by niche, platform, and weekday ---
-def get_best_posting_time(niche, platform):
-    current_day = get_current_weekday()
-
-    schedule_data = {
-        "TikTok": {
-            "Beauty": {"Monday": "6–9 PM", "Tuesday": "5–8 PM", "Wednesday": "7–10 PM"},
-            "Fitness": {"Monday": "6–8 AM", "Tuesday": "5–7 PM", "Wednesday": "8–10 AM"},
-            "Food": {"Monday": "11 AM–1 PM", "Tuesday": "12–2 PM", "Wednesday": "6–9 PM"},
-            "Default": {"Monday": "6–9 PM", "Tuesday": "6–9 PM", "Wednesday": "6–9 PM"},
-        },
-        "Instagram": {
-            "Beauty": {"Monday": "6–8 PM", "Tuesday": "7–9 PM", "Wednesday": "6–9 PM"},
-            "Fitness": {"Monday": "7–9 AM", "Tuesday": "6–8 PM", "Wednesday": "8–10 AM"},
-            "Food": {"Monday": "12–2 PM", "Tuesday": "6–8 PM", "Wednesday": "11 AM–1 PM"},
-            "Default": {"Monday": "6–9 PM", "Tuesday": "6–9 PM", "Wednesday": "6–9 PM"},
-        },
-        "YouTube": {
-            "Beauty": {"Monday": "3–6 PM", "Tuesday": "4–7 PM", "Wednesday": "5–8 PM"},
-            "Fitness": {"Monday": "5–8 AM", "Tuesday": "6–9 PM", "Wednesday": "8–10 AM"},
-            "Food": {"Monday": "11 AM–2 PM", "Tuesday": "12–3 PM", "Wednesday": "5–8 PM"},
-            "Default": {"Monday": "5–8 PM", "Tuesday": "5–8 PM", "Wednesday": "5–8 PM"},
-        },
-    }
-
-    niche_times = schedule_data.get(platform, {}).get(niche, schedule_data.get(platform, {}).get("Default", {}))
-    best_time = niche_times.get(current_day, "6–9 PM")
-    peak_hour = best_time.split("–")[0]
-
-    return {
-        "day": current_day,
-        "best_time": best_time,
-        "peak": peak_hour,
-    }
-
-
-# --- Flask Routes ---
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
+# --- Flask route for analysis ---
 @app.route("/analyze", methods=["POST"])
 def analyze_video():
     try:
-        video_file = request.files["video"]
+        video = request.files["video"]
         platform = request.form.get("platform", "TikTok")
         caption = request.form.get("caption", "")
 
-        # Save video temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-            video_file.save(tmp.name)
-            frames = extract_video_frames(tmp.name)
+            video.save(tmp.name)
+            frames, duration, (width, height) = extract_video_frames(tmp.name)
+            brightness, tone = analyze_visual_properties(tmp.name)
 
-        # AI Video Analysis
-        ai_analysis = analyze_video_with_ai(frames, platform, caption)
+        ai_response = analyze_video_with_ai(frames, platform, caption)
+        niches = ["Beauty", "Fitness", "Food", "Fashion", "Travel", "Gaming", "Comedy", "Education", "Tech"]
+        niche = next((n for n in niches if n.lower() in ai_response.lower()), "General")
 
-        # Detect niche keyword
-        possible_niches = ["Beauty", "Fitness", "Food", "Fashion", "Travel", "Gaming", "Comedy"]
-        niche = next((n for n in possible_niches if n.lower() in ai_analysis.lower()), "General")
+        heuristic_score = round((brightness / 255) * 10, 1)
+        day, best_time, peak = get_best_posting_time(niche, platform)
 
-        # Get posting time prediction
-        timing = get_best_posting_time(niche, platform)
+        result = f"""
+🎬 Drag and drop your {platform} video file here: "{video.filename}"
 
-        # Format result exactly like before
-        result_text = (
-            f"🎯 **Detected Niche:** {niche}\n"
-            f"🧠 **Video Summary:** {ai_analysis}\n"
-            f"📱 **Platform:** {platform}\n\n"
-            f"📆 ({timing['day']}, EST)\n"
-            f"⏰ **Best Time to Post:** {timing['best_time']} EST\n"
-            f"💡 Peak engagement around ~{timing['peak']} EST"
-        )
+🎥 Running {platform} Viral Optimizer...
 
-        return jsonify({"result": result_text})
+🤖 Generating AI-powered analysis, captions, and viral tips...
 
+🔥 Fetching viral video comparisons and strategic insights...
+
+✅ {platform} Video Analysis Complete!
+
+🎬 Video: {video.filename}
+📏 Duration: {duration:.2f}s
+🖼 Resolution: {width}x{height}
+📱 Aspect Ratio: {round(width/height,3)}
+💡 Brightness: {round(brightness,2)}
+🎨 Tone: {tone}
+⭐ Heuristic Score: {heuristic_score}/10 (High brightness and clear resolution contribute to visual appeal.)
+
+💬 AI-Generated Viral Insights:
+{ai_response}
+
+🎯 **Detected Niche:** {niche}
+🕓 **Best Time to Post for {niche} ({platform}, {day})**:
+⏰ {best_time} EST
+💡 Peak engagement around {peak} EST.
+"""
+        return jsonify({"result": result})
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
