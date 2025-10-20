@@ -13,6 +13,34 @@ app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Mapping of platform + niche → best time window & peak (EST)
+BEST_TIME_MAP = {
+    "tiktok": {
+        "beauty": ("Thu 7–9 PM EST", "Peak ~8 PM EST"),
+        "fitness": ("Mon 6–8 AM EST", "Peak ~7 AM EST"),
+        "gaming": ("Wed 4–6 PM EST", "Peak ~5 PM EST"),
+        "general": ("Thu 7–11 AM EST", "Peak ~9 AM EST"),
+    },
+    "instagram": {
+        "beauty": ("Wed 6–8 PM EST", "Peak ~7 PM EST"),
+        "lifestyle": ("Fri 5–7 PM EST", "Peak ~6 PM EST"),
+        "food": ("Tue 11 AM–1 PM EST", "Peak ~12 PM EST"),
+        "general": ("Wed 10 AM–1 PM EST", "Peak ~11 AM EST"),
+    },
+    "youtube": {
+        "beauty": ("Sat 2–4 PM EST", "Peak ~3 PM EST"),
+        "education": ("Thu 3–5 PM EST", "Peak ~4 PM EST"),
+        "gaming": ("Fri 5–7 PM EST", "Peak ~6 PM EST"),
+        "general": ("Fri 2–4 PM EST", "Peak ~3 PM EST"),
+    },
+    "facebook": {
+        "community": ("Sun 9–11 AM EST", "Peak ~10 AM EST"),
+        "lifestyle": ("Mon 8–10 AM EST", "Peak ~9 AM EST"),
+        "news": ("Tue 7–9 AM EST", "Peak ~8 AM EST"),
+        "general": ("Tue 9–11 AM EST", "Peak ~10 AM EST"),
+    }
+}
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -57,15 +85,31 @@ def analyze():
         except Exception as e:
             video_info = f"Error analyzing video: {e}"
 
+    # --- Infer niche from filename or simple keywords ---
+    filename_hint = os.path.splitext(video.filename)[0] if video else ""
+    hint_lower = filename_hint.lower()
+    if any(k in hint_lower for k in ["barber", "haircut", "salon", "fade", "barbershop"]):
+        detected_niche = "beauty"
+    elif any(k in hint_lower for k in ["gym", "workout", "fitness", "training"]):
+        detected_niche = "fitness"
+    elif any(k in hint_lower for k in ["game", "gaming", "playthrough", "fps"]):
+        detected_niche = "gaming"
+    else:
+        detected_niche = "general"
+
+    # Determine best post time & peak from mapping
+    platform_map = BEST_TIME_MAP.get(platform, {})
+    niche_map = platform_map.get(detected_niche, platform_map.get("general", ("TBD", "TBD")))
+    best_window, best_peak = niche_map
+
     # --- Smart AI prompt for full viral breakdown ---
-    filename_hint = os.path.splitext(video.filename)[0] if video else "Unknown Video"
     weekday = datetime.now().strftime("%A")
 
     prompt = f"""
 You are an expert viral strategist and short-form content analyst.
 
 Analyze this uploaded video and generate a detailed, platform-specific viral optimization report.
-Use both the visual traits and filename context to infer the correct niche and creative direction.
+Use visual traits + filename context to infer the correct niche and creative direction.
 
 Video metadata:
 - Platform: {platform.capitalize()}
@@ -73,42 +117,43 @@ Video metadata:
 - Duration: {duration:.2f}s
 - Brightness: {brightness:.2f}
 - Tone: {tone}
-- Aspect ratio: {width}x{height}
+- Aspect ratio approx: {width}×{height}
 
-Provide a full breakdown in **this exact structure with emojis and markdown**:
+Provide results in this exact structure:
 
 🎬 **Video Overview**
 Briefly describe what this video is likely about (infer from filename and tone).
 
 🎯 **Detected Niche**
-Choose the most accurate niche (e.g., Beauty, Barbering, Fitness, Gaming, Automotive, Education, Food, etc.).
+Choose the most accurate niche (Beauty, Fitness, Gaming, Automotive, etc.).
 
 💬 **Scroll-Stopping Caption Idea**
-Write a short, engaging caption tailored to {platform.capitalize()} audience style.
+Write one engaging caption ideal for {platform.capitalize()}.
 
 🏷 **Top 5 Viral Hashtags**
-List 5 hashtags that fit this video's niche.
+List 5 hashtags that fit this niche.
 
 🚀 **Actionable Engagement Tip**
-Give one practical tip to increase audience interaction and watch time.
+One practical tip to boost interaction.
 
-📈 **Viral Optimization Score (0–100)**
-Explain the score, including strengths and improvement areas.
+📈 **Viral Optimization Score (0-100)**
+Explain strengths & where to improve.
 
 🔥 **3 Viral Video Examples Related to This Niche**
-For each example, provide:
+For each example:
 1. **Summary of the viral video**
 2. **What made it go viral**
 3. **How to replicate it for this uploaded video**
 
 🎯 **Takeaway Strategy**
-Provide a short, motivational next step strategy.
+Short motivational next‐step.
 
 📋 **Actionable Checklist**
-Give 4 specific checklist items for the creator to follow.
+4 clear checklist items.
 
 🕓 **Best Time to Post ({weekday}, EST)**
-Include a single time window (e.g., 6–9 PM EST) and note when engagement typically peaks.
+⏰ {best_window}
+💡 Peak engagement around {best_peak}
 """
 
     ai_response = client.chat.completions.create(
@@ -122,21 +167,11 @@ Include a single time window (e.g., 6–9 PM EST) and note when engagement typic
 
     ai_text = ai_response.choices[0].message.content.strip()
 
-    # --- Clean up duplicate post-time blocks ---
+    # --- Clean up duplicate post-time blocks if any ---
     ai_text = re.sub(r"🕓\s*\*\*Best Time to Post.*?(?:\n💡.*)?", "", ai_text, flags=re.DOTALL)
     ai_text = re.sub(r"\n{3,}", "\n\n", ai_text).strip()
 
-    # --- Extract niche dynamically ---
-    niche_match = re.search(r"(?i)\*\*Detected Niche\*\*[:\-–]?\s*(.*)", ai_text)
-    detected_niche = niche_match.group(1).strip() if niche_match else "General"
-
-    # --- Extract best time section if available ---
-    time_match = re.search(r"(⏰ .*?EST[^\n]*)", ai_text)
-    time_text = time_match.group(1) if time_match else "⏰ 6–10 PM EST"
-    peak_match = re.search(r"(💡 .*?EST[^\n]*)", ai_text)
-    peak_text = peak_match.group(1) if peak_match else "💡 Peak engagement around 8 PM EST."
-
-    # --- Final report formatting ---
+    # --- Final formatted output ---
     final_output = f"""
 🎬 Drag and drop your {platform.capitalize()} video file here: "{video.filename if video else 'N/A'}"
 🎥 Running {platform.capitalize()} Viral Optimizer...
@@ -152,10 +187,10 @@ Include a single time window (e.g., 6–9 PM EST) and note when engagement typic
 
 {ai_text}
 
-🎯 **Detected Niche:** {detected_niche}
-🕓 **Best Time to Post for {detected_niche} ({platform.capitalize()}, {weekday})**:
-{time_text}
-{peak_text}
+🎯 **Detected Niche:** {detected_niche.capitalize()}
+🕓 **Best Time to Post for {detected_niche.capitalize()} ({platform.capitalize()}, {weekday})**:
+⏰ {best_window}
+💡 Peak engagement around {best_peak}
 """
 
     return jsonify({"result": final_output})
