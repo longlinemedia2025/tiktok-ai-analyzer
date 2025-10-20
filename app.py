@@ -19,26 +19,19 @@ def index():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     platform = request.form.get("platform", "tiktok").lower()
-    niche = request.form.get("niche", "General")
-
     video = request.files.get("video")
-    csv_file = request.files.get("csv")
 
     video_path = None
-    csv_path = None
-
     if video:
         temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
         video.save(temp_video.name)
         video_path = temp_video.name
 
-    if csv_file:
-        temp_csv = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
-        csv_file.save(temp_csv.name)
-        csv_path = temp_csv.name
-
     # --- Extract video metadata ---
     video_info = ""
+    brightness = 0
+    tone = "neutral or mixed"
+
     if video_path:
         try:
             clip = VideoFileClip(video_path)
@@ -46,146 +39,101 @@ def analyze():
             frame = clip.get_frame(0)
             height, width, _ = frame.shape
             aspect_ratio_val = width / height
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            brightness = np.mean(gray)
+            tone = "bright" if brightness > 130 else "dark" if brightness < 60 else "neutral or mixed"
             video_info = (
                 f"📏 Duration: {duration:.2f}s\n"
                 f"🖼 Resolution: {width}x{height}\n"
-                f"📱 Aspect Ratio: {aspect_ratio_val:.3f}"
+                f"📱 Aspect Ratio: {aspect_ratio_val:.3f}\n"
+                f"💡 Brightness: {brightness:.2f}\n"
+                f"🎨 Tone: {tone}"
             )
             clip.close()
         except Exception as e:
             video_info = f"Error analyzing video: {e}"
 
-    # --- Prompt for AI ---
+    # --- Smart AI prompt for full viral breakdown ---
     prompt = f"""
-🎬 Analyze this {platform} video for viral potential in the {niche} niche.
+You are an expert viral strategist for {platform.capitalize()} and short-form content.
 
-Include:
-1. A scroll-stopping caption idea.
-2. 5 viral hashtags.
-3. One actionable tip for engagement.
-4. A numeric viral optimization score (0–100) with explanation.
-5. A short motivational takeaway.
-6. A comparison with 3 viral {platform} examples in the same niche.
-7. A concise takeaway strategy.
-8. A 4-point actionable checklist.
-9. The best time to post for this niche in EST.
+Analyze this uploaded video based on its visual traits and generate a detailed viral optimization report.
 
-Use clear emojis and structured Markdown format exactly like a social media strategist report.
+Video traits:
+- Platform: {platform.capitalize()}
+- Duration, brightness, and tone: {brightness:.2f} brightness, {tone} tone
+- Aspect ratio: typical {platform.capitalize()} format
+- Goal: Increase engagement, shares, and retention
+
+Provide results in this exact structure with emojis and markdown:
+
+🎬 **Video Overview**
+Briefly describe what kind of content this video likely represents (infer niche).
+
+🎯 **Detected Niche**
+Guess the niche (e.g., Beauty, Fitness, Automotive, Education, Food, etc.).
+
+💬 **Scroll-Stopping Caption Idea**
+Write one caption.
+
+🏷 **Top 5 Viral Hashtags**
+List 5 optimized hashtags for the niche.
+
+🚀 **Actionable Engagement Tip**
+One tip to boost audience interaction.
+
+📈 **Viral Optimization Score (0–100)**
+Include explanation of strengths and weaknesses.
+
+🔥 **3 Viral Video Examples Related to This Niche**
+For each example, provide:
+1. **Summary of the viral video**
+2. **What made it go viral**
+3. **How to replicate it for this uploaded video**
+
+🎯 **Takeaway Strategy**
+Concise, motivational next steps.
+
+📋 **Actionable Checklist**
+4 clear checklist items.
+
+🕓 **Best Time to Post (EST)**
+Give a single recommended window and best engagement time.
 """
 
     ai_response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a creative viral strategist and social platform optimization expert."},
+            {"role": "system", "content": "You are a creative strategist who deeply understands viral video psychology, audience retention, and platform algorithms."},
             {"role": "user", "content": prompt},
         ],
+        temperature=0.8,
     )
 
-    ai_text = ai_response.choices[0].message.content
+    ai_text = ai_response.choices[0].message.content.strip()
 
-    # --- Remove any duplicate Best Time section ---
+    # --- Remove duplicate or irrelevant post time blocks ---
     ai_text = re.sub(r"🕓\s*\*\*Best Time to Post.*?(?:\n💡.*)?", "", ai_text, flags=re.DOTALL)
+    ai_text = re.sub(r"\n{3,}", "\n\n", ai_text).strip()
 
-    # --- Default viral examples by platform ---
-    viral_examples_by_platform = {
-        "tiktok": """
-🔥 Viral Comparison Results:
-### Comparison with Viral TikToks in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** A hairstylist showcases a dramatic hair color change with before-and-after shots.
-- **What Made It Go Viral:** Quick cuts and an upbeat trending sound enhanced the transformation.
-- **How to Replicate Success:** Use rapid transitions and a catchy trending sound that aligns with your theme.
+    # --- Extract niche dynamically ---
+    niche_match = re.search(r"(?i)\*\*Detected Niche\*\*[:\-–]?\s*(.*)", ai_text)
+    detected_niche = niche_match.group(1).strip() if niche_match else "General"
 
-#### Viral Example 2
-- **Video Concept Summary:** A barbershop highlights client transformations in a fun montage.
-- **What Made It Go Viral:** High-energy edits and viewer challenges encouraged engagement.
-- **How to Replicate Success:** Ask viewers to comment their favorite transformation.
-
-#### Viral Example 3
-- **Video Concept Summary:** A barber educates viewers while performing a fade.
-- **What Made It Go Viral:** Blending education with entertainment increased shareability.
-- **How to Replicate Success:** Add quick tutorials or tips in your videos.
-""",
-        "youtube": """
-🔥 Viral Comparison Results:
-### Comparison with Viral YouTube Videos in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** A creator explains a complex topic using humor and visual storytelling.
-- **What Made It Go Viral:** High retention from a captivating hook and clear narrative pacing.
-- **How to Replicate Success:** Start with a bold question or problem, then resolve it by the end.
-
-#### Viral Example 2
-- **Video Concept Summary:** A creator posts a cinematic vlog with music and emotion-driven editing.
-- **What Made It Go Viral:** Emotional resonance combined with visually striking shots.
-- **How to Replicate Success:** Focus on emotional storytelling and pacing.
-
-#### Viral Example 3
-- **Video Concept Summary:** A tutorial that solves a common problem in under 5 minutes.
-- **What Made It Go Viral:** Short, actionable, and valuable—optimized for algorithmic promotion.
-- **How to Replicate Success:** Deliver immediate value early and cut all fluff.
-""",
-        "instagram": """
-🔥 Viral Comparison Results:
-### Comparison with Viral Instagram Reels in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** A short beauty reel showcasing a quick morning routine.
-- **What Made It Go Viral:** Visually satisfying transitions and aesthetic color grading.
-- **How to Replicate Success:** Maintain color consistency and sync edits to the beat.
-
-#### Viral Example 2
-- **Video Concept Summary:** A lifestyle influencer shares an emotional message with trending audio.
-- **What Made It Go Viral:** Authentic emotion paired with a relatable caption.
-- **How to Replicate Success:** Write captions that evoke emotion or vulnerability.
-
-#### Viral Example 3
-- **Video Concept Summary:** A fitness coach demonstrates a 15-second challenge.
-- **What Made It Go Viral:** Fast-paced action with clear on-screen text.
-- **How to Replicate Success:** Use on-screen text to highlight key takeaways.
-""",
-        "facebook": """
-🔥 Viral Comparison Results:
-### Comparison with Viral Facebook Videos in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** A community member shares a heartwarming story of kindness.
-- **What Made It Go Viral:** Emotional storytelling and strong community connection.
-- **How to Replicate Success:** Emphasize relatable human experiences and local relevance.
-
-#### Viral Example 2
-- **Video Concept Summary:** A small business shares a behind-the-scenes video of their process.
-- **What Made It Go Viral:** Transparency and authenticity attracted engagement.
-- **How to Replicate Success:** Show your process—people love “how it’s made” content.
-
-#### Viral Example 3
-- **Video Concept Summary:** A funny meme video with commentary on current events.
-- **What Made It Go Viral:** Humor and timely posting created high shareability.
-- **How to Replicate Success:** Post fast on trending topics while adding your own twist.
-"""
-    }
-
-    # --- Insert platform-appropriate viral examples if missing ---
-    if "Viral Example 1" not in ai_text:
-        viral_block = viral_examples_by_platform.get(platform, viral_examples_by_platform["tiktok"])
-        if "### Takeaway" in ai_text:
-            ai_text = ai_text.replace("### Takeaway", viral_block + "\n\n### Takeaway")
-        else:
-            ai_text += viral_block
-
-    # --- Extract best time if missing ---
-    best_time_match = re.search(r"(⏰ .*?EST[^\n]*)", ai_text)
-    best_time_text = best_time_match.group(1) if best_time_match else "⏰ 6–10 PM EST"
+    # --- Extract best time section if available ---
+    time_match = re.search(r"(⏰ .*?EST[^\n]*)", ai_text)
+    time_text = time_match.group(1) if time_match else "⏰ 6–10 PM EST"
     peak_match = re.search(r"(💡 .*?EST[^\n]*)", ai_text)
     peak_text = peak_match.group(1) if peak_match else "💡 Peak engagement around 8 PM EST."
 
-    ai_text = re.sub(r"\n{3,}", "\n\n", ai_text).strip()
-
-    # --- Final formatted output ---
+    # --- Final report formatting ---
     final_output = f"""
 🎬 Drag and drop your {platform.capitalize()} video file here: "{video.filename if video else 'N/A'}"
 🎥 Running {platform.capitalize()} Viral Optimizer...
 
 🤖 Generating AI-powered analysis, captions, and viral tips...
 
-🔥 Fetching viral video comparisons and strategic insights...
+🔥 Fetching 3 relevant viral video examples for the same niche...
 
 ✅ {platform.capitalize()} Video Analysis Complete!
 
@@ -194,13 +142,14 @@ Use clear emojis and structured Markdown format exactly like a social media stra
 
 {ai_text}
 
-🎯 **Detected Niche:** {niche.capitalize()}
-🕓 **Best Time to Post for {niche.capitalize()} ({platform.capitalize()})**:
-{best_time_text}
+🎯 **Detected Niche:** {detected_niche}
+🕓 **Best Time to Post for {detected_niche} ({platform.capitalize()})**:
+{time_text}
 {peak_text}
 """
 
     return jsonify({"result": final_output})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
