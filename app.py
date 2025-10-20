@@ -7,97 +7,181 @@ from moviepy.editor import VideoFileClip
 from openai import OpenAI
 import tempfile
 import re
-import datetime
-import random
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-def analyze_video_properties(video_path):
-    """Extract basic visual properties from video."""
-    clip = VideoFileClip(video_path)
-    duration = round(clip.duration, 2)
-    frame = clip.get_frame(clip.duration / 2)
-    height, width, _ = frame.shape
-    aspect_ratio = round(width / height, 3)
-    brightness = np.mean(cv2.cvtColor((frame * 255).astype(np.uint8), cv2.COLOR_BGR2GRAY))
-    tone = "bright and energetic" if brightness > 100 else "dark and moody"
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    platform = request.form.get("platform", "tiktok").lower()
+    niche = request.form.get("niche", "General")
 
-    return {
-        "duration": duration,
-        "resolution": f"{width}x{height}",
-        "aspect_ratio": aspect_ratio,
-        "brightness": round(brightness, 2),
-        "tone": tone,
-    }
+    video = request.files.get("video")
+    csv_file = request.files.get("csv")
 
+    video_path = None
+    csv_path = None
 
-def generate_best_post_time(platform, niche):
-    """Generate a realistic best posting time based on niche, platform, and day."""
-    now = datetime.datetime.now()
-    day = now.strftime("%a")
+    if video:
+        temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+        video.save(temp_video.name)
+        video_path = temp_video.name
 
-    # Base posting time patterns by platform
-    post_patterns = {
-        "tiktok": ("6–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 55))),
-        "youtube": ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(15, 59))),
-        "instagram": ("5–8 PM EST", "6:{:02d} PM EST".format(random.randint(20, 50))),
-        "facebook": ("9–11 AM EST", "10:{:02d} AM EST".format(random.randint(0, 59))),
-    }
+    if csv_file:
+        temp_csv = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
+        csv_file.save(temp_csv.name)
+        csv_path = temp_csv.name
 
-    # Adjust by niche keywords
-    niche_lower = niche.lower() if niche else ""
-    if platform == "facebook":
-        if any(k in niche_lower for k in ["news", "politics", "community", "education"]):
-            post_window, peak = ("7–10 AM EST", "8:{:02d} AM EST".format(random.randint(5, 55)))
-        elif any(k in niche_lower for k in ["lifestyle", "beauty", "fashion", "health", "fitness"]):
-            post_window, peak = ("11 AM–2 PM EST", "12:{:02d} PM EST".format(random.randint(10, 50)))
-        elif any(k in niche_lower for k in ["gaming", "entertainment", "music", "memes"]):
-            post_window, peak = ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(0, 59)))
-        elif any(k in niche_lower for k in ["business", "finance", "marketing"]):
-            post_window, peak = ("9 AM–12 PM EST", "10:{:02d} AM EST".format(random.randint(0, 59)))
-        else:
-            post_window, peak = ("8–11 AM EST", "9:{:02d} AM EST".format(random.randint(0, 59)))
-    else:
-        if any(k in niche_lower for k in ["fitness", "motivation", "lifestyle"]):
-            post_window, peak = ("6–9 AM EST", "7:{:02d} AM EST".format(random.randint(0, 50)))
-        elif any(k in niche_lower for k in ["business", "education", "career"]):
-            post_window, peak = ("12–3 PM EST", "1:{:02d} PM EST".format(random.randint(5, 55)))
-        elif any(k in niche_lower for k in ["gaming", "music", "entertainment"]):
-            post_window, peak = ("7–10 PM EST", "8:{:02d} PM EST".format(random.randint(10, 59)))
-        else:
-            post_window, peak = post_patterns.get(platform, ("6–9 PM EST", "7:{:02d} PM EST".format(random.randint(10, 59))))
+    # --- Extract video metadata ---
+    video_info = ""
+    if video_path:
+        try:
+            clip = VideoFileClip(video_path)
+            duration = clip.duration
+            frame = clip.get_frame(0)
+            height, width, _ = frame.shape
+            aspect_ratio_val = width / height
+            video_info = (
+                f"📏 Duration: {duration:.2f}s\n"
+                f"🖼 Resolution: {width}x{height}\n"
+                f"📱 Aspect Ratio: {aspect_ratio_val:.3f}"
+            )
+            clip.close()
+        except Exception as e:
+            video_info = f"Error analyzing video: {e}"
 
-    return f"⏰ {day} {post_window}\n💡 Peak engagement around {peak}"
-
-
-def generate_ai_analysis(video_props, platform, video_name):
-    """Generate AI analysis using OpenAI API tuned for each platform."""
-    tone_focus = {
-        "tiktok": "fast-paced trends and short-form engagement hooks",
-        "youtube": "retention, watch-time optimization, and storytelling structure",
-        "instagram": "visual aesthetic, brand tone, and emotional storytelling",
-        "facebook": "shareability, community engagement, and conversation triggers"
-    }
-
+    # --- Prompt for AI ---
     prompt = f"""
-You are an expert social media strategist specializing in {platform}’s algorithm.
-Analyze this {platform} video and generate viral optimization insights tailored to {platform}’s ranking system.
+🎬 Analyze this {platform} video for viral potential in the {niche} niche.
 
-Platform focus: {tone_focus.get(platform, 'social video engagement principles')}
-Video: {video_name}
-Duration: {video_props['duration']}s
-Resolution: {video_props['resolution']}
-Aspect Ratio: {video_props['aspect_ratio']}
-Brightness: {video_props['brightness']}
-Tone: {video_props['tone']}
+Include:
+1. A scroll-stopping caption idea.
+2. 5 viral hashtags.
+3. One actionable tip for engagement.
+4. A numeric viral optimization score (0–100) with explanation.
+5. A short motivational takeaway.
+6. A comparison with 3 viral {platform} examples in the same niche.
+7. A concise takeaway strategy.
+8. A 4-point actionable checklist.
+9. The best time to post for this niche in EST.
 
-Provide your response in this exact structured format:
+Use clear emojis and structured Markdown format exactly like a social media strategist report.
+"""
 
-🎬 Drag and drop your {platform} video file here: "{video_name}"
-🎥 Running {platform} Viral Optimizer...
+    ai_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a creative viral strategist and social platform optimization expert."},
+            {"role": "user", "content": prompt},
+        ],
+    )
+
+    ai_text = ai_response.choices[0].message.content
+
+    # --- Remove any duplicate Best Time section ---
+    ai_text = re.sub(r"🕓\s*\*\*Best Time to Post.*?(?:\n💡.*)?", "", ai_text, flags=re.DOTALL)
+
+    # --- Default viral examples by platform ---
+    viral_examples_by_platform = {
+        "tiktok": """
+🔥 Viral Comparison Results:
+### Comparison with Viral TikToks in the Same Niche
+#### Viral Example 1
+- **Video Concept Summary:** A hairstylist showcases a dramatic hair color change with before-and-after shots.
+- **What Made It Go Viral:** Quick cuts and an upbeat trending sound enhanced the transformation.
+- **How to Replicate Success:** Use rapid transitions and a catchy trending sound that aligns with your theme.
+
+#### Viral Example 2
+- **Video Concept Summary:** A barbershop highlights client transformations in a fun montage.
+- **What Made It Go Viral:** High-energy edits and viewer challenges encouraged engagement.
+- **How to Replicate Success:** Ask viewers to comment their favorite transformation.
+
+#### Viral Example 3
+- **Video Concept Summary:** A barber educates viewers while performing a fade.
+- **What Made It Go Viral:** Blending education with entertainment increased shareability.
+- **How to Replicate Success:** Add quick tutorials or tips in your videos.
+""",
+        "youtube": """
+🔥 Viral Comparison Results:
+### Comparison with Viral YouTube Videos in the Same Niche
+#### Viral Example 1
+- **Video Concept Summary:** A creator explains a complex topic using humor and visual storytelling.
+- **What Made It Go Viral:** High retention from a captivating hook and clear narrative pacing.
+- **How to Replicate Success:** Start with a bold question or problem, then resolve it by the end.
+
+#### Viral Example 2
+- **Video Concept Summary:** A creator posts a cinematic vlog with music and emotion-driven editing.
+- **What Made It Go Viral:** Emotional resonance combined with visually striking shots.
+- **How to Replicate Success:** Focus on emotional storytelling and pacing.
+
+#### Viral Example 3
+- **Video Concept Summary:** A tutorial that solves a common problem in under 5 minutes.
+- **What Made It Go Viral:** Short, actionable, and valuable—optimized for algorithmic promotion.
+- **How to Replicate Success:** Deliver immediate value early and cut all fluff.
+""",
+        "instagram": """
+🔥 Viral Comparison Results:
+### Comparison with Viral Instagram Reels in the Same Niche
+#### Viral Example 1
+- **Video Concept Summary:** A short beauty reel showcasing a quick morning routine.
+- **What Made It Go Viral:** Visually satisfying transitions and aesthetic color grading.
+- **How to Replicate Success:** Maintain color consistency and sync edits to the beat.
+
+#### Viral Example 2
+- **Video Concept Summary:** A lifestyle influencer shares an emotional message with trending audio.
+- **What Made It Go Viral:** Authentic emotion paired with a relatable caption.
+- **How to Replicate Success:** Write captions that evoke emotion or vulnerability.
+
+#### Viral Example 3
+- **Video Concept Summary:** A fitness coach demonstrates a 15-second challenge.
+- **What Made It Go Viral:** Fast-paced action with clear on-screen text.
+- **How to Replicate Success:** Use on-screen text to highlight key takeaways.
+""",
+        "facebook": """
+🔥 Viral Comparison Results:
+### Comparison with Viral Facebook Videos in the Same Niche
+#### Viral Example 1
+- **Video Concept Summary:** A community member shares a heartwarming story of kindness.
+- **What Made It Go Viral:** Emotional storytelling and strong community connection.
+- **How to Replicate Success:** Emphasize relatable human experiences and local relevance.
+
+#### Viral Example 2
+- **Video Concept Summary:** A small business shares a behind-the-scenes video of their process.
+- **What Made It Go Viral:** Transparency and authenticity attracted engagement.
+- **How to Replicate Success:** Show your process—people love “how it’s made” content.
+
+#### Viral Example 3
+- **Video Concept Summary:** A funny meme video with commentary on current events.
+- **What Made It Go Viral:** Humor and timely posting created high shareability.
+- **How to Replicate Success:** Post fast on trending topics while adding your own twist.
+"""
+    }
+
+    # --- Insert platform-appropriate viral examples if missing ---
+    if "Viral Example 1" not in ai_text:
+        viral_block = viral_examples_by_platform.get(platform, viral_examples_by_platform["tiktok"])
+        if "### Takeaway" in ai_text:
+            ai_text = ai_text.replace("### Takeaway", viral_block + "\n\n### Takeaway")
+        else:
+            ai_text += viral_block
+
+    # --- Extract best time if missing ---
+    best_time_match = re.search(r"(⏰ .*?EST[^\n]*)", ai_text)
+    best_time_text = best_time_match.group(1) if best_time_match else "⏰ 6–10 PM EST"
+    peak_match = re.search(r"(💡 .*?EST[^\n]*)", ai_text)
+    peak_text = peak_match.group(1) if peak_match else "💡 Peak engagement around 8 PM EST."
+
+    ai_text = re.sub(r"\n{3,}", "\n\n", ai_text).strip()
+
+    # --- Final formatted output ---
+    final_output = f"""
+🎬 Drag and drop your {platform.capitalize()} video file here: "{video.filename if video else 'N/A'}"
+🎥 Running {platform.capitalize()} Viral Optimizer...
 
 🤖 Generating AI-powered analysis, captions, and viral tips...
 
@@ -105,134 +189,18 @@ Provide your response in this exact structured format:
 
 ✅ {platform.capitalize()} Video Analysis Complete!
 
-🎬 Video: {video_name}
-📏 Duration: {video_props['duration']}s
-🖼 Resolution: {video_props['resolution']}
-📱 Aspect Ratio: {video_props['aspect_ratio']}
-💡 Brightness: {video_props['brightness']}
-🎨 Tone: {video_props['tone']}
-⭐ Heuristic Score: 8/10 (High brightness and clear resolution contribute to visual appeal.)
-
-🎯 Detected Attributes:
-- Niche: (based on tone and content)
-- Tone: {video_props['tone']}
-- Keywords: (based on likely subject matter)
-
-💬 AI-Generated Viral Insights:
-### 1. Scroll-Stopping Caption
-(Give a catchy, emotional caption tailored to {platform})
-
-### 2. 5 Viral Hashtags
-(Give 5 hashtags relevant to the {platform} niche)
-
-### 3. Actionable Improvement Tip for Engagement
-(Give one improvement idea specific to {platform})
-
-### 4. Viral Optimization Score (1–100)
-(Give a score and short explanation)
-
-### 5. Motivation to Increase Virality
-(Give an encouraging tip)
-
-🔥 Viral Comparison Results:
-### Comparison with Viral {platform} Videos in the Same Niche
-#### Viral Example 1
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-#### Viral Example 2
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-#### Viral Example 3
-- **Video Concept Summary:** ...
-- **What Made It Go Viral:** ...
-- **How to Replicate Success:** ...
-
-### Takeaway Strategy
-(Summarize actionable insights for {platform} creators)
-
-📋 Actionable Checklist:
-- Hook viewers in the first 2 seconds.
-- Use platform-native text formats and CTAs.
-- Encourage shares and comments to boost visibility.
-- Post when your target audience is most active.
-
-🎯 **Detected Niche:** (detected niche)
-🕓 **Best Time to Post for that Niche ({platform.capitalize()})**:
-⏰ (Day + time range in EST)
-💡 Peak engagement around (specific time in EST)
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are an advanced AI trained for viral video analysis."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.9,
-        max_tokens=1600,
-    )
-    return response.choices[0].message.content.strip()
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    try:
-        platform = request.form.get("platform", "tiktok").lower()
-        video = request.files.get("video")
-
-        if not video:
-            return jsonify({"error": "No video uploaded"}), 400
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp:
-            video.save(temp.name)
-            video_path = temp.name
-
-        # Extract video properties
-        props = analyze_video_properties(video_path)
-
-        # Get AI-generated text
-        ai_text = generate_ai_analysis(props, platform, video.filename)
-
-        # Extract niche
-        niche_match = re.search(r"Niche:\s*(.+)", ai_text)
-        niche = niche_match.group(1).strip() if niche_match else "General"
-
-        # Generate best posting time dynamically
-        best_time_text = generate_best_post_time(platform, niche)
-
-        # Extract viral score
-        score_match = re.search(r"(\d{1,3})/100", ai_text)
-        score = score_match.group(1) if score_match else "N/A"
-
-        # Combine results neatly
-        final_output = f"""
-AI Results
-🎬 Video Analyzed: "{video.filename}"
-
-⭐ Viral Optimization Score: {score}/100
+🎬 Video: {video.filename if video else 'N/A'}
+{video_info}
 
 {ai_text}
 
-🕓 **Best Time to Post for {niche} ({platform.capitalize()})**:
+🎯 **Detected Niche:** {niche.capitalize()}
+🕓 **Best Time to Post for {niche.capitalize()} ({platform.capitalize()})**:
 {best_time_text}
+{peak_text}
 """
 
-        final_output = re.sub(r"===JSON===.*", "", final_output, flags=re.DOTALL)
-
-        return jsonify({"result": final_output})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    return jsonify({"result": final_output})
 
 if __name__ == "__main__":
     app.run(debug=True)
