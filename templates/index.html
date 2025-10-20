@@ -3,289 +3,212 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Social Analyzer</title>
+  <title>AI Viral Video Optimizer</title>
+
   <style>
-    :root {
-      --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
-      --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
-      --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
-      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #a6c9ff, #ffffff;
-      --base-bg: #080808;
-    }
+    /* ===== RESET ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      margin: 0;
       font-family: "Poppins", sans-serif;
-      background: var(--base-bg);
+      background: #0a0f1a;
       color: #fff;
       overflow-x: hidden;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    #gooey-bg {
+    /* ===== BLOB BACKGROUND ===== */
+    #blob-bg {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
+      top: 0; left: 0;
+      z-index: -1;
     }
-
-    #gooey-bg svg { width: 100%; height: 100%; filter: url(#goo); }
-
     .blob {
-      opacity: 0;
-      animation: fadeIn 1.4s ease-in forwards;
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle at center, rgba(0, 122, 255, 0.5), rgba(0, 82, 200, 0.2));
+      border-radius: 50%;
+      animation: moveBlobs 30s ease-in-out infinite alternate;
       mix-blend-mode: screen;
-      transition: fill 0.6s ease, filter 0.6s ease, transform 0.12s ease;
-      will-change: transform, opacity;
+      will-change: transform;
+      filter: blur(60px);
     }
 
-    @keyframes fadeIn { to { opacity: 1; } }
+    .blob:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+    .blob:nth-child(2) { top: 60%; left: 60%; animation-delay: -10s; background: radial-gradient(circle, rgba(66,103,178,0.4), rgba(24, 119, 242,0.2)); }
+    .blob:nth-child(3) { top: 30%; left: 70%; animation-delay: -20s; background: radial-gradient(circle, rgba(29,161,242,0.5), rgba(10,102,194,0.2)); }
 
+    @keyframes moveBlobs {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(60px, -40px) scale(1.2); }
+      100% { transform: translate(-80px, 50px) scale(1); }
+    }
+
+    /* ===== CONTAINER ===== */
     .container {
-      max-width: 800px;
-      margin: 80px auto;
-      padding: 32px;
-      background: rgba(20, 20, 20, 0.84);
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255,255,255,0.04);
+      z-index: 1;
       text-align: center;
-      backdrop-filter: blur(6px);
-      position: relative;
-      z-index: 2;
+      padding: 20px;
+      width: 90%;
+      max-width: 700px;
+      margin-top: 80px;
     }
 
-    h1 { font-size: 2.2rem; margin-bottom: 20px; }
+    h1 {
+      font-size: 1.9em;
+      font-weight: 600;
+      margin-bottom: 0.3em;
+    }
 
-    select, input[type="file"], button {
-      margin: 10px 0;
+    p.subtitle {
+      color: #9eb6d8;
+      font-size: 0.95em;
+      margin-bottom: 2em;
+    }
+
+    /* ===== FORM ===== */
+    .upload-box {
+      border: 2px dashed rgba(255,255,255,0.3);
+      border-radius: 15px;
+      padding: 25px;
+      background: rgba(255,255,255,0.05);
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .upload-box:hover {
+      border-color: #1e90ff;
+      background: rgba(255,255,255,0.1);
+    }
+
+    input[type=file] {
+      display: none;
+    }
+
+    .platform-select {
+      margin: 15px 0;
       padding: 10px;
+      font-size: 1em;
       border-radius: 10px;
       border: none;
-      font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
     }
 
-    select, input[type="file"] { background: #fff; color: #000; }
     button {
-      background: #ff0050;
+      background: linear-gradient(135deg, #1e90ff, #007aff);
       color: #fff;
-      cursor: pointer;
-      transition: 0.2s;
-      font-weight: 800;
+      border: none;
+      padding: 12px 22px;
       border-radius: 12px;
-      padding: 12px;
-    }
-    button:hover { opacity: 0.92; transform: translateY(-2px); }
-
-    #loading-bar {
-      height: 8px;
-      width: 0%;
-      background: #ff0050;
-      border-radius: 5px;
-      margin-top: 15px;
-      transition: width 0.18s ease, background 0.3s ease;
-      will-change: width;
-    }
-
-    #loading-status {
+      cursor: pointer;
+      font-size: 1em;
       margin-top: 10px;
-      font-size: 0.95rem;
-      font-style: italic;
-      color: #cfcfcf;
-      min-height: 24px;
+      transition: 0.3s;
     }
 
-    #ai-results {
-      margin-top: 30px;
+    button:hover {
+      background: linear-gradient(135deg, #007aff, #1e90ff);
+    }
+
+    /* ===== OUTPUT ===== */
+    .output {
+      margin-top: 2em;
       text-align: left;
-      background: rgba(255,255,255,0.03);
-      padding: 20px;
-      border-radius: 10px;
-      display: none;
-      color: #fff;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-      word-break: break-word;
-    }
-
-    #ai-results h3 { margin-top: 0; }
-
-    pre#full-result {
       white-space: pre-wrap;
-      overflow-x: auto;
-      font-size: 0.95rem;
-      line-height: 1.5;
+      background: rgba(255,255,255,0.08);
+      padding: 20px;
+      border-radius: 15px;
+      font-family: "Courier New", monospace;
+      line-height: 1.6;
+      font-size: 0.9em;
+      overflow-y: auto;
+      max-height: 60vh;
     }
 
-    .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
+    .loading {
+      font-size: 1.1em;
+      margin-top: 20px;
+      color: #9eb6d8;
+    }
 
-    @media (max-width: 480px) {
-      .container { margin: 40px 12px; padding: 20px; }
-      h1 { font-size: 1.6rem; }
-      pre#full-result { font-size: 0.9rem; }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4em; }
+      .container { margin-top: 60px; }
+      .output { font-size: 0.85em; }
     }
   </style>
 </head>
 
-<body data-platform="tiktok">
-  <div id="gooey-bg" aria-hidden="true">
-    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
-          <feColorMatrix in="blur" mode="matrix"
-            values="1 0 0 0 0  
-                    0 1 0 0 0  
-                    0 0 1 0 0  
-                    0 0 0 25 -10" result="goo"/>
-          <feBlend in="SourceGraphic" in2="goo"/>
-        </filter>
-      </defs>
-      <g id="blobs-group">
-        <circle class="blob" cx="150" cy="250" r="160"></circle>
-        <circle class="blob" cx="400" cy="180" r="170"></circle>
-        <circle class="blob" cx="700" cy="300" r="160"></circle>
-        <circle class="blob" cx="850" cy="500" r="140"></circle>
-        <circle class="blob" cx="500" cy="550" r="150"></circle>
-        <circle class="blob" cx="250" cy="500" r="130"></circle>
-      </g>
-    </svg>
+<body>
+  <div id="blob-bg">
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
   </div>
 
-  <div class="container" role="main">
-    <h1>AI Social Analyzer</h1>
+  <div class="container">
+    <h1>🎬 AI Viral Video Optimizer</h1>
+    <p class="subtitle">Upload your video and let AI analyze, compare, and optimize for TikTok, Instagram, YouTube, or Facebook.</p>
 
-    <select id="platform">
-      <option value="tiktok" selected>TikTok</option>
-      <option value="youtube">YouTube</option>
-      <option value="instagram">Instagram</option>
-      <option value="facebook">Facebook</option>
-    </select>
+    <form id="upload-form">
+      <label class="upload-box" for="video">🎥 Drag & Drop or Click to Upload Video</label>
+      <input type="file" id="video" name="video" accept="video/*" required />
 
-    <h3>Upload a Video</h3>
-    <input type="file" id="videoUpload" accept="video/*"/>
-    <div id="video-meta" class="file-meta"></div>
+      <select id="platform" name="platform" class="platform-select">
+        <option value="TikTok">TikTok</option>
+        <option value="Instagram">Instagram</option>
+        <option value="YouTube">YouTube</option>
+        <option value="Facebook">Facebook</option>
+      </select>
 
-    <h3>Upload CSV for Analysis</h3>
-    <input type="file" id="csvUpload" accept=".csv"/>
-    <div id="csv-meta" class="file-meta"></div>
+      <button type="submit">🚀 Analyze Video</button>
+    </form>
 
-    <button id="analyzeBtn">Analyze</button>
-    <div id="loading-bar"></div>
-    <div id="loading-status"></div>
-
-    <div id="ai-results">
-      <h3>AI Results</h3>
-      <pre id="full-result"></pre>
+    <div id="loading" class="loading" style="display:none;">
+      🤖 Generating AI-powered insights...
     </div>
+
+    <div id="results" class="output" style="display:none;"></div>
   </div>
 
   <script>
-    const blobs = Array.from(document.querySelectorAll('.blob'));
-    const colorThemes = {
-      tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
-      youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
-      instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
-      facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
-    };
+    const form = document.getElementById("upload-form");
+    const results = document.getElementById("results");
+    const loading = document.getElementById("loading");
 
-    const platformSelect = document.getElementById('platform');
-    const loadingBar = document.getElementById('loading-bar');
-    const loadingStatus = document.getElementById('loading-status');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const aiResults = document.getElementById('ai-results');
-    const fullResult = document.getElementById('full-result');
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const videoFile = document.getElementById("video").files[0];
+      const platform = document.getElementById("platform").value;
+      if (!videoFile) return alert("Please upload a video first!");
 
-    const viewBoxW = 1000, viewBoxH = 700;
-    const blobData = blobs.map(b => ({
-      x: parseFloat(b.getAttribute('cx')),
-      y: parseFloat(b.getAttribute('cy')),
-      r: parseFloat(b.getAttribute('r')),
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2,
-      pulse: Math.random() * Math.PI * 2,
-      speedMult: 0.4 + Math.random() * 0.6
-    }));
-
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const svgBlur = document.querySelector('#goo feGaussianBlur');
-    if (isIOS) svgBlur.setAttribute('stdDeviation', '10');
-
-    let lastFrame = 0;
-    const frameRate = isIOS ? 30 : 60;
-
-    function animate(now) {
-      if (now - lastFrame < 1000 / frameRate) return requestAnimationFrame(animate);
-      lastFrame = now;
-      for (const b of blobData) {
-        b.x += b.dx * b.speedMult;
-        b.y += b.dy * b.speedMult;
-        if (b.x < -200) b.x = viewBoxW + 200;
-        if (b.x > viewBoxW + 200) b.x = -200;
-        if (b.y < -200) b.y = viewBoxH + 200;
-        if (b.y > viewBoxH + 200) b.y = -200;
-        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
-        const el = blobs[blobData.indexOf(b)];
-        el.setAttribute('cx', b.x);
-        el.setAttribute('cy', b.y);
-        el.setAttribute('r', r);
-      }
-      requestAnimationFrame(animate);
-    }
-    requestAnimationFrame(animate);
-
-    function updateColors() {
-      const colors = colorThemes[platformSelect.value];
-      blobs.forEach((b, i) => {
-        const c = colors[i % colors.length];
-        b.setAttribute('fill', c);
-        b.style.filter = isIOS ? `brightness(1.2)` : `drop-shadow(0 0 32px ${c})`;
-      });
-      analyzeBtn.style.background = colors[0];
-      loadingBar.style.background = colors[0];
-    }
-
-    platformSelect.addEventListener('change', updateColors);
-    updateColors();
-
-    // --- Real AI request ---
-    analyzeBtn.addEventListener('click', async () => {
-      const platform = platformSelect.value;
-      const video = document.getElementById('videoUpload').files[0];
-      if (!video) {
-        alert("Please upload a video file first!");
-        return;
-      }
-
-      aiResults.style.display = 'none';
-      loadingBar.style.width = "0%";
-      loadingStatus.textContent = "Uploading and analyzing...";
+      results.style.display = "none";
+      loading.style.display = "block";
+      loading.textContent = "🤖 Generating AI-powered insights...";
 
       const formData = new FormData();
+      formData.append("video", videoFile);
       formData.append("platform", platform);
-      formData.append("video", video);
 
       try {
-        const response = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await response.json();
+        const res = await fetch("/analyze", { method: "POST", body: formData });
+        const data = await res.json();
 
-        if (data.error) {
-          loadingStatus.textContent = "❌ Error: " + data.error;
-          return;
-        }
-
-        loadingBar.style.width = "100%";
-        loadingStatus.textContent = "✅ Analysis complete!";
-        aiResults.style.display = 'block';
-        fullResult.textContent = data.result;
-
-        aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
+        loading.style.display = "none";
+        results.style.display = "block";
+        results.textContent = data.results || data.error || "No results found.";
       } catch (err) {
-        loadingStatus.textContent = "❌ Failed to analyze video.";
+        loading.style.display = "none";
+        results.style.display = "block";
+        results.textContent = "❌ Error: " + err.message;
       }
     });
   </script>
