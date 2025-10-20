@@ -7,6 +7,7 @@ from moviepy.editor import VideoFileClip
 from openai import OpenAI
 import tempfile
 import re
+from datetime import datetime
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
@@ -31,6 +32,9 @@ def analyze():
     video_info = ""
     brightness = 0
     tone = "neutral or mixed"
+    duration = 0
+    width = 0
+    height = 0
 
     if video_path:
         try:
@@ -54,36 +58,42 @@ def analyze():
             video_info = f"Error analyzing video: {e}"
 
     # --- Smart AI prompt for full viral breakdown ---
+    filename_hint = os.path.splitext(video.filename)[0] if video else "Unknown Video"
+    weekday = datetime.now().strftime("%A")
+
     prompt = f"""
-You are an expert viral strategist for {platform.capitalize()} and short-form content.
+You are an expert viral strategist and short-form content analyst.
 
-Analyze this uploaded video based on its visual traits and generate a detailed viral optimization report.
+Analyze this uploaded video and generate a detailed, platform-specific viral optimization report.
+Use both the visual traits and filename context to infer the correct niche and creative direction.
 
-Video traits:
+Video metadata:
 - Platform: {platform.capitalize()}
-- Duration, brightness, and tone: {brightness:.2f} brightness, {tone} tone
-- Aspect ratio: typical {platform.capitalize()} format
-- Goal: Increase engagement, shares, and retention
+- Filename: "{filename_hint}"
+- Duration: {duration:.2f}s
+- Brightness: {brightness:.2f}
+- Tone: {tone}
+- Aspect ratio: {width}x{height}
 
-Provide results in this exact structure with emojis and markdown:
+Provide a full breakdown in **this exact structure with emojis and markdown**:
 
 🎬 **Video Overview**
-Briefly describe what kind of content this video likely represents (infer niche).
+Briefly describe what this video is likely about (infer from filename and tone).
 
 🎯 **Detected Niche**
-Guess the niche (e.g., Beauty, Fitness, Automotive, Education, Food, etc.).
+Choose the most accurate niche (e.g., Beauty, Barbering, Fitness, Gaming, Automotive, Education, Food, etc.).
 
 💬 **Scroll-Stopping Caption Idea**
-Write one caption.
+Write a short, engaging caption tailored to {platform.capitalize()} audience style.
 
 🏷 **Top 5 Viral Hashtags**
-List 5 optimized hashtags for the niche.
+List 5 hashtags that fit this video's niche.
 
 🚀 **Actionable Engagement Tip**
-One tip to boost audience interaction.
+Give one practical tip to increase audience interaction and watch time.
 
 📈 **Viral Optimization Score (0–100)**
-Include explanation of strengths and weaknesses.
+Explain the score, including strengths and improvement areas.
 
 🔥 **3 Viral Video Examples Related to This Niche**
 For each example, provide:
@@ -92,19 +102,19 @@ For each example, provide:
 3. **How to replicate it for this uploaded video**
 
 🎯 **Takeaway Strategy**
-Concise, motivational next steps.
+Provide a short, motivational next step strategy.
 
 📋 **Actionable Checklist**
-4 clear checklist items.
+Give 4 specific checklist items for the creator to follow.
 
-🕓 **Best Time to Post (EST)**
-Give a single recommended window and best engagement time.
+🕓 **Best Time to Post ({weekday}, EST)**
+Include a single time window (e.g., 6–9 PM EST) and note when engagement typically peaks.
 """
 
     ai_response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a creative strategist who deeply understands viral video psychology, audience retention, and platform algorithms."},
+            {"role": "system", "content": "You are a creative strategist who deeply understands viral video psychology, platform algorithms, and engagement optimization."},
             {"role": "user", "content": prompt},
         ],
         temperature=0.8,
@@ -112,7 +122,7 @@ Give a single recommended window and best engagement time.
 
     ai_text = ai_response.choices[0].message.content.strip()
 
-    # --- Remove duplicate or irrelevant post time blocks ---
+    # --- Clean up duplicate post-time blocks ---
     ai_text = re.sub(r"🕓\s*\*\*Best Time to Post.*?(?:\n💡.*)?", "", ai_text, flags=re.DOTALL)
     ai_text = re.sub(r"\n{3,}", "\n\n", ai_text).strip()
 
@@ -143,7 +153,7 @@ Give a single recommended window and best engagement time.
 {ai_text}
 
 🎯 **Detected Niche:** {detected_niche}
-🕓 **Best Time to Post for {detected_niche} ({platform.capitalize()})**:
+🕓 **Best Time to Post for {detected_niche} ({platform.capitalize()}, {weekday})**:
 {time_text}
 {peak_text}
 """
