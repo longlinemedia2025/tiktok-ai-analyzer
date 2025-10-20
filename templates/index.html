@@ -3,279 +3,208 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Viral Optimizer Tool</title>
+  <title>Social Media Viral Analyzer</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-
     body {
       margin: 0;
-      padding: 0;
-      font-family: 'Poppins', sans-serif;
-      background: #0a0a0a;
-      overflow: hidden;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      text-align: center;
-    }
-
-    h1 {
-      margin-top: 1rem;
-      font-size: 2.3rem;
-      font-weight: 600;
-    }
-
-    select, input[type="file"], button {
-      font-family: inherit;
-      margin: 0.5rem;
-      padding: 0.6rem 1rem;
-      border-radius: 10px;
-      border: none;
-      font-size: 1rem;
-      outline: none;
-      transition: 0.3s;
-    }
-
-    select, input[type="file"] {
-      background: rgba(255, 255, 255, 0.1);
+      font-family: "Poppins", sans-serif;
+      background: #0a0f1c;
       color: white;
-      cursor: pointer;
+      overflow-x: hidden;
     }
 
-    button {
-      background: linear-gradient(90deg, #ff0050, #ff7a00);
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-    }
-
-    #drop-zone {
-      border: 2px dashed rgba(255, 255, 255, 0.3);
-      border-radius: 15px;
-      width: 80%;
-      max-width: 500px;
-      height: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      color: rgba(255, 255, 255, 0.6);
-      margin-top: 1rem;
-      transition: 0.3s;
-    }
-
-    #drop-zone.dragover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: #fff;
-      color: #fff;
-    }
-
-    #csv-upload {
-      margin-top: 10px;
-    }
-
-    #loading-bar {
-      height: 6px;
-      width: 80%;
-      border-radius: 5px;
-      margin-top: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      overflow: hidden;
-    }
-
-    #progress {
+    /* Gooey background container */
+    .gooey-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #ff0050, #ff7a00);
-      border-radius: 5px;
-      transition: width 0.25s ease-in-out;
-    }
-
-    #results {
-      margin-top: 20px;
-      width: 80%;
-      max-width: 800px;
-      background: rgba(20, 20, 20, 0.92);
-      border-radius: 20px;
-      padding: 20px;
-      overflow-y: auto;
-      max-height: 70vh;
-      white-space: pre-wrap;
-      box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      z-index: -1;
+      background: radial-gradient(circle at top left, #1b2bff22, #001030 90%);
+      filter: url(#gooey);
     }
 
     .blob {
       position: absolute;
       border-radius: 50%;
-      opacity: 0.7;
-      mix-blend-mode: screen;
-      filter: url(#goo);
-      animation: floatBlobs 16s ease-in-out infinite;
+      opacity: 0.8;
+      animation: moveBlob 25s ease-in-out infinite alternate;
+      filter: blur(60px);
     }
 
-    @keyframes floatBlobs {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(60px, -60px) scale(1.2); }
+    /* Different Facebook-style shades */
+    .blob:nth-child(1) { background: #1877f2; width: 450px; height: 450px; left: 10%; top: 20%; animation-delay: 0s; }
+    .blob:nth-child(2) { background: #1c9cff; width: 350px; height: 350px; left: 60%; top: 40%; animation-delay: 3s; }
+    .blob:nth-child(3) { background: #42b0ff; width: 400px; height: 400px; left: 30%; top: 60%; animation-delay: 6s; }
+    .blob:nth-child(4) { background: #a3d3ff; width: 300px; height: 300px; left: 70%; top: 10%; animation-delay: 9s; }
+    .blob:nth-child(5) { background: #ffffff; width: 250px; height: 250px; left: 40%; top: 80%; animation-delay: 12s; opacity: 0.5; }
+
+    @keyframes moveBlob {
+      0% {
+        transform: translate(0px, 0px) scale(1);
+      }
+      25% {
+        transform: translate(200px, -150px) scale(1.1);
+      }
+      50% {
+        transform: translate(-150px, 150px) scale(0.9);
+      }
+      75% {
+        transform: translate(150px, 100px) scale(1.05);
+      }
+      100% {
+        transform: translate(-100px, -200px) scale(1.1);
+      }
     }
 
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 700px;
+      margin: 80px auto;
+      background: rgba(10, 15, 28, 0.7);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 0 30px rgba(0, 100, 255, 0.2);
+      backdrop-filter: blur(6px);
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 700;
+      font-size: 2.2rem;
+      margin-bottom: 25px;
+      color: #fff;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+
+    select, input[type="file"] {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button {
+      margin-top: 30px;
+      width: 100%;
+      background: linear-gradient(90deg, #1877f2, #42b0ff);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: linear-gradient(90deg, #42b0ff, #1877f2);
+      transform: scale(1.03);
+    }
+
+    #result {
+      white-space: pre-wrap;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 30px;
+      line-height: 1.6;
+      font-family: "Courier New", monospace;
+    }
+
+    /* Gooey SVG Filter */
     svg {
       position: absolute;
       width: 0;
       height: 0;
     }
-
-    @media (max-width: 768px) {
-      body {
-        padding: 10px;
-      }
-
-      #results {
-        width: 95%;
-      }
-    }
   </style>
 </head>
 <body>
-  <h1>🎬 Viral Optimizer Tool</h1>
-  <select id="platform">
-    <option value="TikTok" selected>TikTok</option>
-    <option value="Instagram">Instagram</option>
-    <option value="YouTube">YouTube</option>
-    <option value="Facebook">Facebook</option>
-  </select>
-
-  <div id="drop-zone">🎥 Drag & Drop your video here or click to upload</div>
-  <input type="file" id="video" accept="video/*" hidden />
-
-  <div id="csv-upload">
-    <label for="csv">📂 Upload CSV (optional):</label>
-    <input type="file" id="csv" accept=".csv" />
+  <div class="gooey-bg">
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
   </div>
 
-  <button id="analyzeBtn">Analyze Video</button>
-  <div id="loading-bar"><div id="progress"></div></div>
-
-  <div id="results"></div>
-
-  <!-- Gooey Filter -->
   <svg>
     <defs>
-      <filter id="goo">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" />
-        <feColorMatrix in="blur" mode="matrix"
-          values="1 0 0 0 0
-                  0 1 0 0 0
-                  0 0 1 0 0
-                  0 0 0 25 -10" result="goo" />
+      <filter id="gooey">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur" />
+        <feColorMatrix
+          in="blur"
+          mode="matrix"
+          values="1 0 0 0 0  
+                  0 1 0 0 0  
+                  0 0 1 0 0  
+                  0 0 0 30 -15"
+          result="goo"
+        />
         <feBlend in="SourceGraphic" in2="goo" />
       </filter>
     </defs>
   </svg>
 
-  <div id="blobs"></div>
+  <div class="container">
+    <h1>🎬 Social Media Viral Analyzer</h1>
+    <form id="uploadForm">
+      <label for="platform">Select Platform:</label>
+      <select id="platform" name="platform">
+        <option value="TikTok">TikTok</option>
+        <option value="YouTube">YouTube</option>
+        <option value="Instagram">Instagram</option>
+        <option value="Facebook">Facebook</option>
+      </select>
+
+      <label for="video">Upload Video File:</label>
+      <input type="file" id="video" name="video" accept="video/*" required />
+
+      <label for="csv">Optional CSV File:</label>
+      <input type="file" id="csv" name="csv" accept=".csv" />
+
+      <button type="submit">🚀 Analyze Video</button>
+    </form>
+
+    <div id="result"></div>
+  </div>
 
   <script>
-    const blobsContainer = document.getElementById('blobs');
-    const platformSelect = document.getElementById('platform');
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('video');
-    const csvInput = document.getElementById('csv');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const resultsDiv = document.getElementById('results');
-    const progressBar = document.getElementById('progress');
+    const form = document.getElementById("uploadForm");
+    const result = document.getElementById("result");
 
-    const platforms = {
-      TikTok: ['#ff0050', '#ff7a00'],
-      Instagram: ['#833ab4', '#fd1d1d', '#fcb045'],
-      YouTube: ['#ff0000', '#282828'],
-      Facebook: ['#1877f2', '#42b72a']
-    };
-
-    // Generate blobs dynamically
-    for (let i = 0; i < 6; i++) {
-      const blob = document.createElement('div');
-      blob.classList.add('blob');
-      const size = Math.random() * 250 + 180;
-      blob.style.width = `${size}px`;
-      blob.style.height = `${size}px`;
-      blob.style.left = `${Math.random() * 100}%`;
-      blob.style.top = `${Math.random() * 100}%`;
-      blobsContainer.appendChild(blob);
-    }
-
-    function updateBlobColors() {
-      const colors = platforms[platformSelect.value];
-      document.querySelectorAll('.blob').forEach((blob, i) => {
-        blob.style.background = `radial-gradient(circle, ${colors[i % colors.length]}, transparent 70%)`;
-        blob.style.animationDuration = `${14 + Math.random() * 5}s`;
-      });
-    }
-
-    updateBlobColors();
-    platformSelect.addEventListener('change', updateBlobColors);
-
-    // Drop & upload logic
-    dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file) handleVideo(file);
-    });
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) handleVideo(file);
-    });
-
-    let animationInterval;
-    function animateProgress(speed) {
-      let progress = 0;
-      clearInterval(animationInterval);
-      animationInterval = setInterval(() => {
-        progress = Math.min(progress + Math.random() * 3.5, 100);
-        progressBar.style.width = `${progress}%`;
-
-        // Pulse blobs stronger with progress
-        document.querySelectorAll('.blob').forEach(blob => {
-          const scale = 1 + (progress / 100) * 0.35;
-          blob.style.transform = `scale(${scale})`;
-        });
-
-        if (progress >= 100) clearInterval(animationInterval);
-      }, speed);
-    }
-
-    async function handleVideo(file) {
-      resultsDiv.textContent = `🎥 Uploading and analyzing "${file.name}"...`;
-      const platform = platformSelect.value;
-      const formData = new FormData();
-      formData.append('video', file);
-      formData.append('platform', platform);
-      if (csvInput.files.length > 0) {
-        formData.append('csv', csvInput.files[0]);
-      }
-      animateProgress(120);
+      const formData = new FormData(form);
+      result.innerText = "Analyzing your video... ⏳ Please wait...";
 
       try {
-        const res = await fetch('/analyze', { method: 'POST', body: formData });
-        const data = await res.json();
-        progressBar.style.width = '100%';
-        resultsDiv.textContent = data.result || data.error || 'No result received.';
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+        result.innerText = data.result || data.error || "Error processing video.";
       } catch (err) {
-        resultsDiv.textContent = '❌ Error: ' + err.message;
+        result.innerText = "❌ An error occurred: " + err.message;
       }
-    }
+    });
   </script>
 </body>
 </html>
