@@ -34,11 +34,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    #gooey-bg svg {
-      width: 100%;
-      height: 100%;
-      filter: url(#goo);
-    }
+    #gooey-bg svg { width: 100%; height: 100%; filter: url(#goo); }
 
     .blob {
       opacity: 0;
@@ -113,6 +109,7 @@
       border-radius: 10px;
       display: none;
       color: #fff;
+      white-space: pre-wrap;
     }
 
     #ai-results h3 { margin-top: 0; }
@@ -174,13 +171,7 @@
 
     <div id="ai-results">
       <h3>AI Results</h3>
-      <pre id="full-result" style="white-space:pre-wrap;background:transparent;border:none;color:inherit;padding:0;margin:0;"></pre>
-      <div style="margin-top:12px;">
-        <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
-        <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
-        <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
-        <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
-      </div>
+      <pre id="full-result"></pre>
     </div>
   </div>
 
@@ -198,6 +189,7 @@
     const loadingStatus = document.getElementById('loading-status');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const aiResults = document.getElementById('ai-results');
+    const fullResult = document.getElementById('full-result');
 
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map(b => ({
@@ -251,41 +243,39 @@
     platformSelect.addEventListener('change', updateColors);
     updateColors();
 
-    // --- Simulated AI Loading Process ---
-    const steps = [
-      "Initializing AI engine...",
-      "Analyzing video brightness and resolution...",
-      "Detecting pacing and visual patterns...",
-      "Evaluating emotional tone and colors...",
-      "Extracting audio and detecting clarity...",
-      "Identifying niche and style alignment...",
-      "Generating captions and hashtags...",
-      "Finalizing viral optimization score..."
-    ];
+    // --- Real AI request ---
+    analyzeBtn.addEventListener('click', async () => {
+      const platform = platformSelect.value;
+      const video = document.getElementById('videoUpload').files[0];
+      if (!video) {
+        alert("Please upload a video file first!");
+        return;
+      }
 
-    analyzeBtn.addEventListener('click', () => {
       aiResults.style.display = 'none';
-      let progress = 0;
       loadingBar.style.width = "0%";
-      loadingStatus.textContent = "Starting analysis...";
-      const interval = setInterval(() => {
-        progress += 5 + Math.random() * 8;
-        loadingBar.style.width = Math.min(progress, 100) + "%";
+      loadingStatus.textContent = "Uploading and analyzing...";
 
-        const stepIndex = Math.floor((progress / 100) * steps.length);
-        loadingStatus.textContent = steps[stepIndex] || "Finalizing...";
+      const formData = new FormData();
+      formData.append("platform", platform);
+      formData.append("video", video);
 
-        if (progress >= 100) {
-          clearInterval(interval);
-          loadingBar.style.width = "100%";
-          loadingStatus.textContent = "✅ AI analysis complete!";
-          aiResults.style.display = 'block';
-          document.getElementById("caption").textContent = "AI-generated caption idea";
-          document.getElementById("hashtags").textContent = "#viral #socialgrowth #ai";
-          document.getElementById("tags").textContent = "@creator @trend";
-          document.getElementById("score").textContent = "94/100";
+      try {
+        const response = await fetch("/analyze", { method: "POST", body: formData });
+        const data = await response.json();
+
+        if (data.error) {
+          loadingStatus.textContent = "❌ Error: " + data.error;
+          return;
         }
-      }, 500);
+
+        loadingBar.style.width = "100%";
+        loadingStatus.textContent = "✅ Analysis complete!";
+        aiResults.style.display = 'block';
+        fullResult.textContent = data.result;
+      } catch (err) {
+        loadingStatus.textContent = "❌ Failed to analyze video.";
+      }
     });
   </script>
 </body>
