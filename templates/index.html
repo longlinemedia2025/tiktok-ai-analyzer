@@ -25,10 +25,8 @@
 
     #gooey-bg {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       z-index: -1;
       overflow: hidden;
       -webkit-tap-highlight-color: transparent;
@@ -109,15 +107,26 @@
       border-radius: 10px;
       display: none;
       color: #fff;
-      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     #ai-results h3 { margin-top: 0; }
+
+    pre#full-result {
+      white-space: pre-wrap;
+      overflow-x: auto;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
     .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
 
     @media (max-width: 480px) {
       .container { margin: 40px 12px; padding: 20px; }
       h1 { font-size: 1.6rem; }
+      pre#full-result { font-size: 0.9rem; }
     }
   </style>
 </head>
@@ -273,6 +282,8 @@
         loadingStatus.textContent = "✅ Analysis complete!";
         aiResults.style.display = 'block';
         fullResult.textContent = data.result;
+
+        aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (err) {
         loadingStatus.textContent = "❌ Failed to analyze video.";
       }
