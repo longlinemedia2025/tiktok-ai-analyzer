@@ -3,244 +3,254 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Social Analyzer</title>
+  <title>Video Prep Tool</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root {
-      --tiktok-colors: #ff0050, #00f2ea, #ffffff, #ff66c4, #00d2ff;
-      --youtube-colors: #ff0000, #ff6347, #ff7f50, #ffffff, #d3d3d3;
-      --instagram-colors: #e1306c, #f77737, #ffdc80, #5851db, #fd1d1d;
-      --facebook-colors: #1877F2, #3b82f6, #7aa7ff, #dceeff, #a6c9ff, #ffffff;
-      --base-bg: #080808;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Poppins", sans-serif;
-      background: var(--base-bg);
-      color: #fff;
-      overflow-x: hidden;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    #gooey-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
       overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
+      background: #0a0a0a;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
     }
-
-    #gooey-bg svg {
-      width: 100%;
-      height: 100%;
-      filter: url(#goo);
-    }
-
-    .blob {
-      opacity: 0;
-      animation: fadeIn 1.4s ease-in forwards;
-      mix-blend-mode: screen;
-      transition: fill 0.6s ease, filter 0.6s ease, transform 0.12s ease;
-      will-change: transform, opacity;
-    }
-
-    @keyframes fadeIn { to { opacity: 1; } }
 
     .container {
-      max-width: 800px;
-      margin: 80px auto;
-      padding: 32px;
-      background: rgba(20, 20, 20, 0.84);
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255,255,255,0.04);
-      text-align: center;
-      backdrop-filter: blur(6px);
       position: relative;
       z-index: 2;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+      text-align: center;
     }
 
-    h1 { font-size: 2.2rem; margin-bottom: 20px; }
+    h1 { font-size: 2rem; margin-bottom: 1.2rem; }
 
-    select, input[type="file"], button {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+    .upload-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
 
-    select, input[type="file"] { background: #fff; color: #000; }
-    button {
-      background: #ff0050;
+    input[type="file"] {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
       color: #fff;
       cursor: pointer;
-      transition: 0.2s;
-      font-weight: 800;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    button:hover { opacity: 0.92; transform: translateY(-2px); }
-
-    #loading-bar {
-      height: 8px;
-      width: 0%;
-      background: #ff0050;
-      border-radius: 5px;
-      margin-top: 15px;
-      transition: width 0.18s ease, background 0.3s ease;
-      will-change: width;
     }
 
-    #ai-results {
-      margin-top: 30px;
-      text-align: left;
-      background: rgba(255,255,255,0.03);
-      padding: 20px;
-      border-radius: 10px;
-      display: none;
+    select, button {
+      background: rgba(255,255,255,0.1);
       color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      outline: none;
     }
 
-    #ai-results h3 { margin-top: 0; }
-    .file-meta { color: #cfcfcf; font-size: 0.95rem; margin-top: 6px; }
+    button:hover { background: rgba(255,255,255,0.2); }
 
-    @media (max-width: 480px) {
-      .container { margin: 40px 12px; padding: 20px; }
-      h1 { font-size: 1.6rem; }
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .progress {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00f0ff, #ff008c);
+      transition: width 0.2s ease;
+    }
+
+    .results {
+      margin-top: 2rem;
+      text-align: left;
+      background: rgba(0,0,0,0.4);
+      padding: 1.5rem;
+      border-radius: 12px;
+    }
+
+    .canvas-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      background: radial-gradient(circle at center, #050505 0%, #000 100%);
+    }
+
+    /* Gooey blending via filter */
+    canvas {
+      filter: url(#gooey);
+    }
+
+    /* SVG filter for gooeyness */
+    svg {
+      position: absolute;
+      width: 0;
+      height: 0;
     }
   </style>
 </head>
-
-<body data-platform="tiktok">
-  <div id="gooey-bg" aria-hidden="true">
-    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
-          <feColorMatrix in="blur" mode="matrix"
-            values="1 0 0 0 0  
-                    0 1 0 0 0  
-                    0 0 1 0 0  
-                    0 0 0 25 -10" result="goo"/>
-          <feBlend in="SourceGraphic" in2="goo"/>
-        </filter>
-      </defs>
-      <g id="blobs-group">
-        <circle class="blob" cx="150" cy="250" r="160"></circle>
-        <circle class="blob" cx="400" cy="180" r="170"></circle>
-        <circle class="blob" cx="700" cy="300" r="160"></circle>
-        <circle class="blob" cx="850" cy="500" r="140"></circle>
-        <circle class="blob" cx="500" cy="550" r="150"></circle>
-        <circle class="blob" cx="250" cy="500" r="130"></circle>
-      </g>
+<body>
+  <div class="canvas-bg">
+    <canvas id="blobCanvas"></canvas>
+    <svg>
+      <filter id="gooey">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
+        <feColorMatrix in="blur" mode="matrix"
+          values="
+            1 0 0 0 0
+            0 1 0 0 0
+            0 0 1 0 0
+            0 0 0 40 -10"
+          result="gooey" />
+        <feComposite in="SourceGraphic" in2="gooey" operator="atop"/>
+      </filter>
     </svg>
   </div>
 
-  <div class="container" role="main">
-    <h1>AI Social Analyzer</h1>
-
-    <select id="platform">
-      <option value="tiktok" selected>TikTok</option>
-      <option value="youtube">YouTube</option>
-      <option value="instagram">Instagram</option>
-      <option value="facebook">Facebook</option>
-    </select>
-
-    <h3>Upload a Video</h3>
-    <input type="file" id="videoUpload" accept="video/*"/>
-    <div id="video-meta" class="file-meta"></div>
-
-    <h3>Upload CSV for Analysis</h3>
-    <input type="file" id="csvUpload" accept=".csv"/>
-    <div id="csv-meta" class="file-meta"></div>
-
-    <button id="analyzeBtn">Analyze</button>
-    <div id="loading-bar"></div>
-
-    <div id="ai-results">
-      <h3>AI Results</h3>
-      <pre id="full-result" style="white-space:pre-wrap;background:transparent;border:none;color:inherit;padding:0;margin:0;"></pre>
-      <div style="margin-top:12px;">
-        <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
-        <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
-        <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
-        <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
+  <div class="container">
+    <h1>🎥 Video Prep Tool</h1>
+    <div class="upload-section">
+      <div>
+        <label><i class="fa-solid fa-video"></i> Upload Video:</label>
+        <input type="file" id="videoUpload" accept="video/*">
       </div>
+      <div>
+        <label><i class="fa-solid fa-file-csv"></i> Upload CSV:</label>
+        <input type="file" id="csvUpload" accept=".csv">
+      </div>
+      <div>
+        <label><i class="fa-solid fa-hashtag"></i> Platform:</label>
+        <select id="platformSelect">
+          <option value="tiktok">TikTok</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+        </select>
+      </div>
+      <button id="analyzeBtn"><i class="fa-solid fa-magic"></i> Analyze</button>
+      <div class="progress-bar"><div class="progress" id="progress"></div></div>
+    </div>
+
+    <div class="results" id="results">
+      <h2>AI Results</h2>
+      <p><strong>Caption:</strong> <span id="caption">Waiting...</span></p>
+      <p><strong>Hashtags:</strong> <span id="hashtags">Waiting...</span></p>
+      <p><strong>Tags:</strong> <span id="tags">Waiting...</span></p>
+      <p><strong>Score:</strong> <span id="score">Waiting...</span></p>
+      <p><strong>💡 Best time to post:</strong> <span id="bestTime">Analyzing...</span></p>
     </div>
   </div>
 
   <script>
-    const blobs = Array.from(document.querySelectorAll('.blob'));
-    const colorThemes = {
-      tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
-      youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
-      instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
-      facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
+    const canvas = document.getElementById("blobCanvas");
+    const ctx = canvas.getContext("2d");
+    let blobs = [];
+    let platform = "tiktok";
+    let width = window.innerWidth, height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener("resize", resizeCanvas);
+
+    const themes = {
+      tiktok: ["#ff0050", "#00f2ea", "#ffffff", "#222"],
+      instagram: ["#feda75", "#d62976", "#962fbf", "#4f5bd5"],
+      facebook: ["#1877f2", "#3b5998", "#4267B2", "#e7f3ff"]
     };
 
-    const platformSelect = document.getElementById('platform');
-    const loadingBar = document.getElementById('loading-bar');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-
-    const viewBoxW = 1000, viewBoxH = 700;
-    const blobData = blobs.map(b => ({
-      x: parseFloat(b.getAttribute('cx')),
-      y: parseFloat(b.getAttribute('cy')),
-      r: parseFloat(b.getAttribute('r')),
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2,
-      pulse: Math.random() * Math.PI * 2,
-      speedMult: 0.4 + Math.random() * 0.6
-    }));
-
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const svgBlur = document.querySelector('#goo feGaussianBlur');
-    if (isIOS) svgBlur.setAttribute('stdDeviation', '10');
-
-    let lastFrame = 0;
-    const frameRate = isIOS ? 30 : 60;
-
-    function animate(now) {
-      if (now - lastFrame < 1000 / frameRate) return requestAnimationFrame(animate);
-      lastFrame = now;
-
-      for (const b of blobData) {
-        b.x += b.dx * b.speedMult;
-        b.y += b.dy * b.speedMult;
-        if (b.x < -200) b.x = viewBoxW + 200;
-        if (b.x > viewBoxW + 200) b.x = -200;
-        if (b.y < -200) b.y = viewBoxH + 200;
-        if (b.y > viewBoxH + 200) b.y = -200;
-
-        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
-        const el = blobs[blobData.indexOf(b)];
-        el.setAttribute('cx', b.x);
-        el.setAttribute('cy', b.y);
-        el.setAttribute('r', r);
+    class Blob {
+      constructor(x, y, radius, color) {
+        this.x = x; this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
       }
+
+      move() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.85;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    function initBlobs() {
+      blobs = [];
+      const colors = themes[platform];
+      for (let i = 0; i < 6; i++) {
+        const radius = 120 + Math.random() * 50;
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const color = colors[i % colors.length];
+        blobs.push(new Blob(x, y, radius, color));
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      blobs.forEach(b => {
+        b.move();
+        b.draw();
+      });
       requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animate);
 
-    function updateColors() {
-      const colors = colorThemes[platformSelect.value];
-      blobs.forEach((b, i) => {
-        const c = colors[i % colors.length];
-        b.setAttribute('fill', c);
-        b.style.filter = isIOS ? `brightness(1.2)` : `drop-shadow(0 0 32px ${c})`;
-      });
-      analyzeBtn.style.background = colors[0];
-      loadingBar.style.background = colors[0];
-    }
+    initBlobs();
+    animate();
 
-    platformSelect.addEventListener('change', updateColors);
-    updateColors();
+    document.getElementById("platformSelect").addEventListener("change", (e) => {
+      platform = e.target.value;
+      initBlobs();
+    });
+
+    // Dummy progress simulation
+    const progressBar = document.getElementById("progress");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const bestTime = document.getElementById("bestTime");
+
+    analyzeBtn.addEventListener("click", () => {
+      let progress = 0;
+      progressBar.style.width = "0%";
+      const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        progressBar.style.width = Math.min(progress, 100) + "%";
+        if (progress >= 100) {
+          clearInterval(interval);
+          document.getElementById("caption").textContent = "AI caption suggestion generated!";
+          document.getElementById("hashtags").textContent = "#AI #SocialMedia #Viral";
+          document.getElementById("tags").textContent = "@creator @trend";
+          document.getElementById("score").textContent = "95/100";
+          bestTime.textContent = "💡 Peak engagement around 8:43 PM EST.";
+        }
+      }, 300);
+    });
   </script>
 </body>
 </html>
