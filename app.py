@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
-import os, cv2, tempfile, base64, numpy as np, datetime, time, threading, queue, pandas as pd
+import os, cv2, tempfile, base64, numpy as np, datetime, time, threading, queue
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 
@@ -8,16 +8,22 @@ app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# --- Global message queue for SSE feed ---
 live_queue = queue.Queue()
-def push_feed(msg): live_queue.put(msg)
+
+def push_feed(msg):
+    """Push live feed message to queue for frontend"""
+    live_queue.put(msg)
 
 
+# --- Helper: analyze visuals ---
 def analyze_video_visuals(video_path):
     push_feed("Analyzing video frames and tone...")
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     frame_indices = np.linspace(0, total_frames - 1, 5, dtype=int)
-    frames_b64, avg_colors = [], []
+    frames_b64 = []
+    avg_colors = []
 
     for i in frame_indices:
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
@@ -27,6 +33,7 @@ def analyze_video_visuals(video_path):
         resized = cv2.resize(frame, (224, 224))
         avg_color = cv2.mean(resized)[:3]
         avg_colors.append(avg_color)
+
         _, buffer = cv2.imencode('.jpg', resized)
         frames_b64.append(base64.b64encode(buffer).decode('utf-8'))
 
@@ -38,27 +45,33 @@ def analyze_video_visuals(video_path):
     return brightness, tone, frames_b64
 
 
+# --- Dynamic AI-assisted posting time ---
 def best_posting_time(platform, niche):
     today = datetime.datetime.now()
     day = today.strftime("%A")
     push_feed("Calculating best posting time...")
+
     prompt = f"""
 You are a social media analytics AI.
 Estimate the best posting window and engagement peak for the {niche} niche on {platform} if today is {day}.
 Return in the format:
 "⏰ TIME_RANGE_EST  |  💡 PEAK_EST"
+Example: "⏰ 5–8 PM EST  |  💡 Peak ~6:45 PM EST"
 """
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-        return day, resp.choices[0].message.content.strip()
+        line = resp.choices[0].message.content.strip()
     except Exception:
-        return day, "⏰ 6–9 PM EST  |  💡 Peak ~7:30 PM EST"
+        line = "⏰ 6–9 PM EST  |  💡 Peak ~7:30 PM EST"
+
+    return day, line
 
 
-def background_analyze(platform, video_path, video_name, csv_data):
+# --- Background worker thread for live AI processing ---
+def background_analyze(platform, video_path, video_name):
     try:
         push_feed("Extracting video metadata...")
         clip = VideoFileClip(video_path)
@@ -70,42 +83,23 @@ def background_analyze(platform, video_path, video_name, csv_data):
 
         brightness, tone, frames_b64 = analyze_video_visuals(video_path)
 
-        push_feed("Building prompt using CSV insights...")
-        csv_context = ""
-        if csv_data is not None:
-            push_feed("Parsing CSV data for insights...")
-            try:
-                csv_preview = csv_data.head(5).to_string(index=False)
-                column_summary = ", ".join(csv_data.columns)
-                csv_context = f"""
-CSV Columns: {column_summary}
-Top 5 rows:
-{csv_preview}
-"""
-                push_feed("CSV data integrated into analysis.")
-            except Exception as e:
-                push_feed(f"CSV parsing failed: {e}")
-
         push_feed("Contacting AI engine for full viral insights...")
         prompt = f"""
-You are an expert social media content strategist AI.
+You are an expert social media content analyst AI.
 
-Analyze and optimize a video for virality based on:
-Platform: {platform}
-Video name: "{video_name}"
-Duration: {duration}s
-Aspect Ratio: {aspect_ratio}
-Brightness: {brightness}
-Tone: {tone}
+Based on these details:
+- Platform: {platform}
+- Video name: "{video_name}"
+- Duration: {duration} seconds
+- Aspect Ratio: {aspect_ratio}
+- Average Brightness: {brightness}
+- Tone: {tone}
 
-Video Frames (base64): {frames_b64[:3]}
+Below are 5 sampled video frames (base64 JPEGs):
+{frames_b64[:3]}
 
-Attached CSV Insights:
-{csv_context}
-
-Please return your analysis in this structured format:
-
-AI Results
+1️⃣ Identify the most likely content niche.
+2️⃣ Generate full viral optimization insights in this format:
 🎬 Video Info
 💬 Viral Insights
 🔥 3 Viral Video Examples
@@ -117,6 +111,7 @@ AI Results
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
+
         ai_text = ai_response.choices[0].message.content
 
         niche = "Default"
@@ -134,13 +129,14 @@ AI Results
 🕓 **Best Time to Post for {niche} ({platform}, {day})**:
 {best_time_line}
 """
+
         push_feed("✅ Analysis complete.")
         live_queue.put({"final": final_summary})
-
     except Exception as e:
         live_queue.put({"error": str(e)})
 
 
+# --- Flask routes ---
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -155,19 +151,16 @@ def analyze_video():
     if not video:
         return jsonify({'error': 'No video uploaded'}), 400
 
-    csv_data = None
-    if csv_file:
-        try:
-            csv_data = pd.read_csv(csv_file)
-            push_feed(f"CSV '{csv_file.filename}' uploaded successfully with {len(csv_data)} rows.")
-        except Exception as e:
-            push_feed(f"CSV load error: {e}")
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         video.save(tmp.name)
         video_path = tmp.name
 
-    thread = threading.Thread(target=background_analyze, args=(platform, video_path, video.filename, csv_data))
+    # CSV is optional — no changes if not provided
+    if csv_file:
+        push_feed(f"CSV '{csv_file.filename}' uploaded successfully.")
+
+    # Start AI analysis in a background thread
+    thread = threading.Thread(target=background_analyze, args=(platform, video_path, video.filename))
     thread.start()
 
     return jsonify({'status': 'processing'})
@@ -175,6 +168,7 @@ def analyze_video():
 
 @app.route('/stream')
 def stream():
+    """Stream live AI feed via SSE."""
     def event_stream():
         while True:
             msg = live_queue.get()
