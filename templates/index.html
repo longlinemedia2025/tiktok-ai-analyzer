@@ -281,7 +281,7 @@
         loadingBar.style.width = "100%";
         loadingStatus.textContent = "✅ Analysis complete!";
         aiResults.style.display = 'block';
-        fullResult.textContent = data.result;
+        fullResult.textContent = data.results; // ✅ FIXED: print correct key
 
         aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (err) {
