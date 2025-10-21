@@ -200,7 +200,6 @@
     const aiResults = document.getElementById('ai-results');
     const fullResult = document.getElementById('full-result');
 
-    // Animated blobs background
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map(b => ({
       x: parseFloat(b.getAttribute('cx')),
@@ -255,48 +254,34 @@
 
       aiResults.style.display = 'none';
       loadingBar.style.width = "0%";
-      loadingStatus.textContent = "🔍 Initializing AI analysis...";
-      let progress = 0;
-      const messages = [
-        "🧠 Scanning visuals and audio cues...",
-        "🎨 Detecting tone, brightness, and movement...",
-        "📊 Extracting engagement features...",
-        "🤖 Matching platform trends...",
-        "🔥 Generating viral strategy insights...",
-        "✨ Finalizing output..."
-      ];
-      const interval = setInterval(() => {
-        progress = Math.min(progress + 15, 95);
-        loadingBar.style.width = progress + "%";
-        loadingStatus.textContent = messages[Math.floor(progress / 20)] || "🌀 Processing...";
-      }, 1200);
+      loadingStatus.textContent = "Uploading and analyzing...";
 
       const formData = new FormData();
       formData.append("platform", platform);
       formData.append("video", video);
       if (csv) formData.append("csv", csv);
 
-      try {
-        const response = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await response.json();
-        clearInterval(interval);
-
-        if (data.error) {
-          loadingStatus.textContent = "❌ Error: " + data.error;
-          loadingBar.style.background = "#ff3333";
-          return;
-        }
-
-        loadingBar.style.width = "100%";
-        loadingStatus.textContent = "✅ Analysis complete!";
-        aiResults.style.display = "block";
-        fullResult.textContent = data.result;
-        aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
-      } catch (err) {
-        clearInterval(interval);
-        loadingStatus.textContent = "❌ Failed to analyze video.";
-        loadingBar.style.background = "#ff3333";
+      const response = await fetch("/analyze", { method: "POST", body: formData });
+      const data = await response.json();
+      if (data.error) {
+        loadingStatus.textContent = "❌ Error: " + data.error;
+        return;
       }
+
+      // ✅ FIXED SECTION BELOW
+      loadingStatus.textContent = "✅ Analysis complete!";
+      loadingBar.style.width = "100%";
+      aiResults.style.display = 'block';
+
+      if (data.results) {
+        fullResult.textContent = data.results;
+      } else if (data.result) {
+        fullResult.textContent = data.result;
+      } else {
+        fullResult.textContent = "⚠ No results received from AI.";
+      }
+
+      aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   </script>
 </body>
