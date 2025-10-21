@@ -160,10 +160,10 @@
     <h1>AI Social Analyzer</h1>
 
     <select id="platform">
-      <option value="tiktok" selected>TikTok</option>
-      <option value="youtube">YouTube</option>
-      <option value="instagram">Instagram</option>
-      <option value="facebook">Facebook</option>
+      <option value="TikTok" selected>TikTok</option>
+      <option value="YouTube">YouTube</option>
+      <option value="Instagram">Instagram</option>
+      <option value="Facebook">Facebook</option>
     </select>
 
     <h3>Upload a Video</h3>
@@ -187,10 +187,10 @@
   <script>
     const blobs = Array.from(document.querySelectorAll('.blob'));
     const colorThemes = {
-      tiktok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
-      youtube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
-      instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
-      facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
+      TikTok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
+      YouTube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
+      Instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
+      Facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
     };
 
     const platformSelect = document.getElementById('platform');
@@ -200,6 +200,7 @@
     const aiResults = document.getElementById('ai-results');
     const fullResult = document.getElementById('full-result');
 
+    // Animated blobs background
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map(b => ({
       x: parseFloat(b.getAttribute('cx')),
@@ -211,16 +212,7 @@
       speedMult: 0.4 + Math.random() * 0.6
     }));
 
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const svgBlur = document.querySelector('#goo feGaussianBlur');
-    if (isIOS) svgBlur.setAttribute('stdDeviation', '10');
-
-    let lastFrame = 0;
-    const frameRate = isIOS ? 30 : 60;
-
     function animate(now) {
-      if (now - lastFrame < 1000 / frameRate) return requestAnimationFrame(animate);
-      lastFrame = now;
       for (const b of blobData) {
         b.x += b.dx * b.speedMult;
         b.y += b.dy * b.speedMult;
@@ -243,7 +235,7 @@
       blobs.forEach((b, i) => {
         const c = colors[i % colors.length];
         b.setAttribute('fill', c);
-        b.style.filter = isIOS ? `brightness(1.2)` : `drop-shadow(0 0 32px ${c})`;
+        b.style.filter = `drop-shadow(0 0 32px ${c})`;
       });
       analyzeBtn.style.background = colors[0];
       loadingBar.style.background = colors[0];
@@ -252,10 +244,10 @@
     platformSelect.addEventListener('change', updateColors);
     updateColors();
 
-    // --- Real AI request ---
     analyzeBtn.addEventListener('click', async () => {
       const platform = platformSelect.value;
       const video = document.getElementById('videoUpload').files[0];
+      const csv = document.getElementById('csvUpload').files[0];
       if (!video) {
         alert("Please upload a video file first!");
         return;
@@ -268,25 +260,38 @@
       const formData = new FormData();
       formData.append("platform", platform);
       formData.append("video", video);
+      if (csv) formData.append("csv", csv);
 
-      try {
-        const response = await fetch("/analyze", { method: "POST", body: formData });
-        const data = await response.json();
-
-        if (data.error) {
-          loadingStatus.textContent = "❌ Error: " + data.error;
-          return;
-        }
-
-        loadingBar.style.width = "100%";
-        loadingStatus.textContent = "✅ Analysis complete!";
-        aiResults.style.display = 'block';
-        fullResult.textContent = data.results; // ✅ FIXED: print correct key
-
-        aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
-      } catch (err) {
-        loadingStatus.textContent = "❌ Failed to analyze video.";
+      const response = await fetch("/analyze", { method: "POST", body: formData });
+      const data = await response.json();
+      if (data.error) {
+        loadingStatus.textContent = "❌ Error: " + data.error;
+        return;
       }
+
+      // Start event stream updates
+      const evtSource = new EventSource("/stream");
+      let progress = 0;
+      evtSource.onmessage = (e) => {
+        loadingStatus.textContent = e.data;
+        progress = Math.min(progress + 10, 90);
+        loadingBar.style.width = progress + "%";
+      };
+
+      evtSource.addEventListener("complete", (e) => {
+        evtSource.close();
+        loadingStatus.textContent = "✅ Analysis complete!";
+        loadingBar.style.width = "100%";
+        aiResults.style.display = 'block';
+        fullResult.textContent = e.data;
+        aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      evtSource.addEventListener("error", (e) => {
+        evtSource.close();
+        loadingStatus.textContent = "❌ Error during analysis.";
+        loadingBar.style.background = "#ff4444";
+      });
     });
   </script>
 </body>
