@@ -110,8 +110,11 @@ def analyze():
         for t in np.linspace(0, duration, num=min(int(duration), 8)):
             frame = clip.get_frame(t)
             _, buf = cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            # ✅ FIX: Encode frame bytes into base64 string to avoid JSON serialization error
-            frames.append(base64.b64encode(buf).decode("utf-8"))
+            base64_image = base64.b64encode(buf).decode("utf-8")
+            # ✅ FIX: use image_url format with base64 data URI
+            frames.append(
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+            )
 
         clip.close()
 
@@ -164,13 +167,7 @@ Finally:
                 },
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        *[
-                            {"type": "image", "image_data": frame}
-                            for frame in frames[:5]
-                        ],
-                    ],
+                    "content": [{"type": "text", "text": prompt}] + frames[:5],
                 },
             ],
             max_tokens=1500,
