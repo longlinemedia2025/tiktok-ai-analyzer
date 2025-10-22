@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import os, cv2, tempfile, numpy as np, datetime
+import os, cv2, tempfile, numpy as np, datetime, base64
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
 
@@ -110,7 +110,8 @@ def analyze():
         for t in np.linspace(0, duration, num=min(int(duration), 8)):
             frame = clip.get_frame(t)
             _, buf = cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            frames.append(buf.tobytes())
+            # ✅ FIX: Encode frame bytes into base64 string to avoid JSON serialization error
+            frames.append(base64.b64encode(buf).decode("utf-8"))
 
         clip.close()
 
