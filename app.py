@@ -111,7 +111,6 @@ def analyze():
             frame = clip.get_frame(t)
             _, buf = cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             base64_image = base64.b64encode(buf).decode("utf-8")
-            # ✅ FIX: use image_url format with base64 data URI
             frames.append(
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
             )
@@ -120,40 +119,50 @@ def analyze():
 
         brightness, tone = analyze_video_visuals(video_path)
 
-        # --- AI prompt for deep content + niche analysis ---
+        # --- AI prompt for single-platform analysis ---
         prompt = f"""
-You are a professional AI content strategist analyzing short-form videos.
-Analyze this uploaded {platform} video and provide a viral optimization report.
+You are a professional AI content strategist analyzing a {platform} video.
+Analyze the uploaded {platform} video and provide a viral optimization report
+**specifically for {platform} only** — do not include results for any other platforms.
 
 Determine:
 1️⃣ Niche category (e.g. Beauty, Fitness, Gaming, Food, Travel, Comedy, Education, etc.)
 2️⃣ What the video is about
 3️⃣ What emotion or reaction it triggers
 4️⃣ What visual tone it has (use provided tone: {tone})
-5️⃣ Which platform strategies will make it go viral
+5️⃣ Which {platform} strategies will make it go viral
 
-Then, provide in this format:
+Then, provide the results in this exact format (keep structure identical):
 
-🎬 Video Summary
-📏 Duration: {duration}s | {width}x{height}px | {round(fps)}fps
+### 🎬 Video Summary
+📏 Duration: {duration}s | {width}x{height}px | {round(fps)}fps  
 💡 Visual Tone: {tone} | Brightness: {brightness}
 
-💬 AI-Generated Viral Insights:
-1️⃣ Scroll-Stopping Caption for each platform (TikTok, Instagram, YouTube, Facebook)
-2️⃣ 5 Hashtags for each platform
-3️⃣ Engagement Tip
-4️⃣ Viral Optimization Score (1–100)
-5️⃣ Motivational Tip
+### 💬 AI-Generated Viral Insights:
+1️⃣ **Scroll-Stopping Caption ({platform} only)**
+   [write one caption for {platform}]
 
-🔥 Viral Comparison:
-Find 3 real viral video concepts from the same niche.
+2️⃣ **5 Hashtags ({platform} only)**
+   [list exactly 5 hashtags for {platform}]
+
+3️⃣ **Engagement Tip**
+   [one short actionable tip for {platform} creators]
+
+4️⃣ **Viral Optimization Score (1–100)**
+   [give a realistic score]
+
+5️⃣ **Motivational Tip**
+   [inspire the creator in one line]
+
+### 🔥 Viral Comparison:
+Provide 3 real viral video concepts from the same niche ({platform}-based examples only):
 For each:
 - Summary
 - What made it go viral
-- How to replicate it
+- How to replicate it on {platform}
 
 Finally:
-🎯 Detected Niche
+🎯 Detected Niche  
 🕓 Best Time to Post ({platform}, today)
 """
 
