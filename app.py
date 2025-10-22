@@ -1,149 +1,91 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import os, cv2, tempfile, numpy as np, datetime, base64
+import os
+import cv2
+import numpy as np
 from moviepy.editor import VideoFileClip
 from openai import OpenAI
+import tempfile
+import datetime
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
-# --- Helper: lightweight frame sampling for visual content ---
-def analyze_video_visuals(video_path):
-    cap = cv2.VideoCapture(video_path)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_indices = np.linspace(0, total_frames - 1, 10, dtype=int)
-    colors = []
-    for i in frame_indices:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-        ret, frame = cap.read()
-        if not ret:
-            continue
-        avg_color = cv2.mean(cv2.resize(frame, (64, 64)))[:3]
-        colors.append(avg_color)
-    cap.release()
-
-    avg_color = np.mean(colors, axis=0) if colors else [0, 0, 0]
-    brightness = np.mean(avg_color)
-    tone = (
-        "dark and moody"
-        if brightness < 60
-        else "neutral or mixed"
-        if brightness < 130
-        else "bright and energetic"
-    )
-    return round(brightness, 2), tone
-
-
-# --- Helper: determine best posting time ---
-def best_posting_time(platform, niche):
-    day = datetime.datetime.now().strftime("%A")
-    defaults = {
-        "TikTok": {
-            "Beauty": ("Thu 4–7 PM", "8:43 PM"),
-            "Gaming": ("Fri 5–8 PM", "7:15 PM"),
-            "Fitness": ("Mon 6–9 PM", "8:00 PM"),
-            "Default": ("Wed 6–9 PM", "7:30 PM"),
-        },
-        "Instagram": {
-            "Beauty": ("Sun 5–8 PM", "6:45 PM"),
-            "Gaming": ("Mon 6–9 PM", "8:10 PM"),
-            "Fitness": ("Tue 5–8 PM", "7:00 PM"),
-            "Default": ("Wed 6–9 PM", "7:30 PM"),
-        },
-        "YouTube": {
-            "Beauty": ("Sat 2–6 PM", "3:45 PM"),
-            "Gaming": ("Fri 6–10 PM", "8:00 PM"),
-            "Fitness": ("Sun 8–11 AM", "9:30 AM"),
-            "Default": ("Thu 6–9 PM", "8:00 PM"),
-        },
-        "Facebook": {
-            "Beauty": ("Fri 4–7 PM", "5:45 PM"),
-            "Gaming": ("Thu 6–8 PM", "7:00 PM"),
-            "Fitness": ("Wed 5–8 PM", "7:30 PM"),
-            "Default": ("Tue 6–8 PM", "7:00 PM"),
-        },
-    }
-    t, peak = defaults.get(platform, {}).get(
-        niche, defaults.get(platform, {}).get("Default")
-    )
-    return f"{day}, EST", t, peak
-
-
-# --- Core routes ---
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-
-@app.route("/analyze", methods=["POST"])
+@app.route('/analyze', methods=['POST'])
 def analyze():
     try:
-        platform = request.form.get("platform", "TikTok")
-        video_file = request.files.get("video")
-        csv_file = request.files.get("csv")
+        platform = request.form.get("platform")
+        video = request.files["video"]
 
-        if not video_file:
-            return jsonify({"error": "No video file provided."})
+        # Save temporary video
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:
+            video.save(temp_file.name)
+            video_path = temp_file.name
 
-        # --- Save uploaded video temporarily ---
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
-            video_path = temp_video.name
-            video_file.save(video_path)
-
-        # --- Save CSV if provided ---
-        csv_path = None
-        if csv_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_csv:
-                csv_path = temp_csv.name
-                csv_file.save(csv_path)
-
-        # --- Extract video info ---
+        # Extract basic video info
         clip = VideoFileClip(video_path)
-        duration = round(clip.duration, 2)
-        fps = clip.fps
+        duration = clip.duration
         width, height = clip.size
+        fps = clip.fps
 
-        # --- Capture a few frames for AI visual understanding ---
-        frames = []
-        for t in np.linspace(0, duration, num=min(int(duration), 8)):
-            frame = clip.get_frame(t)
-            _, buf = cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            base64_image = base64.b64encode(buf).decode("utf-8")
-            frames.append(
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-            )
+        # Capture first frame for analysis
+        cap = cv2.VideoCapture(video_path)
+        success, frame = cap.read()
+        cap.release()
 
-        clip.close()
+        if not success:
+            return jsonify({"error": "Failed to read video frame."}), 400
 
-        brightness, tone = analyze_video_visuals(video_path)
+        # Calculate brightness (average pixel intensity)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        brightness = round(np.mean(gray), 2)
 
-        # --- AI prompt for single-platform analysis ---
-        prompt = f"""
-You are a professional AI content strategist analyzing a {platform} video.
-Analyze the uploaded {platform} video and provide a viral optimization report
-**specifically for {platform} only** — do not include results for any other platforms.
+        # Estimate tone based on brightness
+        tone = "dark and moody" if brightness < 80 else "bright and lively" if brightness > 180 else "balanced"
+
+        # Detect current day
+        current_day = datetime.datetime.now().strftime("%A")
+
+        # Send to GPT for analysis
+        with open(video_path, "rb") as video_file:
+            analysis = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a professional AI content strategist specializing in social media virality."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+You are analyzing a {platform} video.
+
+Analyze the uploaded {platform} video and generate a viral optimization report specifically for {platform} only — do not include results for any other platforms.
 
 Determine:
 1️⃣ Niche category (e.g. Beauty, Fitness, Gaming, Food, Travel, Comedy, Education, etc.)
 2️⃣ What the video is about
 3️⃣ What emotion or reaction it triggers
 4️⃣ What visual tone it has (use provided tone: {tone})
-5️⃣ Which {platform} strategies will make it go viral
+5️⃣ Which {platform}-specific strategies will make it go viral
 
 Then, provide the results in this exact format (keep structure identical):
 
 ### 🎬 Video Summary
-📏 Duration: {duration}s | {width}x{height}px | {round(fps)}fps  
+📏 Duration: {round(duration, 2)}s | {width}x{height}px | {round(fps)}fps  
 💡 Visual Tone: {tone} | Brightness: {brightness}
 
 ### 💬 AI-Generated Viral Insights:
 1️⃣ **Scroll-Stopping Caption ({platform} only)**
-   [write one caption for {platform}]
+   [one caption for {platform}]
 
 2️⃣ **5 Hashtags ({platform} only)**
-   [list exactly 5 hashtags for {platform}]
+   [list exactly 5 hashtags]
 
 3️⃣ **Engagement Tip**
    [one short actionable tip for {platform} creators]
@@ -155,68 +97,35 @@ Then, provide the results in this exact format (keep structure identical):
    [inspire the creator in one line]
 
 ### 🔥 Viral Comparison:
-Provide 3 real viral video concepts from the same niche ({platform}-based examples only):
+Provide **3 real public viral videos on {platform}** in the same niche.
 For each:
-- Summary
-- What made it go viral
-- How to replicate it on {platform}
+- URL or unique identifier of the video  
+- Summary of what happens  
+- What made it go viral  
+- How to replicate it in your video
+
+### 🛠 What You Can Do to Rank Higher:
+Based on your uploaded video and the above viral examples, give **3–5 specific optimization actions** (editing, hook, sound, length, caption, hashtags, first 2 seconds, etc.) tailored for {platform} and the detected niche.
 
 Finally:
-🎯 Detected Niche  
-🕓 Best Time to Post ({platform}, today)
+🎯 **Detected Niche:** [insert niche]
+🕓 **Best Time to Post for [niche] ({platform}, {current_day}, EST)**:
+⏰ [insert best time window]
+💡 Peak engagement around [insert specific time].
 """
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=1200
+            )
 
-        # --- Send analysis to OpenAI ---
-        ai_response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an AI expert in social media viral optimization and trend prediction.",
-                },
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": prompt}] + frames[:5],
-                },
-            ],
-            max_tokens=1500,
-        )
+        # Extract the AI-generated text
+        ai_text = analysis.choices[0].message.content
 
-        ai_text = ai_response.choices[0].message.content.strip()
-
-        # --- Extract detected niche for timing ---
-        niche = "Default"
-        for possible in [
-            "Beauty",
-            "Gaming",
-            "Fitness",
-            "Food",
-            "Travel",
-            "Education",
-            "Music",
-            "Fashion",
-            "Sports",
-            "Comedy",
-        ]:
-            if possible.lower() in ai_text.lower():
-                niche = possible
-                break
-
-        day, best_time, peak_time = best_posting_time(platform, niche)
-
-        summary = f"""
-{ai_text}
-
-🎯 **Detected Niche:** {niche}
-🕓 **Best Time to Post for {niche} ({platform}, {day})**:
-⏰ {best_time}
-💡 Peak engagement around {peak_time}.
-"""
-
-        return jsonify({"results": summary})
+        return jsonify({"ai_results": ai_text})
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
