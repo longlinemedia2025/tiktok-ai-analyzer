@@ -81,14 +81,28 @@
     }
     button:hover { opacity: 0.92; transform: translateY(-2px); }
 
+    #loading-bar-container {
+      height: 10px;
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 15px;
+      display: none;
+    }
+
     #loading-bar {
-      height: 8px;
+      height: 10px;
       width: 0%;
       background: #ff0050;
       border-radius: 5px;
-      margin-top: 15px;
-      transition: width 0.18s ease, background 0.3s ease;
-      will-change: width;
+      transition: width 0.3s ease, background 0.3s ease;
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 0.5; }
     }
 
     #loading-status {
@@ -110,9 +124,8 @@
       overflow-wrap: break-word;
       word-wrap: break-word;
       word-break: break-word;
+      animation: fadeIn 0.8s ease-in;
     }
-
-    #ai-results h3 { margin-top: 0; }
 
     pre#full-result {
       white-space: pre-wrap;
@@ -170,12 +183,15 @@
     <input type="file" id="videoUpload" accept="video/*"/>
     <div id="video-meta" class="file-meta"></div>
 
-    <h3>Upload CSV for Analysis</h3>
+    <h3>Upload CSV for Analysis (optional)</h3>
     <input type="file" id="csvUpload" accept=".csv"/>
     <div id="csv-meta" class="file-meta"></div>
 
     <button id="analyzeBtn">Analyze</button>
-    <div id="loading-bar"></div>
+
+    <div id="loading-bar-container">
+      <div id="loading-bar"></div>
+    </div>
     <div id="loading-status"></div>
 
     <div id="ai-results">
@@ -187,28 +203,32 @@
   <script>
     const blobs = Array.from(document.querySelectorAll('.blob'));
     const colorThemes = {
-      TikTok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff', '#cc00ff'],
-      YouTube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3', '#ff4c4c'],
-      Instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d', '#fcb045'],
-      Facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff', '#ffffff']
+      TikTok: ['#ff0050', '#00f2ea', '#ffffff', '#ff66c4', '#00d2ff'],
+      YouTube: ['#ff0000', '#ff6347', '#ff7f50', '#ffffff', '#d3d3d3'],
+      Instagram: ['#e1306c', '#f77737', '#ffdc80', '#5851db', '#fd1d1d'],
+      Facebook: ['#1877F2', '#3b82f6', '#7aa7ff', '#dceeff', '#a6c9ff']
     };
 
     const platformSelect = document.getElementById('platform');
     const loadingBar = document.getElementById('loading-bar');
+    const loadingBarContainer = document.getElementById('loading-bar-container');
     const loadingStatus = document.getElementById('loading-status');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const aiResults = document.getElementById('ai-results');
     const fullResult = document.getElementById('full-result');
+    const csvMeta = document.getElementById('csv-meta');
+    const videoMeta = document.getElementById('video-meta');
 
     const viewBoxW = 1000, viewBoxH = 700;
     const blobData = blobs.map(b => ({
+      el: b,
       x: parseFloat(b.getAttribute('cx')),
       y: parseFloat(b.getAttribute('cy')),
       r: parseFloat(b.getAttribute('r')),
-      dx: (Math.random() - 0.5) * 1.2,
-      dy: (Math.random() - 0.5) * 1.2,
+      dx: (Math.random() - 0.5) * 0.6,
+      dy: (Math.random() - 0.5) * 0.6,
       pulse: Math.random() * Math.PI * 2,
-      speedMult: 0.4 + Math.random() * 0.6
+      speedMult: 0.3 + Math.random() * 0.6
     }));
 
     function animate(now) {
@@ -219,18 +239,17 @@
         if (b.x > viewBoxW + 200) b.x = -200;
         if (b.y < -200) b.y = viewBoxH + 200;
         if (b.y > viewBoxH + 200) b.y = -200;
-        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.07);
-        const el = blobs[blobData.indexOf(b)];
-        el.setAttribute('cx', b.x);
-        el.setAttribute('cy', b.y);
-        el.setAttribute('r', r);
+        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.06);
+        b.el.setAttribute('cx', b.x);
+        b.el.setAttribute('cy', b.y);
+        b.el.setAttribute('r', r);
       }
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
 
     function updateColors() {
-      const colors = colorThemes[platformSelect.value];
+      const colors = colorThemes[platformSelect.value] || colorThemes.TikTok;
       blobs.forEach((b, i) => {
         const c = colors[i % colors.length];
         b.setAttribute('fill', c);
@@ -240,8 +259,18 @@
       loadingBar.style.background = colors[0];
     }
 
-    platformSelect.addEventListener('change', updateColors);
+    platformSelect.addEventListener('change', () => { updateColors(); });
     updateColors();
+
+    document.getElementById('videoUpload').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      videoMeta.textContent = f ? `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB` : '';
+    });
+
+    document.getElementById('csvUpload').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      csvMeta.textContent = f ? `${f.name} — ${(f.size/1024).toFixed(1)} KB` : '';
+    });
 
     let progressInterval;
 
@@ -249,50 +278,58 @@
       const platform = platformSelect.value;
       const video = document.getElementById('videoUpload').files[0];
       const csv = document.getElementById('csvUpload').files[0];
-      if (!video) {
-        alert("Please upload a video file first!");
-        return;
-      }
+      if (!video) { alert("Please upload a video file first!"); return; }
 
       aiResults.style.display = 'none';
       loadingBar.style.width = "0%";
+      loadingBarContainer.style.display = 'block';
       loadingStatus.textContent = "Uploading and analyzing...";
+      progress_status_reset();
 
       const formData = new FormData();
       formData.append("platform", platform);
       formData.append("video", video);
       if (csv) formData.append("csv", csv);
 
+      progressInterval = setInterval(async () => {
+        try {
+          const res = await fetch("/progress");
+          const progress = await res.json();
+          loadingStatus.textContent = progress.step || `${progress.percent}% complete`;
+          loadingBar.style.width = `${progress.percent || 0}%`;
+
+          if ((progress.percent || 0) >= 100) {
+            clearInterval(progressInterval);
+            loadingBar.style.width = "100%";
+            loadingStatus.textContent = "✅ Analysis complete!";
+            if (progress.result) {
+              aiResults.style.display = 'block';
+              fullResult.textContent = progress.result;
+              aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+        } catch (err) {
+          console.error("Progress poll error:", err);
+        }
+      }, 1000);
+
       const response = await fetch("/analyze", { method: "POST", body: formData });
       const data = await response.json();
+
       if (data.error) {
+        clearInterval(progressInterval);
         loadingStatus.textContent = "❌ Error: " + data.error;
+        loadingBarContainer.style.display = 'none';
         return;
       }
-
-      // Start polling /progress every 3s
-      progressInterval = setInterval(async () => {
-        const res = await fetch("/progress");
-        const progress = await res.json();
-        loadingStatus.textContent = progress.stage;
-
-        // Adjust loading bar based on phase
-        if (progress.stage.includes("Uploading")) loadingBar.style.width = "15%";
-        else if (progress.stage.includes("Extracting")) loadingBar.style.width = "35%";
-        else if (progress.stage.includes("Analyzing")) loadingBar.style.width = "55%";
-        else if (progress.stage.includes("Generating")) loadingBar.style.width = "80%";
-        else if (progress.stage.includes("Complete")) {
-          loadingBar.style.width = "100%";
-          clearInterval(progressInterval);
-          aiResults.style.display = 'block';
-          fullResult.textContent = progress.result || "⚠ No results received from AI.";
-          aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
-        } else if (progress.stage.startsWith("Error")) {
-          clearInterval(progressInterval);
-          loadingStatus.textContent = "❌ " + progress.stage;
-        }
-      }, 3000);
     });
+
+    function progress_status_reset() {
+      loadingBar.style.width = "0%";
+      loadingStatus.textContent = "Uploading and analyzing...";
+      aiResults.style.display = 'none';
+      fullResult.textContent = "";
+    }
   </script>
 </body>
 </html>
