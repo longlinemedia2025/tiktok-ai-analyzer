@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# ===== Render build fix for MoviePy =====
-echo "Installing dependencies..."
+# ===== Render build fix for MoviePy + Tesseract =====
+
+echo "Installing system packages..."
+apt-get update && apt-get install -y tesseract-ocr
+
+echo "Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 

@@ -4,6 +4,7 @@ openai==2.3.0
 moviepy==1.0.3
 numpy==2.3.3
 Pillow==11.3.0
+pytesseract==0.3.10
 requests==2.32.3
 gunicorn==23.0.0
 imageio==2.36.0
@@ -12,5 +13,7 @@ decorator==4.4.2
 proglog==0.1.10
 opencv-python-headless==4.10.0.84
 Flask-Cors==4.0.0
+
+
 
 
