@@ -243,6 +243,8 @@
     platformSelect.addEventListener('change', updateColors);
     updateColors();
 
+    let progressInterval;
+
     analyzeBtn.addEventListener('click', async () => {
       const platform = platformSelect.value;
       const video = document.getElementById('videoUpload').files[0];
@@ -268,20 +270,28 @@
         return;
       }
 
-      // ✅ FIXED SECTION BELOW
-      loadingStatus.textContent = "✅ Analysis complete!";
-      loadingBar.style.width = "100%";
-      aiResults.style.display = 'block';
+      // Start polling /progress every 3s
+      progressInterval = setInterval(async () => {
+        const res = await fetch("/progress");
+        const progress = await res.json();
+        loadingStatus.textContent = progress.stage;
 
-      if (data.results) {
-        fullResult.textContent = data.results;
-      } else if (data.result) {
-        fullResult.textContent = data.result;
-      } else {
-        fullResult.textContent = "⚠ No results received from AI.";
-      }
-
-      aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Adjust loading bar based on phase
+        if (progress.stage.includes("Uploading")) loadingBar.style.width = "15%";
+        else if (progress.stage.includes("Extracting")) loadingBar.style.width = "35%";
+        else if (progress.stage.includes("Analyzing")) loadingBar.style.width = "55%";
+        else if (progress.stage.includes("Generating")) loadingBar.style.width = "80%";
+        else if (progress.stage.includes("Complete")) {
+          loadingBar.style.width = "100%";
+          clearInterval(progressInterval);
+          aiResults.style.display = 'block';
+          fullResult.textContent = progress.result || "⚠ No results received from AI.";
+          aiResults.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (progress.stage.startsWith("Error")) {
+          clearInterval(progressInterval);
+          loadingStatus.textContent = "❌ " + progress.stage;
+        }
+      }, 3000);
     });
   </script>
 </body>

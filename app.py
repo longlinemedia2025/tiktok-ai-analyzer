@@ -7,23 +7,32 @@ import tempfile
 from openai import OpenAI
 import pytesseract
 from PIL import Image
+import threading
+import time
 
-# Initialize Flask app
+# ==========================
+# Flask + OpenAI Setup
+# ==========================
 app = Flask(__name__, template_folder="templates")
 CORS(app)
-
-# Connect to OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# If tesseract not in PATH, uncomment and fix path:
+# Shared variable for progress tracking
+progress_status = {"stage": "idle", "result": None}
+
+# If tesseract not in PATH, uncomment below and adjust path:
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
+
+# ==========================
+# Helper Functions
+# ==========================
 def extract_video_frames(video_path, frame_rate=1):
     """Extract one frame per second for analysis"""
     frames = []
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_interval = int(fps * frame_rate)
+    frame_interval = int(fps * frame_rate) if fps > 0 else 30
     count = 0
     success, frame = cap.read()
     while success:
@@ -37,11 +46,14 @@ def extract_video_frames(video_path, frame_rate=1):
 
 def analyze_video(video_path):
     """Extract visual + text information for AI understanding"""
+    global progress_status
+    progress_status["stage"] = "Extracting frames..."
     frames = extract_video_frames(video_path)
     text_detected = []
     visual_descriptions = []
 
-    for frame in frames[:5]:  # Limit to 5 frames for efficiency
+    for i, frame in enumerate(frames[:5]):  # Limit to 5 frames for efficiency
+        progress_status["stage"] = f"Analyzing frame {i+1}/5..."
         # Convert frame to PIL
         pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
@@ -53,7 +65,6 @@ def analyze_video(video_path):
         # Save temporary frame for CLIP analysis
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_img:
             pil_img.save(temp_img.name)
-            # Send to OpenAI CLIP vision model for labeling
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -74,12 +85,14 @@ def analyze_video(video_path):
 
     combined_visuals = " ".join(visual_descriptions)
     combined_text = " ".join(text_detected)
-
     return combined_visuals, combined_text
 
 
 def generate_ai_report(video_path, platform):
+    global progress_status
     visuals, extracted_text = analyze_video(video_path)
+
+    progress_status["stage"] = "Generating AI report..."
     prompt = f"""
 You are an expert social media analyst. Analyze this video for the chosen platform: {platform}.
 The video’s visual content: {visuals}
@@ -123,18 +136,27 @@ real viral examples in its niche.
 💡 Peak engagement hour in EST
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0.7,
-        messages=[
-            {"role": "system", "content": "You are a professional social media growth strategist and video content analyzer."},
-            {"role": "user", "content": prompt}
-        ]
-    )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": "You are a professional social media growth strategist and video content analyzer."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        result = response.choices[0].message.content
+        progress_status["stage"] = "Complete"
+        progress_status["result"] = result
+        return result
+    except Exception as e:
+        progress_status["stage"] = f"Error during AI generation: {str(e)}"
+        return None
 
-    return response.choices[0].message.content
 
-
+# ==========================
+# Flask Routes
+# ==========================
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -142,21 +164,35 @@ def index():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    global progress_status
     if 'video' not in request.files:
         return jsonify({"error": "No video file provided"}), 400
 
     video = request.files['video']
     platform = request.form.get('platform', 'TikTok')
+    progress_status = {"stage": "Uploading video...", "result": None}
 
     with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
         video.save(tmp.name)
-        analysis_result = generate_ai_report(tmp.name, platform)
 
-    if not analysis_result:
-        analysis_result = "⚠ No results received from AI."
+        def background_task():
+            try:
+                generate_ai_report(tmp.name, platform)
+            except Exception as e:
+                progress_status["stage"] = f"Error: {str(e)}"
 
-    return jsonify({"result": analysis_result})
+        threading.Thread(target=background_task).start()
+
+    return jsonify({"message": "Upload successful. Analysis started."})
 
 
+@app.route('/progress', methods=['GET'])
+def get_progress():
+    return jsonify(progress_status)
+
+
+# ==========================
+# Run Flask App
+# ==========================
 if __name__ == "__main__":
     app.run(debug=True)
