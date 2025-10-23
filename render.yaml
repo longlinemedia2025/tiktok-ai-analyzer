@@ -2,9 +2,24 @@ services:
   - type: web
     name: tiktok-ai-analyzer
     env: python
-    buildCommand: ""
-    startCommand: "python app.py"
     plan: free
+
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+    startCommand: python app.py
+
     envVars:
       - key: OPENAI_API_KEY
         sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+    # Keep uploaded videos and CSVs in a temporary directory (Render resets storage on redeploy)
+    disk:
+      name: uploads
+      mountPath: /opt/uploads
+      sizeGB: 1

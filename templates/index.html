@@ -127,6 +127,7 @@
       animation: fadeIn 0.8s ease-in;
     }
 
+    /* 🆕 Intent display styling */
     #intent-detected {
       font-size: 1rem;
       color: #00f2ea;
@@ -204,6 +205,7 @@
     <div id="loading-status"></div>
 
     <div id="ai-results">
+      <!-- 🆕 Intent display section -->
       <div id="intent-detected"></div>
       <h3>AI Results</h3>
       <pre id="full-result"></pre>
@@ -228,7 +230,36 @@
     const fullResult = document.getElementById('full-result');
     const csvMeta = document.getElementById('csv-meta');
     const videoMeta = document.getElementById('video-meta');
-    const intentDetected = document.getElementById('intent-detected');
+    const intentDetected = document.getElementById('intent-detected'); // 🆕
+
+    const viewBoxW = 1000, viewBoxH = 700;
+    const blobData = blobs.map(b => ({
+      el: b,
+      x: parseFloat(b.getAttribute('cx')),
+      y: parseFloat(b.getAttribute('cy')),
+      r: parseFloat(b.getAttribute('r')),
+      dx: (Math.random() - 0.5) * 0.6,
+      dy: (Math.random() - 0.5) * 0.6,
+      pulse: Math.random() * Math.PI * 2,
+      speedMult: 0.3 + Math.random() * 0.6
+    }));
+
+    function animate(now) {
+      for (const b of blobData) {
+        b.x += b.dx * b.speedMult;
+        b.y += b.dy * b.speedMult;
+        if (b.x < -200) b.x = viewBoxW + 200;
+        if (b.x > viewBoxW + 200) b.x = -200;
+        if (b.y < -200) b.y = viewBoxH + 200;
+        if (b.y > viewBoxH + 200) b.y = -200;
+        const r = b.r * (1 + Math.sin(now / 1000 + b.pulse) * 0.06);
+        b.el.setAttribute('cx', b.x);
+        b.el.setAttribute('cy', b.y);
+        b.el.setAttribute('r', r);
+      }
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
 
     function updateColors() {
       const colors = colorThemes[platformSelect.value] || colorThemes.TikTok;
@@ -240,13 +271,15 @@
       analyzeBtn.style.background = colors[0];
       loadingBar.style.background = colors[0];
     }
-    platformSelect.addEventListener('change', updateColors);
+
+    platformSelect.addEventListener('change', () => { updateColors(); });
     updateColors();
 
     document.getElementById('videoUpload').addEventListener('change', async (e) => {
       const f = e.target.files[0];
       videoMeta.textContent = f ? `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB` : '';
       if (f) {
+        // 🆕 Auto-detect intent when a video is uploaded
         const formData = new FormData();
         formData.append("video", f);
         intentDetected.style.display = "block";
@@ -257,17 +290,11 @@
           if (data.intent) {
             intentDetected.textContent = `🎯 Detected Intent: ${data.intent}`;
           } else {
-            intentDetected.style.display = "none"; // 🆕 hide if not provided
+            intentDetected.textContent = "⚠️ Could not determine intent.";
           }
         } catch (err) {
           console.error("Intent detection failed:", err);
-          // 🆕 only show if backend explicitly sends the failure message
-          if (err.message && err.message.includes("Intent detection failed")) {
-            intentDetected.style.display = "block";
-            intentDetected.textContent = "⚠️ Intent detection failed.";
-          } else {
-            intentDetected.style.display = "none";
-          }
+          intentDetected.textContent = "⚠️ Intent detection failed.";
         }
       }
     });
@@ -289,7 +316,7 @@
       loadingBar.style.width = "0%";
       loadingBarContainer.style.display = 'block';
       loadingStatus.textContent = "Uploading and analyzing...";
-      fullResult.textContent = "";
+      progress_status_reset();
 
       const formData = new FormData();
       formData.append("platform", platform);
@@ -325,8 +352,16 @@
         clearInterval(progressInterval);
         loadingStatus.textContent = "❌ Error: " + data.error;
         loadingBarContainer.style.display = 'none';
+        return;
       }
     });
+
+    function progress_status_reset() {
+      loadingBar.style.width = "0%";
+      loadingStatus.textContent = "Uploading and analyzing...";
+      aiResults.style.display = 'none';
+      fullResult.textContent = "";
+    }
   </script>
 </body>
 </html>
